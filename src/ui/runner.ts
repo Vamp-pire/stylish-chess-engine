@@ -10,7 +10,7 @@ export interface RunCallbacks {
   onMove(m: MoveAnalysis): void;
 }
 
-let enginePromise: Promise<{ engine: UciEngine; threads: number }> | null = null;
+let enginePromise: Promise<{ engine: UciEngine }> | null = null;
 export function getEngine() {
   enginePromise ??= createBrowserEngine(import.meta.env.BASE_URL + 'engine/');
   return enginePromise;

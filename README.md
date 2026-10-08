@@ -33,7 +33,7 @@ Stockfish 재확인      ─ 함정수·도박수·대기수 후보만 추가 �
 ```
 
 - 객관적인 좋고 나쁨은 전부 Stockfish가 판단하고, 자체 탐색은 특징을 뽑는 보조 계산만 합니다.
-- 분석은 Web Worker에서 돌고, Stockfish는 별도 Worker(멀티스레드 가능 시 멀티스레드 빌드)에서 돕니다.
+- 분석은 Web Worker에서 돌고, Stockfish는 별도 Worker에서 돕니다. 멀티스레드 빌드는 깊이 고정 탐색에서 특정 국면이 수십 배 느려지는 문제가 있어 단일 스레드 빌드만 씁니다.
 
 ## 개발
 
@@ -67,7 +67,7 @@ public/engine/  Stockfish 19 lite WASM (GPLv3)
 
 ## 배포 (Vercel)
 
-`vercel.json`이 멀티스레드 Stockfish에 필요한 교차 출처 격리 헤더(COOP/COEP)를 설정합니다. 헤더가 없어도 단일 스레드 빌드로 동작합니다.
+정적 사이트라 특별한 서버 설정이 필요 없습니다. `vercel.json`은 엔진 파일 캐시 헤더만 설정합니다. 배포 주소: https://stylish-engine.vercel.app
 
 ## 라이선스
 
