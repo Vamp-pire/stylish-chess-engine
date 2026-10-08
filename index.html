@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stylish — 체스 수 스타일 분석</title>
+    <meta name="description" content="체스 기보의 각 수가 어떤 스타일인지(공격적, 도박수, 포지셔널, 수비적 등)와 플레이어의 성향을 브라우저에서 분석합니다." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#" data-nav="analyze"><span class="brand-mark">♞</span><span class="brand-name">Stylish<em>.</em></span></a>
+      <nav class="nav">
+        <button data-nav="analyze" class="active">분석</button>
+        <button data-nav="guide">스타일 사전</button>
+        <button data-nav="about">소개</button>
+      </nav>
+    </header>
+    <main id="app"></main>
+    <footer>
+      Stylish는 <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPLv3</a> 오픈소스입니다.
+      분석 엔진: <a href="https://stockfishchess.org" target="_blank" rel="noopener">Stockfish 19</a>
+      (<a href="https://github.com/nmrugg/stockfish.js" target="_blank" rel="noopener">stockfish.js</a>, GPLv3) ·
+      보드: <a href="https://github.com/lichess-org/chessground" target="_blank" rel="noopener">chessground</a> (GPLv3).
+      모든 계산은 이 브라우저 안에서 이뤄집니다.
+    </footer>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

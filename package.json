@@ -1,0 +1,26 @@
+{
+  "name": "stylish",
+  "version": "0.1.0",
+  "private": true,
+  "description": "체스 수의 스타일과 플레이어 성향을 브라우저에서 평가하는 웹사이트",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "chess.js": "^1.4.0",
+    "chessground": "^9.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "stockfish": "^19.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.3",
+    "vitest": "^5.0.3"
+  }
+}
