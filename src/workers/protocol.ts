@@ -3,7 +3,7 @@ import type { EngineLine } from '../engine/uci';
 import type { GameAnalysis, MoveAnalysis } from '../core/analyzer';
 
 export type ToWorker =
-  | { type: 'analyze'; pgn: string; depth: number }
+  | { type: 'analyze'; pgn: string; depth: number; bookUrl: string | null }
   | { type: 'abort' }
   | { type: 'engineResult'; id: number; lines: EngineLine[] };
 

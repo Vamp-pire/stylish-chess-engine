@@ -82,6 +82,7 @@ h1, h2, h3 { margin: 0; line-height: 1.25; }
 .brand-name { font-weight: 800; font-size: 18px; letter-spacing: -.02em; }
 .brand-name em { font-style: normal; color: var(--accent); }
 .nav { margin-left: auto; display: flex; gap: 4px; }
+.nav button { white-space: nowrap; }
 .nav button, .ghost {
   background: none; border: 0; padding: 6px 12px; border-radius: 8px; cursor: pointer; color: var(--text-2);
 }
@@ -143,8 +144,10 @@ input.text {
 .sample:hover { border-color: var(--accent); }
 .sample strong { display: block; }
 .dropzone {
+  display: block; cursor: pointer;
   border: 2px dashed var(--border); border-radius: 12px; padding: 36px; text-align: center; color: var(--text-2);
 }
+.dropzone:hover { border-color: var(--accent); }
 .dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
 .input-foot {
   display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
@@ -180,7 +183,7 @@ input.text {
 @media (max-width: 760px) { main { padding: 16px; } .topbar { padding: 10px 16px; } .brand-name { font-size: 16px; } .nav button { padding: 6px 8px; } }
 
 .board-col { display: grid; gap: 12px; }
-.board-wrap { position: relative; width: 100%; aspect-ratio: 1; }
+.board-wrap { position: relative; width: 100%; aspect-ratio: 1; overflow: clip; }
 .board-wrap > .cg { position: absolute; inset: 0; }
 .board-controls { display: flex; gap: 6px; justify-content: center; }
 .board-controls button { min-width: 44px; }
@@ -273,3 +276,43 @@ details.reasons summary { cursor: pointer; color: var(--text-2); font-size: 14px
 .about h2 { font-size: 18px; margin-bottom: 8px; }
 .about p, .about li { color: var(--text-2); }
 footer { text-align: center; padding: 32px 16px 40px; color: var(--text-3); font-size: 13px; }
+
+/* ── 오프닝 이론 ── */
+.mv.book { color: var(--text-3); }
+.mv.book .dot { opacity: .35; }
+.g-dev { color: var(--accent); }
+.opening-chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-banner {
+  display: grid; gap: 2px; padding: 10px 14px; border-radius: 12px; font-size: 14px;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.book-banner span { color: var(--text-2); font-size: 13px; }
+.book-banner.dev { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+.dim { opacity: .45; display: grid; gap: 16px; }
+.move-card > div:not(.dim) { min-width: 0; }
+
+/* ── 아이디로 불러오기 ── */
+.tabs { overflow-x: auto; scrollbar-width: none; }
+.tabs button { white-space: nowrap; }
+.account { display: grid; gap: 12px; }
+.account-form { display: flex; gap: 8px; }
+.account-form .text { flex: 1; min-width: 0; }
+.account-tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.chip-on { background: var(--accent-soft); border-color: var(--accent); color: var(--text); font-weight: 600; }
+button.chip { cursor: pointer; }
+.game-table-wrap { max-height: 420px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+.game-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.game-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.game-table tr:last-child td { border-bottom: 0; }
+.game-table .opening-cell { max-width: 260px; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
+.res-win { color: var(--good); font-weight: 700; }
+.res-loss { color: var(--bad); font-weight: 700; }
+.res-draw { color: var(--text-2); font-weight: 700; }
+.btn.small { padding: 4px 10px; font-size: 13px; border-radius: 8px; }
+.account-foot { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+@media (max-width: 760px) { .game-table .opening-cell { display: none; } }
+
+/* ── 종합 프로필 ── */
+.batch { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+@media (max-width: 1000px) { .batch { grid-template-columns: minmax(0, 1fr); } }
+.profile.focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft), var(--shadow); }

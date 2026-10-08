@@ -62,6 +62,10 @@ export function renderGuide(): string {
       <section class="guide-group"><h2>위험 판정 (해당될 때 하나만)</h2><div class="guide-list">${risk}</div></section>
       <section class="guide-group"><h2>수의 품질</h2><div class="guide-list">${quality}</div></section>
       <section class="guide-group card card-pad">
+        <h2>오프닝 이론 수</h2>
+        <p class="muted">Lichess가 공개한 오프닝 목록(약 3,300개 변화)에 있는 국면까지는 이론 수로 봅니다. 수순이 바뀌어 같은 국면에 와도 인식합니다. 누구나 두는 수라 스타일 점수는 참고용으로 흐리게 보여주고 플레이어 평가에서는 뺍니다. 처음 이론을 벗어난 수는 ↳로 표시합니다.</p>
+      </section>
+      <section class="guide-group card card-pad">
         <h2>강제된 수</h2>
         <p class="muted">합법 수가 하나뿐이거나, 체크를 피하는 수가 거의 없거나, 당연한 되잡기처럼 누구나 먼저 떠올릴 유일한 최선 수는 플레이어의 선택이 아니므로 플레이어 평가 집계에서 제외합니다. 찾기 어려운 유일한 수(희생 등)는 포함합니다.</p>
       </section>

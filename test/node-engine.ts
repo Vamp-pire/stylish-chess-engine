@@ -3,7 +3,12 @@
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { UciEngine } from '../src/engine/uci';
+import { OpeningBook } from '../src/core/openings';
+
+/** 테스트용 오프닝 이론 데이터 */
+export const loadNodeBook = () => new OpeningBook(JSON.parse(readFileSync('public/openings.json', 'utf8')));
 
 export async function createNodeEngine(): Promise<UciEngine> {
   const native = process.env.STOCKFISH_PATH;

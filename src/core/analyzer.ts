@@ -9,6 +9,7 @@ import { gridFromFen, material, opp, kingZone, attackMap, type Color } from './g
 import { Position } from '../search/position';
 import { Searcher, threatOf, replyOutcomes, quickValue } from '../search/search';
 import { buildProfiles, type PlayerProfile } from './profile';
+import type { OpeningBook, OpeningInfo } from './openings';
 
 // 손실 계산용 상한: 이 이상은 사실상 결판난 국면
 const CAP = 1000;
@@ -19,6 +20,8 @@ export interface AnalyzeOptions {
   onProgress?: (done: number, total: number) => void;
   onMove?: (m: MoveAnalysis) => void;
   signal?: { aborted: boolean };
+  /** 오프닝 이론 판별용 (없으면 이론 판별을 하지 않는다) */
+  book?: OpeningBook | null;
 }
 
 export interface MoveAnalysis extends StyleResult {
@@ -41,6 +44,10 @@ export interface MoveAnalysis extends StyleResult {
   phase: 'opening' | 'middlegame' | 'endgame';
   situation: 'ahead' | 'equal' | 'behind';
   choiceDelta: Partial<Record<StyleKey, number>> | null;
+  /** 오프닝 이론 수 (스타일은 계산하되 흐리게 보여주고 플레이어 평가에서 제외) */
+  book: boolean;
+  /** 이 수까지 도달한 오프닝 이름 (이론 안에 있을 때) */
+  opening: OpeningInfo | null;
   /** 상대가 실제로 틀렸는지 (위험 판정 수의 성공 여부) */
   riskSucceeded: boolean | null;
   features: StaticFeatures;
@@ -53,6 +60,10 @@ export interface GameAnalysis {
   moves: MoveAnalysis[];
   profiles: { w: PlayerProfile; b: PlayerProfile };
   depth: number;
+  /** 이론을 따라간 마지막 국면의 오프닝 이름 */
+  opening: OpeningInfo | null;
+  /** 이론 수 개수 (처음부터 이어진 구간) */
+  bookPlies: number;
 }
 
 function terminalLines(fen: string): EngineLine[] | null {
@@ -149,6 +160,11 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
       move: m, prev: i > 0 ? history[i - 1] : null, ply: i,
       before: lines[i], after: lines[i + 1], engine, depth, searcher,
     });
+    // 오프닝 이론: 처음부터 끊기지 않고 이어진 구간만 (한 번 벗어나면 다시 들어와도 이론으로 보지 않는다)
+    const info = opts.book?.lookup(m.after) ?? null;
+    const stillBook = !!info && (i === 0 || !!results[i - 1]?.book);
+    res.book = stillBook;
+    res.opening = stillBook ? info : null;
     results.push(res);
     opts.onMove?.(res);
     opts.onProgress?.(i + 2, total);
@@ -162,7 +178,11 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
     r.riskSucceeded = next ? next.cpLoss >= 100 : null;
   }
 
-  return { headers, startFen, moves: results, profiles: buildProfiles(results), depth };
+  const bookPlies = results.filter((r) => r.book).length;
+  const lastBook = bookPlies ? results[bookPlies - 1].opening : null;
+  // 이름은 정확히 일치한 가장 깊은 국면 우선
+  const named = [...results.slice(0, bookPlies)].reverse().find((r) => r.opening?.exact)?.opening ?? lastBook;
+  return { headers, startFen, moves: results, profiles: buildProfiles(results), depth, opening: named, bookPlies };
 }
 
 interface MoveInput {
@@ -331,6 +351,6 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
     playedPvSan: uciToSanLine(A, after[0].pv, 7),
     phase: ply < 20 && f.phase > 0.75 ? 'opening' : f.isEndgame ? 'endgame' : 'middlegame',
     situation: evalBefore >= 150 ? 'ahead' : evalBefore <= -150 ? 'behind' : 'equal',
-    choiceDelta, riskSucceeded: null, features: f, deep,
+    choiceDelta, riskSucceeded: null, book: false, opening: null, features: f, deep,
   };
 }

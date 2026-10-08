@@ -41,7 +41,7 @@ export class AnalysisRun {
         }
       };
       this.worker.onerror = (e) => reject(new Error(e.message));
-      send({ type: 'analyze', pgn, depth });
+      send({ type: 'analyze', pgn, depth, bookUrl: new URL(import.meta.env.BASE_URL + 'openings.json', location.href).href });
     });
   }
 

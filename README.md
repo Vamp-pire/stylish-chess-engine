@@ -17,6 +17,10 @@
 - **도박수**: Stockfish 기준으로 손해인데, 상대가 솔깃한 응수를 두면 최선 수보다 더 좋아지는 수 (상대가 틀리길 노리는 수)
 - **함정수**: 손해가 없는데, 상대가 미끼를 물면 크게 이득을 보는 수
 
+**오프닝 이론 수**(Lichess 공개 오프닝 목록, CC0)는 스타일을 흐리게만 보여주고 플레이어 평가에서 뺍니다.
+
+**Chess.com·Lichess 아이디**로 최근 게임을 불러와 한 판씩 보거나, 여러 판을 골라 그 사람의 수만 모은 **종합 프로필**을 만들 수 있습니다. 분석 결과는 브라우저(IndexedDB)에 저장돼 다시 열면 바로 나옵니다.
+
 플레이어 평가는 스타일 분포, 비슷한 대안 중 무엇을 골랐는지(선택 성향), 희생·함정·도박 횟수와 적중률, 게임 단계·형세별 변화, 정확도를 보여주고 유형 이름을 붙입니다 (예: 로맨틱 공격수, 견고한 전략가).
 
 ## 어떻게 동작하나
@@ -76,3 +80,4 @@ GPLv3 ([LICENSE](LICENSE)). 다음 GPLv3 소프트웨어를 포함합니다.
 - [Stockfish](https://github.com/official-stockfish/Stockfish) 19 / [stockfish.js](https://github.com/nmrugg/stockfish.js) — `public/engine/`
 - [chessground](https://github.com/lichess-org/chessground) — 보드 UI
 - [chess.js](https://github.com/jhlywa/chess.js) (BSD-2-Clause) — 기보 처리
+- [lichess-org/chess-openings](https://github.com/lichess-org/chess-openings) (CC0) — 오프닝 이론 데이터 (`scripts/build-openings.mjs`로 `public/openings.json` 생성)

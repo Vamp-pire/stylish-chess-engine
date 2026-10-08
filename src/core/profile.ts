@@ -1,4 +1,4 @@
-// 플레이어 평가: 강제된 수를 뺀 수들로 스타일 성향을 집계한다.
+// 플레이어 평가: 강제된 수와 오프닝 이론 수를 뺀 수들로 스타일 성향을 집계한다.
 import type { MoveAnalysis } from './analyzer';
 import { STYLE_KEYS, type StyleKey, type RiskKind, type QualityKey } from './styles';
 
@@ -22,6 +22,8 @@ export interface PlayerProfile {
   byPhase: Record<Phase, SliceProfile>;
   bySituation: Record<Situation, SliceProfile>;
   archetype: { name: string; desc: string };
+  /** 오프닝: 이론을 따라간 수, 이론 이탈 수 (한 게임 기준) */
+  opening: { bookMoves: number; leftBookFirst: boolean | null; deviation: { san: string; moveNumber: number; quality: QualityKey | null } | null };
 }
 
 const zero = () => Object.fromEntries(STYLE_KEYS.map((k) => [k, 0])) as Record<StyleKey, number>;
@@ -54,11 +56,11 @@ function moveAccuracy(m: MoveAnalysis) {
 /**
  * 스타일별 기준값: 여러 기보(강제된 수 제외)의 평균 점수. 스타일마다 평소 나오는 점수 수준이 달라서
  * 유형을 정할 때는 이 기준보다 얼마나 더 나왔는지(편차)로 비교한다.
- * 현재 값은 고전 기보 4개(오페라·불멸·상록수·카르포프-운치커, 195수)로 구했다.
+ * 현재 값은 고전 기보 4개(오페라·불멸·상록수·카르포프-운치커)에서 강제된 수와 오프닝 이론 수를 뺀 143수로 구했다.
  */
 export const BASELINE: Record<StyleKey, number> = {
-  aggressive: 18, tactical: 13, initiative: 18, counterattack: 1, positional: 8, prophylactic: 11, restriction: 2,
-  active: 29, space: 10, tension: 8, solid: 18, defensive: 19, simplifying: 2, complicating: 18, quiet: 4,
+  aggressive: 23, tactical: 15, initiative: 27, counterattack: 3, positional: 9, prophylactic: 10, restriction: 2,
+  active: 25, space: 5, tension: 8, solid: 15, defensive: 20, simplifying: 3, complicating: 20, quiet: 4,
   waiting: 0, practical: 2, kingActivity: 0, passedPawn: 0,
 };
 
@@ -106,7 +108,8 @@ function archetype(avg: Record<StyleKey, number>, riskRate: number): PlayerProfi
 }
 
 export function buildProfile(all: MoveAnalysis[]): PlayerProfile {
-  const counted = all.filter((m) => !m.forced);
+  // 선택이 아닌 수(강제된 수)와 누구나 두는 오프닝 이론 수는 성향 집계에서 뺀다
+  const counted = all.filter((m) => !m.forced && !m.book);
   const avg = average(counted);
   const primaryCounts = Object.fromEntries([...STYLE_KEYS, 'neutral'].map((k) => [k, 0])) as PlayerProfile['primaryCounts'];
   for (const m of counted) primaryCounts[m.primary]++;
@@ -140,9 +143,20 @@ export function buildProfile(all: MoveAnalysis[]): PlayerProfile {
     byPhase: by(['opening', 'middlegame', 'endgame'], (m) => m.phase),
     bySituation: by(['ahead', 'equal', 'behind'], (m) => m.situation),
     archetype: archetype(avg, riskRate),
+    opening: { bookMoves: all.filter((m) => m.book).length, leftBookFirst: null, deviation: null },
   };
 }
 
 export function buildProfiles(moves: MoveAnalysis[]) {
-  return { w: buildProfile(moves.filter((m) => m.color === 'w')), b: buildProfile(moves.filter((m) => m.color === 'b')) };
+  const w = buildProfile(moves.filter((m) => m.color === 'w'));
+  const b = buildProfile(moves.filter((m) => m.color === 'b'));
+  // 처음으로 이론을 벗어난 수 (이론 수가 하나라도 있었을 때만)
+  const dev = moves.some((m) => m.book) ? moves.find((m) => !m.book) : undefined;
+  if (dev) {
+    const info = { san: dev.san, moveNumber: dev.moveNumber, quality: dev.quality };
+    (dev.color === 'w' ? w : b).opening.deviation = info;
+    w.opening.leftBookFirst = dev.color === 'w';
+    b.opening.leftBookFirst = dev.color === 'b';
+  }
+  return { w, b };
 }
