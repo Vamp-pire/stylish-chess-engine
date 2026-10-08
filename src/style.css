@@ -165,8 +165,8 @@ input.text {
 /* ── 리뷰 화면 ── */
 .game-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; }
 .players { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
-.side-dot { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--border); }
-.side-dot.w { background: var(--white-side); }
+.side-dot { display: inline-block; vertical-align: middle; width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--border); }
+.side-dot.w { background: var(--white-side); border-color: var(--text-3); }
 .side-dot.b { background: var(--black-side); }
 .progress { flex: 1; min-width: 200px; display: flex; align-items: center; gap: 10px; }
 .bar { flex: 1; height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
@@ -316,3 +316,11 @@ button.chip { cursor: pointer; }
 .batch { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
 @media (max-width: 1000px) { .batch { grid-template-columns: minmax(0, 1fr); } }
 .profile.focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft), var(--shadow); }
+
+/* 게임 목록 선택 */
+.game-table tr[data-row] { cursor: pointer; }
+.game-table tr[data-row]:hover td { background: var(--surface-2); }
+.game-table tr.picked td { background: var(--accent-soft); }
+.pick-cell { width: 44px; text-align: center; }
+input.pick { width: 22px; height: 22px; accent-color: var(--accent); cursor: pointer; vertical-align: middle; margin: 0; }
+.pick-tools { display: flex; gap: 4px; }

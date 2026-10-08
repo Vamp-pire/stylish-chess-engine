@@ -131,6 +131,14 @@ function render() {
 // ───────────── 입력 화면 ─────────────
 
 function renderInput() {
+  const keepY = window.scrollY;
+  const keepList = $('.game-table-wrap')?.scrollTop ?? 0;
+  renderInputInner();
+  window.scrollTo({ top: keepY });
+  const list = $('.game-table-wrap'); if (list) list.scrollTop = keepList;
+}
+
+function renderInputInner() {
   const tabs: [InputTab, string][] = [['paste', 'PGN 붙여넣기'], ['samples', '예시 기보'], ['file', '파일 열기'], ['chesscom', 'Chess.com 아이디'], ['lichessUser', 'Lichess 아이디'], ['lichess', 'Lichess 링크']];
   const body = {
     paste: `<textarea class="pgn" id="pgn" placeholder="[White &quot;...&quot;]&#10;[Black &quot;...&quot;]&#10;&#10;1. e4 e5 2. Nf3 Nc6 ...">${esc(state.draft)}</textarea>`,
@@ -221,8 +229,8 @@ function renderAccountPanel(source: Source): string {
   const rows = list.map((g) => {
     const opp = g.userColor === 'w' ? g.black : g.white;
     const r = userResult(g);
-    return `<tr>
-      <td><input type="checkbox" data-pick="${esc(g.id)}" ${a!.selected.has(g.id) ? 'checked' : ''} aria-label="선택" /></td>
+    return `<tr data-row="${esc(g.id)}" class="${a!.selected.has(g.id) ? 'picked' : ''}">
+      <td class="pick-cell"><input type="checkbox" class="pick" data-pick="${esc(g.id)}" ${a!.selected.has(g.id) ? 'checked' : ''} aria-label="선택" /></td>
       <td class="faint">${fmtDate(g.date)}</td>
       <td><span class="side-dot ${g.userColor}" title="${g.userColor === 'w' ? '백' : '흑'}"></span></td>
       <td>${esc(opp.name)}${opp.rating ? ` <span class="faint">(${opp.rating})</span>` : ''}</td>
@@ -243,7 +251,10 @@ function renderAccountPanel(source: Source): string {
       ${a && a.games.length ? `
         <div class="account-tools">
           <div class="chips">${['all', ...classes].map((c) => `<button class="chip ${a.timeFilter === c ? 'chip-on' : ''}" data-tf="${c}">${c === 'all' ? '전체' : esc(TIME_LABEL[c] ?? c)}</button>`).join('')}</div>
-          <button class="ghost" id="pick-recent">최근 10판 선택</button>
+          <div class="pick-tools">
+            <button class="ghost" id="pick-all">${list.length && list.every((g) => a.selected.has(g.id)) ? '모두 해제' : `모두 선택 (${list.length})`}</button>
+            <button class="ghost" id="pick-recent">최근 10판</button>
+          </div>
         </div>
         <div class="game-table-wrap"><table class="game-table">${rows}</table></div>
         <div class="account-foot">
@@ -273,13 +284,36 @@ function bindAccountPanel() {
   if (!a || a.source !== source) return;
   $('#more')?.addEventListener('click', loadMore);
   app.querySelectorAll<HTMLButtonElement>('[data-tf]').forEach((b) => b.onclick = () => { a.timeFilter = b.dataset.tf!; renderInput(); });
-  app.querySelectorAll<HTMLInputElement>('[data-pick]').forEach((c) => c.onchange = () => {
-    if (c.checked) a.selected.add(c.dataset.pick!); else a.selected.delete(c.dataset.pick!);
-    renderInput();
+  const visible = () => a.games.filter((g) => a.timeFilter === 'all' || g.timeClass === a.timeFilter);
+  /** 선택이 바뀌면 체크 상태·버튼 글자만 바꾼다 (전체를 다시 그리지 않아 스크롤이 유지됨) */
+  const syncSelection = () => {
+    app.querySelectorAll<HTMLInputElement>('[data-pick]').forEach((c) => {
+      const on = a.selected.has(c.dataset.pick!);
+      c.checked = on;
+      c.closest('tr')?.classList.toggle('picked', on);
+    });
+    const n = a.selected.size, v = visible();
+    const batch = $<HTMLButtonElement>('#batch');
+    if (batch) { batch.disabled = !n; batch.textContent = `선택한 ${n}판 종합 분석`; }
+    const all = $('#pick-all');
+    if (all) all.textContent = v.length && v.every((g) => a.selected.has(g.id)) ? '모두 해제' : `모두 선택 (${v.length})`;
+  };
+  const toggle = (id: string, on: boolean) => { if (on) a.selected.add(id); else a.selected.delete(id); syncSelection(); };
+  app.querySelectorAll<HTMLInputElement>('[data-pick]').forEach((c) => c.onchange = () => toggle(c.dataset.pick!, c.checked));
+  // 행의 빈 곳을 눌러도 선택 (버튼·체크박스 자체는 제외)
+  app.querySelectorAll<HTMLTableRowElement>('tr[data-row]').forEach((tr) => tr.onclick = (e) => {
+    if ((e.target as HTMLElement).closest('button, input')) return;
+    toggle(tr.dataset.row!, !a.selected.has(tr.dataset.row!));
+  });
+  $('#pick-all')?.addEventListener('click', () => {
+    const v = visible();
+    const allOn = v.length > 0 && v.every((g) => a.selected.has(g.id));
+    for (const g of v) if (allOn) a.selected.delete(g.id); else a.selected.add(g.id);
+    syncSelection();
   });
   $('#pick-recent')?.addEventListener('click', () => {
-    a.selected = new Set(a.games.filter((g) => a.timeFilter === 'all' || g.timeClass === a.timeFilter).slice(0, 10).map((g) => g.id));
-    renderInput();
+    a.selected = new Set(visible().slice(0, 10).map((g) => g.id));
+    syncSelection();
   });
   app.querySelectorAll<HTMLButtonElement>('[data-bdepth]').forEach((b) => b.onclick = () => { state.batchDepth = Number(b.dataset.bdepth); renderInput(); });
   app.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((b) => b.onclick = () => {
