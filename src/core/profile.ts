@@ -160,3 +160,59 @@ export function buildProfiles(moves: MoveAnalysis[]) {
   }
   return { w, b };
 }
+
+/**
+ * 여러 판의 프로필을 하나로 합친다 (저장된 플레이어 성향용).
+ * 스타일 평균은 평가 대상 수(counted)로, 정확도·손실은 전체 수로 가중 평균한다.
+ */
+export function mergeProfiles(list: PlayerProfile[]): PlayerProfile | null {
+  if (!list.length) return null;
+  const counted = list.reduce((s, p) => s + p.counted, 0);
+  const moves = list.reduce((s, p) => s + p.moves, 0);
+  const wavg = (pick: (p: PlayerProfile) => Record<StyleKey, number> | null, weight: (p: PlayerProfile) => number) => {
+    const out = zero();
+    let total = 0;
+    for (const p of list) {
+      const rec = pick(p), w = weight(p);
+      if (!rec || !w) continue;
+      total += w;
+      for (const k of STYLE_KEYS) out[k] += rec[k] * w;
+    }
+    if (!total) return null;
+    for (const k of STYLE_KEYS) out[k] = Math.round(out[k] / total);
+    return out;
+  };
+  const avg = wavg((p) => p.avg, (p) => p.counted) ?? zero();
+  const choice = wavg((p) => p.choice, (p) => p.counted);
+
+  const primaryCounts = Object.fromEntries([...STYLE_KEYS, 'neutral'].map((k) => [k, 0])) as PlayerProfile['primaryCounts'];
+  const risk = { soundSacrifice: { count: 0, success: 0 }, trap: { count: 0, success: 0 }, gamble: { count: 0, success: 0 } };
+  const quality: Record<QualityKey, number> = { best: 0, good: 0, inaccuracy: 0, mistake: 0, blunder: 0 };
+  for (const p of list) {
+    for (const k of Object.keys(primaryCounts) as (StyleKey | 'neutral')[]) primaryCounts[k] += p.primaryCounts[k] ?? 0;
+    for (const k of Object.keys(risk) as RiskKind[]) { risk[k].count += p.risk[k].count; risk[k].success += p.risk[k].success; }
+    for (const k of Object.keys(quality) as QualityKey[]) quality[k] += p.quality[k];
+  }
+  const mergeSlices = <T extends string>(keys: T[], pick: (p: PlayerProfile) => Record<T, SliceProfile>) =>
+    Object.fromEntries(keys.map((k) => {
+      const parts = list.map((p) => pick(p)[k]).filter((s) => s.count);
+      const count = parts.reduce((s, x) => s + x.count, 0);
+      const a = zero();
+      for (const s of parts) for (const sk of STYLE_KEYS) a[sk] += (s.avg[sk] * s.count) / (count || 1);
+      for (const sk of STYLE_KEYS) a[sk] = Math.round(a[sk]);
+      return [k, { count, avg: a, top: topOf(a) }];
+    })) as Record<T, SliceProfile>;
+
+  const riskRate = counted ? (risk.gamble.count + risk.soundSacrifice.count + risk.trap.count) / counted : 0;
+  return {
+    moves, counted, avg, primaryCounts, top: topOf(avg, 5),
+    choice, choiceTop: choice ? topOf(choice, 3).filter((k) => choice[k] >= 5) : [],
+    risk, quality,
+    acpl: moves ? Math.round(list.reduce((s, p) => s + p.acpl * p.moves, 0) / moves) : 0,
+    accuracy: moves ? Math.round((list.reduce((s, p) => s + p.accuracy * p.moves, 0) / moves) * 10) / 10 : 0,
+    byPhase: mergeSlices(['opening', 'middlegame', 'endgame'], (p) => p.byPhase),
+    bySituation: mergeSlices(['ahead', 'equal', 'behind'], (p) => p.bySituation),
+    archetype: archetype(avg, riskRate),
+    opening: { bookMoves: list.reduce((s, p) => s + p.opening.bookMoves, 0), leftBookFirst: null, deviation: null },
+  };
+}

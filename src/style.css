@@ -324,3 +324,11 @@ button.chip { cursor: pointer; }
 .pick-cell { width: 44px; text-align: center; }
 input.pick { width: 22px; height: 22px; accent-color: var(--accent); cursor: pointer; vertical-align: middle; margin: 0; }
 .pick-tools { display: flex; gap: 4px; }
+
+/* 프로필 메뉴 */
+.nav-profile { border: 1px solid var(--border) !important; margin-left: 6px; }
+.players-card { max-width: 900px; margin: 0 auto; display: grid; gap: 12px; }
+.players-table tr[data-player] { cursor: pointer; }
+.players-table tr[data-player]:hover td { background: var(--surface-2); }
+.ghost.danger { color: var(--bad); }
+.small-x { padding: 2px 8px; }

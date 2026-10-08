@@ -19,12 +19,17 @@ function db() {
   return dbPromise;
 }
 
-/** 기보 수순(헤더 제외)과 깊이로 키를 만든다 */
-export function cacheKey(pgn: string, depth: number) {
+/** 기보 수순(헤더·주석 제외) 해시: 같은 게임이면 같은 값 */
+export function gameHash(pgn: string) {
   const moves = pgn.replace(/\[[^\]]*\]/g, '').replace(/\{[^}]*\}/g, '').replace(/\s+/g, ' ').trim();
   let h = 0x811c9dc5;
   for (let i = 0; i < moves.length; i++) { h ^= moves.charCodeAt(i); h = Math.imul(h, 0x01000193); }
-  return `v${RULES_VERSION}:d${depth}:${(h >>> 0).toString(36)}:${moves.length}`;
+  return `${(h >>> 0).toString(36)}:${moves.length}`;
+}
+
+/** 분석 캐시 키: 판정 규칙 버전 + 깊이 + 게임 */
+export function cacheKey(pgn: string, depth: number) {
+  return `v${RULES_VERSION}:d${depth}:${gameHash(pgn)}`;
 }
 
 export async function getCached(key: string): Promise<GameAnalysis | null> {

@@ -13,12 +13,13 @@ import { renderGuide, HOW } from './ui/guide';
 import type { GameAnalysis, MoveAnalysis } from './core/analyzer';
 import { buildProfile, type PlayerProfile } from './core/profile';
 import { fetchGames, userResult, SOURCE_LABEL, type OnlineGame, type Source } from './online/sources';
-import { cacheKey, getCached, putCached } from './ui/cache';
+import { cacheKey, getCached, putCached, gameHash } from './ui/cache';
+import { savePlayerGame, listPlayers, getPlayer, deletePlayer, deleteGame, clearPlayers, combinedProfile, gamesOf, isNamed, SOURCE_NAME, type PlayerSource } from './ui/players';
 import { STYLES, STYLE_KEYS, RISK_LABEL, QUALITY_LABEL, type StyleKey, type QualityKey } from './core/styles';
 
 // ───────────── 상태 ─────────────
 
-type View = 'analyze' | 'guide' | 'about';
+type View = 'analyze' | 'guide' | 'about' | 'players';
 type InputTab = 'paste' | 'samples' | 'file' | 'lichess' | 'chesscom' | 'lichessUser';
 
 interface PlyInfo { san: string; color: 'w' | 'b'; from: string; to: string; fenAfter: string; moveNumber: number }
@@ -36,6 +37,11 @@ interface GameState {
   /** 아이디로 불러온 게임이면 그 사람 색 (프로필을 먼저 보여준다) */
   focus: 'w' | 'b' | null;
   fromCache: boolean;
+  source: PlayerSource;
+  url: string | null;
+  date: number | null;
+  /** 분석이 끝나면 성향을 저장할 쪽 */
+  save: ('w' | 'b')[];
 }
 
 /** 아이디로 불러온 게임 목록 */
@@ -81,6 +87,9 @@ const state = {
   run: null as AnalysisRun | null,
   orientation: 'white' as 'white' | 'black',
   account: null as AccountState | null,
+  /** 프로필 메뉴에서 보고 있는 플레이어 */
+  playerKey: null as string | null,
+  storageFull: false,
   batch: null as BatchState | null,
   batchDepth: 10, // 여러 판 분석은 기본 빠름 (한 판 30초 안팎)
 };
@@ -114,6 +123,7 @@ const playerName = (h: Record<string, string>, c: 'w' | 'b') => h[c === 'w' ? 'W
 
 function setView(v: View) {
   state.view = v;
+  if (v === 'players') state.playerKey = null;
   document.querySelectorAll<HTMLButtonElement>('.nav button').forEach((b) => b.classList.toggle('active', b.dataset.nav === v));
   render();
   window.scrollTo({ top: 0 });
@@ -125,6 +135,7 @@ function render() {
   cg?.destroy(); cg = null;
   if (state.view === 'guide') { app.innerHTML = renderGuide(); return; }
   if (state.view === 'about') { app.innerHTML = renderAbout(); return; }
+  if (state.view === 'players') { renderPlayers(); return; }
   if (state.game) renderReview(); else if (state.batch) renderBatch(); else renderInput();
 }
 
@@ -318,7 +329,7 @@ function bindAccountPanel() {
   app.querySelectorAll<HTMLButtonElement>('[data-bdepth]').forEach((b) => b.onclick = () => { state.batchDepth = Number(b.dataset.bdepth); renderInput(); });
   app.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((b) => b.onclick = () => {
     const g = a.games.find((x) => x.id === b.dataset.open)!;
-    startAnalysis(g.pgn, { focus: g.userColor });
+    startAnalysis(g.pgn, { focus: g.userColor, source: g.source, url: g.url, date: g.date });
   });
   $('#batch')?.addEventListener('click', () => startBatch(a.games.filter((g) => a.selected.has(g.id))));
 }
@@ -372,6 +383,9 @@ async function runBatch(b: BatchState) {
     }
     if (b.cancelled || state.batch !== b) return;
     b.results.set(g.id, result);
+    // 종합 분석은 그 아이디 쪽 성향만 저장한다
+    const pg = prepareGameQuiet(g.pgn);
+    if (pg) saveProfiles({ ...pg, source: g.source, url: g.url, date: g.date, save: [g.userColor] }, result);
     updateBatch();
   }
   b.current = -1;
@@ -469,14 +483,44 @@ function updateBatch() {
     }).join('');
     ge.querySelectorAll<HTMLButtonElement>('[data-review]').forEach((btn) => btn.onclick = () => {
       const g = b.games.find((x) => x.id === btn.dataset.review)!;
-      showAnalyzed(g.pgn, b.results.get(g.id)!, g.userColor);
+      // 종합 분석 중에 이미 저장했으므로 다시 저장하지 않는다
+      showAnalyzed(g.pgn, b.results.get(g.id)!, { focus: g.userColor, source: g.source, url: g.url, date: g.date, save: [] });
     });
   }
 }
 
 // ───────────── 분석 실행 ─────────────
 
-interface StartOptions { focus?: 'w' | 'b' }
+interface StartOptions {
+  focus?: 'w' | 'b';
+  source?: PlayerSource;
+  url?: string | null;
+  date?: number | null;
+  save?: ('w' | 'b')[];
+}
+
+/** PGN 헤더 날짜(2026.10.07) → ms */
+function headerDate(h: Record<string, string>): number | null {
+  const m = (h.UTCDate ?? h.Date ?? '').match(/^(\d{4})\.(\d{2})\.(\d{2})/);
+  return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null;
+}
+
+/** 분석이 끝난 게임의 플레이어 성향을 프로필 메뉴에 저장 */
+function saveProfiles(g: GameState, result: GameAnalysis) {
+  const h = g.headers;
+  const res = h.Result ?? '*';
+  for (const c of g.save) {
+    const name = h[c === 'w' ? 'White' : 'Black'];
+    if (!isNamed(name)) continue;
+    const opponent = h[c === 'w' ? 'Black' : 'White'] ?? '?';
+    const outcome = res === '1/2-1/2' ? 'draw' : res === '1-0' ? (c === 'w' ? 'win' : 'loss') : res === '0-1' ? (c === 'b' ? 'win' : 'loss') : null;
+    const ok = savePlayerGame(g.source, name, {
+      gameId: gameHash(g.pgn), date: g.date ?? headerDate(h), savedAt: Date.now(), color: c, opponent, result: outcome,
+      opening: result.opening?.name ?? h.Opening ?? null, depth: result.depth, url: g.url, profile: result.profiles[c],
+    });
+    if (!ok) state.storageFull = true;
+  }
+}
 
 /** 기보를 읽어 리뷰 화면 상태를 만든다 */
 function prepareGame(pgn: string, opts: StartOptions): GameState | null {
@@ -494,14 +538,26 @@ function prepareGame(pgn: string, opts: StartOptions): GameState | null {
     plies: history.map((m, i) => ({ san: m.san, color: m.color, from: m.from, to: m.to, fenAfter: m.after, moveNumber: Math.floor(i / 2) + 1 })),
     results: [], analysis: null, progress: [0, history.length + 1], ply: -1, error: null,
     focus: opts.focus ?? null, fromCache: false,
+    source: opts.source ?? 'pgn', url: opts.url ?? null, date: opts.date ?? null, save: opts.save ?? ['w', 'b'],
+  };
+}
+
+/** 화면을 바꾸지 않고 헤더만 읽는다 (저장용) */
+function prepareGameQuiet(pgn: string): GameState | null {
+  const chess = new Chess();
+  try { chess.loadPgn(pgn); } catch { return null; }
+  return {
+    pgn, headers: chess.getHeaders() as Record<string, string>, startFen: '', plies: [], results: [], analysis: null,
+    progress: [1, 1], ply: -1, error: null, focus: null, fromCache: true, source: 'pgn', url: null, date: null, save: [],
   };
 }
 
 /** 이미 분석된 결과를 바로 보여준다 */
-function showAnalyzed(pgn: string, result: GameAnalysis, focus: 'w' | 'b' | null) {
-  const g = prepareGame(pgn, { focus: focus ?? undefined }); if (!g) return;
+function showAnalyzed(pgn: string, result: GameAnalysis, opts: StartOptions = {}) {
+  const g = prepareGame(pgn, opts); if (!g) return;
   state.run?.cancel();
   g.analysis = result; g.results = result.moves; g.progress = [1, 1]; g.fromCache = true; g.ply = 0;
+  saveProfiles(g, result);
   state.game = g;
   render();
   window.scrollTo({ top: 0 });
@@ -513,7 +569,7 @@ async function startAnalysis(pgn: string, opts: StartOptions = {}) {
   // 같은 기보·같은 깊이로 분석한 적이 있으면 저장된 결과를 바로 보여준다
   const key = cacheKey(pgn, state.depth);
   const cached = await getCached(key);
-  if (cached) { showAnalyzed(pgn, cached, opts.focus ?? null); return; }
+  if (cached) { showAnalyzed(pgn, cached, opts); return; }
 
   state.game = prepared;
   render();
@@ -533,6 +589,7 @@ async function startAnalysis(pgn: string, opts: StartOptions = {}) {
   run.start(pgn, state.depth)
     .then((result) => {
       putCached(key, result);
+      saveProfiles(game, result);
       if (state.game !== game) return;
       game.analysis = result; game.results = result.moves; game.progress = [1, 1];
       updateProgress(); updateMoveList(); updateGraph(); updateCard(); renderProfiles(); updateOpening();
@@ -794,6 +851,85 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
     </div>`;
 }
 
+// ───────────── 프로필 메뉴 (저장된 플레이어 성향) ─────────────
+
+const RES_SHORT = { win: '승', loss: '패', draw: '무' } as const;
+
+function renderPlayers() {
+  const p = state.playerKey ? getPlayer(state.playerKey) : null;
+  if (!p) {
+    state.playerKey = null;
+    const players = listPlayers();
+    const rows = players.map((pl) => {
+      const games = gamesOf(pl);
+      const prof = combinedProfile(pl);
+      return `<tr data-player="${esc(pl.key)}">
+        <td><b>${esc(pl.name)}</b> <span class="faint">${SOURCE_NAME[pl.source]}</span></td>
+        <td>${games.length}판</td>
+        <td>${prof ? esc(prof.archetype.name) : '-'}</td>
+        <td class="faint">${prof ? `정확도 ${prof.accuracy}%` : ''}</td>
+        <td class="faint">${fmtDate(pl.updatedAt)}</td>
+      </tr>`;
+    }).join('');
+    app.innerHTML = `
+      <div class="hero"><h1>프로필</h1><p>분석한 게임마다 플레이어의 성향이 이 브라우저에 저장되고, 판이 쌓일수록 합쳐서 보여줍니다.</p></div>
+      <div class="card card-pad players-card">
+        ${state.storageFull ? '<p class="error">브라우저 저장 공간이 가득 차서 일부 기록을 저장하지 못했습니다. 안 쓰는 플레이어를 지워 주세요.</p>' : ''}
+        ${players.length ? `
+          <div class="game-table-wrap"><table class="game-table players-table">${rows}</table></div>
+          <div class="account-foot"><span class="faint">기록은 이 브라우저(localStorage)에만 저장되며 다른 기기와 공유되지 않습니다.</span><button class="ghost danger" id="clear-players">전체 삭제</button></div>`
+        : '<p class="muted">아직 저장된 플레이어가 없습니다. 기보를 분석하거나 Chess.com·Lichess 아이디로 게임을 분석하면 여기에 쌓입니다.</p><button class="btn primary" id="go-analyze">분석하러 가기</button>'}
+      </div>`;
+    app.querySelectorAll<HTMLTableRowElement>('tr[data-player]').forEach((tr) => tr.onclick = () => { state.playerKey = tr.dataset.player!; renderPlayers(); window.scrollTo({ top: 0 }); });
+    $('#clear-players')?.addEventListener('click', () => { if (confirm('저장된 모든 플레이어 기록을 지울까요?')) { clearPlayers(); state.storageFull = false; renderPlayers(); } });
+    $('#go-analyze')?.addEventListener('click', () => setView('analyze'));
+    return;
+  }
+
+  const prof = combinedProfile(p)!;
+  const games = gamesOf(p);
+  const rec = { win: 0, loss: 0, draw: 0 };
+  const openings = new Map<string, number>();
+  for (const g of games) {
+    if (g.result) rec[g.result]++;
+    if (g.opening) openings.set(g.opening, (openings.get(g.opening) ?? 0) + 1);
+  }
+  const extra = `
+    <div class="stats">
+      <div class="stat"><b>${rec.win}승 ${rec.draw}무 ${rec.loss}패</b><span>저장된 ${games.length}판</span></div>
+      <div class="stat"><b>${prof.counted}</b><span>평가한 수 (이론·강제 제외)</span></div>
+      <div class="stat"><b>백 ${games.filter((g) => g.color === 'w').length} · 흑 ${games.filter((g) => g.color === 'b').length}</b><span>둔 색</span></div>
+    </div>
+    ${openings.size ? `<div><div class="section-title">자주 둔 오프닝</div><div class="chips">${[...openings].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n, c]) => `<span class="chip">${esc(n)} · ${c}판</span>`).join('')}</div></div>` : ''}`;
+  const rows = games.map((g) => `<tr>
+    <td class="faint">${g.date ? fmtDate(g.date) : '-'}</td>
+    <td><span class="side-dot ${g.color}"></span></td>
+    <td>${esc(g.opponent)}</td>
+    <td class="res-${g.result ?? 'none'}">${g.result ? RES_SHORT[g.result] : '-'}</td>
+    <td class="opening-cell">${esc(g.opening ?? '')}</td>
+    <td class="faint">${esc(g.profile.archetype.name)} · ${g.profile.accuracy}%</td>
+    <td>${g.url ? `<a href="${esc(g.url)}" target="_blank" rel="noopener" class="faint">원본</a>` : ''}</td>
+    <td><button class="ghost small-x" data-del-game="${esc(g.gameId)}" title="이 판 기록 삭제">✕</button></td>
+  </tr>`).join('');
+  app.innerHTML = `
+    <div class="game-head">
+      <button class="btn" id="players-back">← 프로필 목록</button>
+      <div class="spacer"></div>
+      <button class="ghost danger" id="del-player">이 플레이어 삭제</button>
+    </div>
+    <div class="batch">
+      <div>${profileCard(prof, null, {}, { name: p.name, sub: `${SOURCE_NAME[p.source]} · 저장된 ${games.length}판 종합`, extra, color: '#b5562d' })}</div>
+      <div class="card card-pad">
+        <div class="section-title">저장된 게임</div>
+        <div class="game-table-wrap"><table class="game-table">${rows}</table></div>
+        <p class="faint">각 판의 성향은 분석할 때의 깊이 기준입니다. 같은 게임을 다시 분석하면 덮어씁니다.</p>
+      </div>
+    </div>`;
+  $('#players-back')!.onclick = () => { state.playerKey = null; renderPlayers(); };
+  $('#del-player')!.onclick = () => { if (confirm(`${p.name}의 기록을 모두 지울까요?`)) { deletePlayer(p.key); state.playerKey = null; renderPlayers(); } };
+  app.querySelectorAll<HTMLButtonElement>('[data-del-game]').forEach((b) => b.onclick = () => { deleteGame(p.key, b.dataset.delGame!); renderPlayers(); });
+}
+
 // ───────────── 소개 ─────────────
 
 function renderAbout() {
@@ -821,7 +957,7 @@ function renderAbout() {
       </div>
       <div class="card card-pad">
         <h2>개인정보</h2>
-        <p>기보와 분석 결과는 서버로 전송되지 않고 이 브라우저 안에서만 처리됩니다. Chess.com·Lichess 아이디나 링크를 쓰면 이 브라우저가 해당 사이트에서 공개된 기보를 직접 받아옵니다. 분석 결과는 다시 볼 때 바로 보여주려고 이 브라우저(IndexedDB)에만 저장됩니다.</p>
+        <p>기보와 분석 결과는 서버로 전송되지 않고 이 브라우저 안에서만 처리됩니다. Chess.com·Lichess 아이디나 링크를 쓰면 이 브라우저가 해당 사이트에서 공개된 기보를 직접 받아옵니다. 분석 결과는 다시 볼 때 바로 보여주려고 이 브라우저(IndexedDB)에만 저장되고, 플레이어별 성향 요약은 프로필 메뉴용으로 이 브라우저(localStorage)에만 저장됩니다. 프로필 메뉴에서 언제든 지울 수 있습니다.</p>
       </div>
     </div>`;
 }
