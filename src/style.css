@@ -208,6 +208,7 @@ input.text {
 .risk.soundSacrifice { border-color: color-mix(in srgb, var(--good) 40%, transparent); background: color-mix(in srgb, var(--good) 8%, transparent); }
 .risk.trap { border-color: color-mix(in srgb, #3e63dd 40%, transparent); background: color-mix(in srgb, #3e63dd 8%, transparent); }
 .risk.gamble { border-color: color-mix(in srgb, #a855f7 45%, transparent); background: color-mix(in srgb, #a855f7 9%, transparent); }
+.risk.speculative { border-color: color-mix(in srgb, #f76b15 45%, transparent); background: color-mix(in srgb, #f76b15 9%, transparent); }
 .primary-style { display: flex; align-items: center; gap: 10px; }
 .primary-style .label { font-size: 20px; font-weight: 700; }
 .style-bars { display: grid; gap: 8px; }

@@ -35,9 +35,11 @@ export const STYLES: Record<StyleKey, StyleInfo> = {
   passedPawn:    { label: '패스폰 추진', group: '엔드게임', color: '#5bb98c', desc: '패스폰 전진·생성' },
 };
 
-export type RiskKind = 'soundSacrifice' | 'trap' | 'gamble';
+export type RiskKind = 'soundSacrifice' | 'speculative' | 'trap' | 'gamble';
+export const RISK_KINDS: RiskKind[] = ['soundSacrifice', 'speculative', 'trap', 'gamble'];
 export const RISK_LABEL: Record<RiskKind, string> = {
   soundSacrifice: '건전한 희생',
+  speculative: '무리한 희생',
   trap: '함정수',
   gamble: '도박수',
 };

@@ -11,11 +11,11 @@ import { AnalysisRun, getEngine } from './ui/runner';
 import { evalGraph, radar } from './ui/charts';
 import { renderGuide, HOW } from './ui/guide';
 import type { GameAnalysis, MoveAnalysis } from './core/analyzer';
-import { buildProfile, type PlayerProfile } from './core/profile';
+import { buildProfile, riskTotal, type PlayerProfile } from './core/profile';
 import { fetchGames, userResult, SOURCE_LABEL, type OnlineGame, type Source } from './online/sources';
 import { cacheKey, getCached, putCached, gameHash } from './ui/cache';
 import { savePlayerGame, listPlayers, getPlayer, deletePlayer, deleteGame, clearPlayers, combinedProfile, gamesOf, isNamed, SOURCE_NAME, type PlayerSource } from './ui/players';
-import { STYLES, STYLE_KEYS, RISK_LABEL, QUALITY_LABEL, type StyleKey, type QualityKey } from './core/styles';
+import { STYLES, STYLE_KEYS, RISK_KINDS, RISK_LABEL, QUALITY_LABEL, type StyleKey, type QualityKey } from './core/styles';
 
 // ───────────── 상태 ─────────────
 
@@ -108,7 +108,8 @@ const fmtEval = (cp: number, mate: number | null) => {
 };
 const glyph = (m: MoveAnalysis) => {
   if (m.risk === 'soundSacrifice') return '<span class="glyph g-risk">!</span>';
-  if (m.risk === 'gamble') return '<span class="glyph g-risk">!?</span>';
+  if (m.risk === 'speculative') return '<span class="glyph g-risk">!?</span>';
+  if (m.risk === 'gamble') return '<span class="glyph g-risk">?!</span>';
   if (m.risk === 'trap') return '<span class="glyph g-risk">⚑</span>';
   if (m.quality === 'blunder') return '<span class="glyph g-blunder">??</span>';
   if (m.quality === 'mistake') return '<span class="glyph g-mistake">?</span>';
@@ -820,7 +821,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
   const qOrder: QualityKey[] = ['best', 'good', 'inaccuracy', 'mistake', 'blunder'];
   const qColors: Record<QualityKey, string> = { best: 'var(--good)', good: '#8fd1ae', inaccuracy: 'var(--warn)', mistake: '#e07a2e', blunder: 'var(--bad)' };
   const qTotal = qOrder.reduce((s, k) => s + p.quality[k], 0) || 1;
-  const risks = (['soundSacrifice', 'trap', 'gamble'] as const).filter((k) => p.risk[k].count)
+  const risks = RISK_KINDS.filter((k) => p.risk[k]?.count)
     .map((k) => `<span class="chip">${RISK_LABEL[k]} ${p.risk[k].count}회${k !== 'soundSacrifice' ? ` · 적중 ${p.risk[k].success}` : ''}</span>`).join('');
   const sliceHtml = (title: string, s: { count: number; top: StyleKey[] }) =>
     `<div class="slice"><b>${title} (${s.count}수)</b>${s.count ? s.top.slice(0, 2).map((k) => STYLES[k].label).join(', ') || '-' : '-'}</div>`;
@@ -833,7 +834,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
       <div class="stats">
         <div class="stat"><b>${p.accuracy}%</b><span>정확도</span></div>
         <div class="stat"><b>${p.acpl}</b><span>평균 손실(cp)</span></div>
-        <div class="stat"><b>${p.risk.soundSacrifice.count + p.risk.trap.count + p.risk.gamble.count}</b><span>희생·함정·도박</span></div>
+        <div class="stat"><b>${riskTotal(p)}</b><span>희생·함정·도박</span></div>
       </div>
       <div class="profile-grid">
         <div class="radar">${radar(axes, color)}</div>

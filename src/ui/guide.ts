@@ -24,8 +24,9 @@ export const HOW: Record<StyleKey, string> = {
 };
 
 const RISK_DESC: Record<RiskKind, string> = {
-  soundSacrifice: '물질을 내주고 주요 변화를 따라가도 회수되지 않지만, Stockfish 평가는 유지되는 수.',
-  trap: 'Stockfish 기준 손해가 없는데, 상대가 솔깃하게 미끼를 물면(자연스러운 잡기·체크) 크게 이득을 보는 수.',
+  soundSacrifice: '물질을 내주고(교환 희생, 공격받던 기물을 그냥 두는 것 포함) Stockfish 주요 변화를 따라가도 회수되지 않지만, 평가는 유지되는 수.',
+  speculative: '물질을 내주는 희생인데 Stockfish 기준으로는 손해(기대 점수 10%p 이상 하락)인 수. 블런더 수준은 아니며, 정확한 수비가 어려워 실전에서 통할 수 있다.',
+  trap: 'Stockfish 기준 손해가 없는데, 상대가 솔깃하게 미끼를 물면(자연스러운 잡기·체크) 기대 점수가 20%p 이상 오르는 수. 기물을 그냥 내주는 미끼면 "미끼 희생"이라고 함께 적는다.',
   gamble: 'Stockfish 기준 손해인데, 상대가 솔깃한 응수를 두면 최선 수보다 더 좋아지는 수. 상대가 틀리길 노리는 수.',
 };
 

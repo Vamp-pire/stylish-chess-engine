@@ -13,6 +13,17 @@ import type { OpeningBook, OpeningInfo } from './openings';
 
 // 손실 계산용 상한: 이 이상은 사실상 결판난 국면
 const CAP = 1000;
+/** 이 이상 기대 점수가 떨어지면 '손해 보는 수' (평형 국면에서 약 40cp) */
+const LOSS_PP = 10;
+/** 함정: 솔깃한 응수를 두면 둔 쪽 기대 점수가 이만큼 오른다 (%p) */
+const TRAP_GAIN_PP = 20;
+/** 위험 판정 수가 통했다: 상대의 다음 수가 기대 점수를 이만큼 잃었다 (%p) */
+const PUNISH_PP = 20;
+const PIECE_VALUE: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+const pieceValueAt = (fen: string, sq: string) => {
+  const p = new Chess(fen).get(sq as Parameters<Chess['get']>[0]);
+  return p ? PIECE_VALUE[p.type] : 0;
+};
 const cap = (x: number) => Math.max(-CAP, Math.min(CAP, x));
 
 export interface AnalyzeOptions {
@@ -48,6 +59,8 @@ export interface MoveAnalysis extends StyleResult {
   book: boolean;
   /** 이 수까지 도달한 오프닝 이름 (이론 안에 있을 때) */
   opening: OpeningInfo | null;
+  /** 함정수·도박수: 상대가 솔깃한 응수를 뒀을 때의 변화 (Stockfish 확인 수순) */
+  trapLine: { replySan: string; replyUci: string; line: string[]; gainCp: number } | null;
   /** 상대가 실제로 틀렸는지 (위험 판정 수의 성공 여부) */
   riskSucceeded: boolean | null;
   features: StaticFeatures;
@@ -189,7 +202,7 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
     const r = results[i];
     if (!r.risk) continue;
     const next = results[i + 1];
-    r.riskSucceeded = next ? next.cpLoss >= 100 : null;
+    r.riskSucceeded = next ? next.deep.winDrop >= PUNISH_PP : null;
   }
 
   const bookPlies = results.filter((r) => r.book).length;
@@ -237,7 +250,20 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
 
   // ── PV 앞보기 ──
   const pv = walkPv(A, after[0].pv, mover, f.materialBalance);
-  const realSacrifice = !f.isMate && pv.lossEnd <= -0.9 && (f.sacrifice >= 1.5 || f.hangOwnAfter >= 1.5);
+  // 희생: 상대 최선 수순을 따라가도 물질이 회복되지 않는 수. 정적 계산(1수 교환 정산)은 교환 희생이나
+  // 공격받던 기물을 그냥 두는 희생을 놓치므로, 엔진 수순의 물질 변화를 기준으로 하고 정적 값은 보조로만 쓴다.
+  // 다른 후보 수를 뒀어도 잃었을 물질(이미 진 국면, 갇힌 기물 등)은 희생이 아니다: 후보 중 가장 덜 잃는 수와 비교한다
+  const altLost = Math.min(...before.filter((l) => l.uci && l.uci !== uci).map((l) => {
+    const ch = new Chess(B);
+    try { ch.move({ from: l.uci.slice(0, 2), to: l.uci.slice(2, 4), promotion: l.uci[4] }); } catch { return Infinity; }
+    return Math.max(0, -walkPv(ch.fen(), l.pv.slice(1), mover, f.materialBalance).lossEnd);
+  }), Infinity);
+  const rawLost = Math.max(0, -pv.lossEnd);
+  const pvLost = Math.max(0, rawLost - (Number.isFinite(altLost) ? altLost : 0));
+  // 이 수가 직접 기물을 내놓았으면(정적 값) 후보들도 희생이어도 희생으로 본다.
+  // 이미 진 국면(기대 점수 10% 미만)에서 물질을 잃는 것은 선택한 희생으로 보지 않는다
+  const realSacrifice = !f.isMate && expBefore >= 0.1 &&
+    (pvLost >= 1.5 || (rawLost >= 0.9 && (f.sacrifice >= 1.5 || f.offered >= 1.5)));
 
   // ── 위협 (소형 탐색) ──
   const posB = Position.fromFen(B), posA = Position.fromFen(A);
@@ -260,6 +286,8 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
   const oppSharpness = after[1] ? Math.max(0, Math.min(500, cap(after[0].cp) - cap(after[1].cp))) : after[0].pv.length ? 500 : 0;
   let replySpread = 0;
   let risk: RiskKind | null = null, riskWhy: string | null = null;
+  let trapLine: MoveAnalysis['trapLine'] = null;
+  const expAfter = 1 - expectedScore(after[0]); // 수 둔 후 둔 쪽 기대 점수
 
   if (after[0].pv.length) {
     const ranked = rankNaturalMoves(A, move.to);
@@ -282,33 +310,53 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
       .sort((a, b) => b.gain - a.gain)
       .slice(0, 2);
 
-    if (cands.length && deliberate && (cpLoss <= 40 || (cpLoss >= 80 && winDrop >= 5))) {
+    // 손해 여부·이득 크기는 모두 Stockfish WDL 기대 점수(%p)로 본다: 이미 이긴/진 국면의 큰 cp 변동에 속지 않도록
+    // 단, 진 국면에서는 큰 cp 손실도 기대 점수가 거의 안 변하므로 cp 상한을 함께 둔다
+    const noLoss = winDrop < LOSS_PP && cpLoss <= 100;
+    if (cands.length && deliberate) {
       // 후보마다 Stockfish로 확인해서 상대에게 가장 치명적인 응수를 고른다
-      let worst: { san: string; reason: string; value: number } | null = null;
+      let worst: { san: string; uci: string; reason: string; exp: number; cp: number; to: string; pv: string[] } | null = null;
       for (const c of cands) {
         const chA = new Chess(A);
         const nm = chA.move({ from: c.r.uci.slice(0, 2), to: c.r.uci.slice(2, 4), promotion: c.r.uci[4] });
         const verify = await evalLines(engine, chA.fen(), Math.max(8, depth - 2), 1, URGENT);
-        const value = cap(verify[0].cp); // 둔 쪽이 다시 둘 차례 → 둔 쪽 관점
-        if (!worst || value > worst.value) worst = { san: nm.san, reason: c.r.reason, value };
+        const exp = expectedScore(verify[0]); // 둔 쪽이 다시 둘 차례 → 둔 쪽 관점
+        const vcp = cap(verify[0].cp);
+        if (!worst || vcp > worst.cp) worst = { san: nm.san, uci: c.r.uci, reason: c.r.reason, exp, cp: vcp, to: c.r.uci.slice(2, 4), pv: uciToSanLine(chA.fen(), verify[0].pv, 6) };
       }
       const w = worst!;
-      const trapGain = w.value - cap(evalAfter);
+      // 이득은 기대 점수(%p)로 보되, 이미 크게 앞선 국면은 기대 점수가 포화되므로 cp 이득도 인정한다
+      const trapGain = (w.exp - expAfter) * 100;
+      const trapGainCp = w.cp - cap(evalAfter);
+      const trapBig = trapGain >= TRAP_GAIN_PP || (trapGainCp >= 150 && evalAfter < 600);
       const refSan = uciToSanLine(A, [refutation], 1)[0] ?? refutation;
-      if (cpLoss <= 40 && trapGain >= 150 && !realSacrifice && evalAfter < 600) {
+      if (noLoss && trapBig && !realSacrifice) {
         risk = 'trap';
-        riskWhy = `상대가 자연스럽게 ${w.san}(${w.reason})를 두면 ${Math.round(trapGain)}cp 이득. 정답은 ${refSan}`;
-      } else if (cpLoss >= 80 && winDrop >= 5 && w.value >= best + 30 && f.capturedValue < 3) {
+        // 미끼가 기물(3점 이상)을 그냥 내주는 것이면 '받으면 손해인 희생'이기도 하다
+        const baitValue = pieceValueAt(A, w.to);
+        const baitNet = baitValue - (w.to === move.to ? f.capturedValue : 0);
+        trapLine = { replySan: w.san, replyUci: w.uci, line: w.pv, gainCp: Math.round(trapGainCp) };
+        riskWhy = (baitValue >= 3 && baitNet >= 1.5 ? `기물을 미끼로 내준 희생. ` : '') +
+          `상대가 자연스럽게 ${w.san}(${w.reason})를 두면 ${trapGain >= TRAP_GAIN_PP ? `기대 점수 +${Math.round(trapGain)}%p` : `${Math.round(trapGainCp)}cp 이득`}. 정답은 ${refSan}`;
+      } else if (!noLoss && winDrop >= 5 && (w.exp >= expBefore + 0.03 || w.cp >= best + 30) && f.capturedValue < 3) {
         // (큰 기물을 잡는 수는 위험을 감수한 수가 아니라 욕심이므로 도박수에서 뺀다)
         risk = 'gamble';
+        trapLine = { replySan: w.san, replyUci: w.uci, line: w.pv, gainCp: Math.round(w.cp - best) };
         const hard = refRank >= 1 ? '찾기 어려운' : '비교적 자연스러운';
-        riskWhy = `객관적으로 ${cpLoss}cp 손해지만, 상대가 솔깃한 ${w.san}(${w.reason})를 두면 최선 수보다 ${Math.round(w.value - best)}cp 더 좋아짐. 정답은 ${hard} ${refSan}`;
+        riskWhy = `객관적으로 ${cpLoss}cp 손해지만, 상대가 솔깃한 ${w.san}(${w.reason})를 두면 최선 수보다 ${Math.round(w.cp - best)}cp 더 좋아짐. 정답은 ${hard} ${refSan}`;
       }
     }
   }
-  if (realSacrifice && cpLoss <= 40 && !forced && !inCheckBefore) {
-    risk = 'soundSacrifice';
-    riskWhy = `물질 ${Math.round(-pv.lossEnd * 10) / 10}점을 내주지만 엔진 평가는 유지됨`;
+  if (realSacrifice && !forced && !inCheckBefore) {
+    const amount = Math.round(Math.max(pvLost, Math.min(rawLost, f.offered)) * 10) / 10;
+    if (winDrop < LOSS_PP) {
+      risk = 'soundSacrifice';
+      riskWhy = `물질 ${amount}점을 내주지만 엔진 평가는 유지됨`;
+    } else if (risk !== 'gamble' && winDrop < 40 && f.capturedValue < 3) {
+      // 엔진상 손해지만 블런더는 아닌 희생: 실전에서 통할 수 있는 공격적 선택 (탈·안데르센식). 큰 기물을 잡는 욕심수는 제외
+      risk = 'speculative';
+      riskWhy = `물질 ${amount}점을 내주는 희생. 엔진 기준 기대 점수 −${Math.round(winDrop)}%p로 정확한 수비에는 불리하지만 실전에서 통할 수 있음`;
+    }
   }
 
   // ── 대기수: 상대가 '쉬고 싶은' 국면인가 (Stockfish, 후보일 때만) ──
@@ -365,6 +413,6 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
     playedPvSan: uciToSanLine(A, after[0].pv, 7),
     phase: ply < 20 && f.phase > 0.75 ? 'opening' : f.isEndgame ? 'endgame' : 'middlegame',
     situation: evalBefore >= 150 ? 'ahead' : evalBefore <= -150 ? 'behind' : 'equal',
-    choiceDelta, riskSucceeded: null, book: false, opening: null, features: f, deep,
+    choiceDelta, trapLine, riskSucceeded: null, book: false, opening: null, features: f, deep,
   };
 }

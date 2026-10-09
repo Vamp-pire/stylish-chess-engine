@@ -1,6 +1,6 @@
 // 플레이어 평가: 강제된 수와 오프닝 이론 수를 뺀 수들로 스타일 성향을 집계한다.
 import type { MoveAnalysis } from './analyzer';
-import { STYLE_KEYS, type StyleKey, type RiskKind, type QualityKey } from './styles';
+import { STYLE_KEYS, RISK_KINDS, type StyleKey, type RiskKind, type QualityKey } from './styles';
 
 type Phase = MoveAnalysis['phase'];
 type Situation = MoveAnalysis['situation'];
@@ -25,6 +25,10 @@ export interface PlayerProfile {
   /** 오프닝: 이론을 따라간 수, 이론 이탈 수 (한 게임 기준) */
   opening: { bookMoves: number; leftBookFirst: boolean | null; deviation: { san: string; moveNumber: number; quality: QualityKey | null } | null };
 }
+
+const emptyRisk = () => Object.fromEntries(RISK_KINDS.map((k) => [k, { count: 0, success: 0 }])) as PlayerProfile['risk'];
+/** 위험 판정 수 전체 개수 */
+export const riskTotal = (p: PlayerProfile) => RISK_KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0);
 
 const zero = () => Object.fromEntries(STYLE_KEYS.map((k) => [k, 0])) as Record<StyleKey, number>;
 
@@ -122,7 +126,7 @@ export function buildProfile(all: MoveAnalysis[]): PlayerProfile {
     for (const k of STYLE_KEYS) choice[k] = Math.round(choice[k] / withChoice.length);
   }
 
-  const risk = { soundSacrifice: { count: 0, success: 0 }, trap: { count: 0, success: 0 }, gamble: { count: 0, success: 0 } };
+  const risk = emptyRisk();
   for (const m of all) if (m.risk) { risk[m.risk].count++; if (m.riskSucceeded) risk[m.risk].success++; }
 
   const quality: Record<QualityKey, number> = { best: 0, good: 0, inaccuracy: 0, mistake: 0, blunder: 0 };
@@ -134,7 +138,7 @@ export function buildProfile(all: MoveAnalysis[]): PlayerProfile {
   const by = <T extends string>(keys: T[], pick: (m: MoveAnalysis) => T) =>
     Object.fromEntries(keys.map((k) => [k, slice(counted.filter((m) => pick(m) === k))])) as Record<T, SliceProfile>;
 
-  const riskRate = counted.length ? (risk.gamble.count + risk.soundSacrifice.count + risk.trap.count) / counted.length : 0;
+  const riskRate = counted.length ? RISK_KINDS.reduce((s, k) => s + risk[k].count, 0) / counted.length : 0;
 
   return {
     moves: all.length, counted: counted.length, avg, primaryCounts, top: topOf(avg, 5),
@@ -186,11 +190,12 @@ export function mergeProfiles(list: PlayerProfile[]): PlayerProfile | null {
   const choice = wavg((p) => p.choice, (p) => p.counted);
 
   const primaryCounts = Object.fromEntries([...STYLE_KEYS, 'neutral'].map((k) => [k, 0])) as PlayerProfile['primaryCounts'];
-  const risk = { soundSacrifice: { count: 0, success: 0 }, trap: { count: 0, success: 0 }, gamble: { count: 0, success: 0 } };
+  const risk = emptyRisk();
   const quality: Record<QualityKey, number> = { best: 0, good: 0, inaccuracy: 0, mistake: 0, blunder: 0 };
   for (const p of list) {
     for (const k of Object.keys(primaryCounts) as (StyleKey | 'neutral')[]) primaryCounts[k] += p.primaryCounts[k] ?? 0;
-    for (const k of Object.keys(risk) as RiskKind[]) { risk[k].count += p.risk[k].count; risk[k].success += p.risk[k].success; }
+    // 예전에 저장된 프로필에는 없는 종류가 있을 수 있다
+    for (const k of RISK_KINDS) { risk[k].count += p.risk[k]?.count ?? 0; risk[k].success += p.risk[k]?.success ?? 0; }
     for (const k of Object.keys(quality) as QualityKey[]) quality[k] += p.quality[k];
   }
   const mergeSlices = <T extends string>(keys: T[], pick: (p: PlayerProfile) => Record<T, SliceProfile>) =>
@@ -203,7 +208,7 @@ export function mergeProfiles(list: PlayerProfile[]): PlayerProfile | null {
       return [k, { count, avg: a, top: topOf(a) }];
     })) as Record<T, SliceProfile>;
 
-  const riskRate = counted ? (risk.gamble.count + risk.soundSacrifice.count + risk.trap.count) / counted : 0;
+  const riskRate = counted ? RISK_KINDS.reduce((s, k) => s + risk[k].count, 0) / counted : 0;
   return {
     moves, counted, avg, primaryCounts, top: topOf(avg, 5),
     choice, choiceTop: choice ? topOf(choice, 3).filter((k) => choice[k] >= 5) : [],

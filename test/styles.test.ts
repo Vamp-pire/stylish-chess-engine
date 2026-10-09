@@ -27,7 +27,8 @@ function expectStyle(m: MoveAnalysis, expected: StyleKey[]) {
   expect(ok, describeMove(m)).toBe(true);
 }
 
-interface Case { name: string; moves: string; fen?: string; styles?: StyleKey[]; risk?: RiskKind }
+/** risk: 기대 위험 판정 (배열이면 그중 하나, null이면 위험 판정이 없어야 함) */
+interface Case { name: string; moves: string; fen?: string; styles?: StyleKey[]; risk?: RiskKind | RiskKind[] | null; whyIncludes?: string }
 
 const CASES: Case[] = [
   // 공격
@@ -49,6 +50,14 @@ const CASES: Case[] = [
   // 불멸의 게임 18.Bd6: 엔진상 크게 손해지만 솔깃한 Bxg1/Bxd6을 두면 백이 이김 → 도박수
   // (블랙번 실링 갬빗 3...Nd4는 2단계 함정이라 Stockfish 기준 4.Nxe5가 정답 → 도박수로 보지 않음)
   { name: '불멸의 게임 Bd6', moves: '1. e4 e5 2. f4 exf4 3. Bc4 Qh4+ 4. Kf1 b5 5. Bxb5 Nf6 6. Nf3 Qh6 7. d3 Nh5 8. Nh4 Qg5 9. Nf5 c6 10. g4 Nf6 11. Rg1 cxb5 12. h4 Qg6 13. h5 Qg5 14. Qf3 Ng8 15. Bxf4 Qf6 16. Nc3 Bc5 17. Nd5 Qxb2 18. Bd6', risk: 'gamble' },
+  // 희생: 엔진 수순의 물질 변화로 판정 (정적 계산이 놓치는 '그냥 두는' 희생 포함)
+  { name: '오페라 게임 Nxb5 (건전한 희생)', moves: '1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5', risk: 'soundSacrifice' },
+  { name: '오페라 게임 Qb8+ (퀸 희생)', moves: '1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6 15. Bxd7+ Nxd7 16. Qb8+', risk: 'soundSacrifice' },
+  // 불멸의 게임 11.Rg1: 공격받던 비숍을 그냥 둔 미끼 희생. 받으면(cxb5) 손해라 함정수로 판정하고 희생임을 함께 적는다
+  { name: '불멸의 게임 Rg1 (미끼 희생)', moves: '1. e4 e5 2. f4 exf4 3. Bc4 Qh4+ 4. Kf1 b5 5. Bxb5 Nf6 6. Nf3 Qh6 7. d3 Nh5 8. Nh4 Qg5 9. Nf5 c6 10. g4 Nf6 11. Rg1', risk: 'trap', whyIncludes: '희생' },
+  { name: '불멸의 게임 Nd5 (희생)', moves: '1. e4 e5 2. f4 exf4 3. Bc4 Qh4+ 4. Kf1 b5 5. Bxb5 Nf6 6. Nf3 Qh6 7. d3 Nh5 8. Nh4 Qg5 9. Nf5 c6 10. g4 Nf6 11. Rg1 cxb5 12. h4 Qg6 13. h5 Qg5 14. Qf3 Ng8 15. Bxf4 Qf6 16. Nc3 Bc5 17. Nd5', risk: ['soundSacrifice', 'speculative'] },
+  // 이미 진 쪽이 어차피 잃을 물질을 잃는 수는 희생이 아니다
+  { name: '오페라 게임 Qe6 (진 국면의 수비, 희생 아님)', moves: '1. e4 e5 2. Nf3 d6 3. d4 Bg4 4. dxe5 Bxf3 5. Qxf3 dxe5 6. Bc4 Nf6 7. Qb3 Qe7 8. Nc3 c6 9. Bg5 b5 10. Nxb5 cxb5 11. Bxb5+ Nbd7 12. O-O-O Rd8 13. Rxd7 Rxd7 14. Rd1 Qe6', risk: null },
   // 포지션
   { name: '어드밴스 프렌치 e5 (공간)', moves: '1. e4 e6 2. d4 d5 3. e5', styles: ['space'] },
   { name: '퀸스 갬빗 c4 (긴장 생성)', moves: '1. d4 d5 2. c4', styles: ['tension'] },
@@ -71,9 +80,11 @@ describe('스타일별 대표 국면', () => {
     it(c.name, async () => {
       const m = await last(c.moves, c.fen);
       if (c.styles) expectStyle(m, c.styles);
-      if (c.risk) {
-        if (m.risk !== c.risk) console.log('✘', describeMove(m), `cpLoss=${m.cpLoss}`);
-        expect(m.risk, describeMove(m)).toBe(c.risk);
+      if (c.risk !== undefined) {
+        const ok = Array.isArray(c.risk) ? c.risk.includes(m.risk!) : m.risk === c.risk;
+        if (!ok) console.log('✘', describeMove(m), `cpLoss=${m.cpLoss}`);
+        expect(ok, describeMove(m)).toBe(true);
       }
+      if (c.whyIncludes) expect(m.riskWhy ?? '', describeMove(m)).toContain(c.whyIncludes);
     });
 });
