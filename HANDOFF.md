@@ -42,6 +42,8 @@ src/core/
   analyzer.ts    ★ 파이프라인: 전 국면 엔진 분석(동시 요청) → 수별 특징+PV 앞보기+소형 탐색 → 위험 판정(Stockfish 재확인) → 채점
   profile.ts     플레이어 프로필 집계, BASELINE, 유형(archetype), mergeProfiles(여러 판 합치기)
   openings.ts / openingKey.js(.d.ts)   오프닝 이론 조회 (국면 해시 → 이름)
+  clock.ts       [%clk]·TimeControl → 수별 소요/남은 시간, 시간 부족 여부
+  masters.ts     닮은 선수 찾기 (BASELINE 대비 편차 방향의 코사인 유사도). 데이터는 src/data/masters.json
 src/search/
   position.ts    0x88 수 생성기 (perft 검증됨)
   search.ts      알파-베타 + 정지 탐색, threatOf(null move)/replyOutcomes/zugzwangOf
@@ -51,13 +53,16 @@ src/engine/
   browser.ts     Stockfish Worker 생성, poolSize()
 src/workers/     analysis.worker.ts(분석 스레드) + protocol.ts. 엔진 요청은 메인 스레드가 풀로 중계
 src/online/sources.ts   Chess.com·Lichess 아이디 → 최근 게임 (브라우저에서 직접 호출, CORS 허용 확인됨)
-src/ui/          runner.ts(분석 실행·중계) charts.ts(그래프·레이더) guide.ts(스타일 사전·HOW 설명) cache.ts(IndexedDB) players.ts(localStorage 프로필)
+src/ui/          runner.ts(분석 실행·중계) charts.ts(그래프·레이더·추이) guide.ts(스타일 사전·HOW 설명) cache.ts(IndexedDB) players.ts(localStorage 프로필)
+                 insights.ts(시간·오프닝별·추이·닮은 선수 섹션) share.ts(공유 링크 #g=) highlights.ts(명수 카드 PNG) quiz.ts(놓친 기회 퀴즈) modal.ts
 src/main.ts      ★ 화면 전부 (입력 탭, 아이디 목록, 리뷰, 종합 분석, 프로필 메뉴, 소개). 문자열 템플릿 + esc()
 src/style.css    디자인 토큰(:root, 다크 모드) + 화면별 스타일
 src/samples.ts   예시 기보 3개 (오페라·불멸·상록수)
 public/engine/   Stockfish 19 lite single (js+wasm, GPLv3)
 public/openings.json   scripts/build-openings.mjs로 생성 (Lichess chess-openings 다운로드 필요)
-test/            perft, search, engine, pool, openings, styles(대표 국면 26개), profiles(고전 기보 유형), game(수별 출력용)
+test/            perft, search, engine, pool, openings, styles(대표 국면 31개), profiles(고전 기보 유형), game(수별 출력용), clock, share, masters
+                 masters.build.test.ts: 유명 선수 프로필 생성 (BUILD_MASTERS=1일 때만)
+scripts/build-masters.mjs   선수별 결과 → src/data/masters.json (한글 이름·설명 포함)
 ```
 
 ## 5. 명령
@@ -69,6 +74,9 @@ npm run build          # tsc + vite build → dist/
 GAME=immortal DEPTH=12 npx vitest run test/game.test.ts --reporter=verbose   # 기보 수별 판정 출력 (가중치 조정할 때 유용)
 PGN_FILE=test/fixtures/karpov-unzicker.pgn npx vitest run test/game.test.ts --reporter=verbose
 node scripts/build-openings.mjs   # 오프닝 데이터 재생성 (네트워크 필요)
+# 유명 선수 프로필 재생성 (규칙을 바꾸면 다시 만들 것). PGN: antlr/grammars-v4 pgn/examples, cran/bigchess inst/extdata (GitHub)
+BUILD_MASTERS=1 MASTERS_DIR=<pgn폴더> MASTERS_OUT=<결과폴더> [PLAYERS=Karpov] npx vitest run test/masters.build.test.ts
+node scripts/build-masters.mjs <결과폴더>
 ```
 - 테스트 엔진: `test/node-engine.ts`가 `node_modules/stockfish/bin/stockfish-19-lite-single.js`를 자식 프로세스로 실행 (public/ 사본은 package.json `"type":"module"` 때문에 Node에서 못 돌림). `STOCKFISH_PATH`로 네이티브 엔진 지정 가능.
 - 콘솔 출력이 필요하면 `--reporter=verbose`.
@@ -83,6 +91,9 @@ node scripts/build-openings.mjs   # 오프닝 데이터 재생성 (네트워크 
 - 게임 목록에서 체크 시 전체를 다시 그리지 말 것(스크롤 튐 버그가 있었음) → `syncSelection()` 패턴 사용.
 
 ## 7. 현재 상태와 남은 일 (2026-10-09)
+- 브랜치 `claude/nifty-hamilton-qp9prs`: 희생·도박수 판정 개선(무리한 희생 추가, WDL 기준), 기능 8종(닮은 선수, 퀴즈, 명수 카드, 변화 수순, 공유 링크, 시간, 오프닝별, 추이), 모바일 UI 정리. **main 미병합(배포 전)**.
+- 유명 선수 10명 모두 유형이 대부분 "만능형"으로 나옴 → BASELINE이 고전 공격 기보 기준이라 현대 선수의 편차가 작음. 닮은 선수는 편차 '방향'을 표준화해 비교하므로 동작하지만, BASELINE 재보정 시 masters.json도 다시 만들 것.
+- 토팔로프 PGN은 스페인어 기보법(C·A/F·T·D·R)이라 변환 후 사용.
 - 최신 커밋: 엔진 풀(깊이 12에서 2.4배) + 강제 국면 얕게. 테스트 53개 통과, 배포됨.
 - 사용자가 제안만 받고 보류한 속도 방안: ② 이론 구간 얕게(15~25% 절약), ④ MultiPV 3→2, ⑤ 깊이 대신 노드 제한.
 - 개선 거리: 스타일 대표 국면 보강(제한·실용적·복잡화·대기수 예시 부족), 다양한 현대 기보로 BASELINE 재보정, 모바일에서 수 카드가 보드 아래에 있어 스크롤 필요, "자연스러운 수"를 Maia로 교체 검토.

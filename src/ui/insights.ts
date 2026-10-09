@@ -2,6 +2,7 @@
 import { mergeProfiles, type PlayerProfile, type TimeProfile, type TimeSlice } from '../core/profile';
 import { STYLES, type StyleKey } from '../core/styles';
 import { lineChart } from './charts';
+import { similarMasters, MIN_MOVES_FOR_MATCH } from '../core/masters';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 
@@ -85,4 +86,20 @@ export function trendSection(games: { date: number | null; profile: PlayerProfil
   return `<div><div class="section-title">스타일 변화 추이</div>
     ${lineChart(buckets.map((b) => b.label), all)}
     <div class="legend">${all.map((s) => `<span><i style="background:${s.color}"></i>${s.label}</span>`).join('')}</div></div>`;
+}
+
+// ───────────── 닮은 선수 ─────────────
+
+export function mastersSection(p: PlayerProfile): string {
+  const list = similarMasters(p);
+  if (!list.length) return '';
+  const few = p.counted < MIN_MOVES_FOR_MATCH;
+  const [top, ...rest] = list;
+  return `<div><div class="section-title">닮은 선수</div>
+    <div class="master-top">
+      <div class="master-score">${top.score}<small>%</small></div>
+      <div><b>${esc(top.master.ko)}</b> <span class="faint">${esc(top.master.era)}</span><p>${esc(top.master.desc)}</p></div>
+    </div>
+    <div class="chips">${rest.map((r) => `<span class="chip" title="${esc(r.master.desc)}">${esc(r.master.ko)} ${r.score}%</span>`).join('')}</div>
+    <p class="faint" style="margin:6px 0 0">${few ? `평가한 수가 ${p.counted}개뿐이라 참고용입니다. 여러 판을 분석할수록 정확해집니다. ` : ''}스타일이 평균에서 벗어난 방향을 유명 선수 기보(선수당 약 24판) 분석 결과와 비교했습니다.</p></div>`;
 }
