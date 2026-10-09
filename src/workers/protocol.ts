@@ -8,7 +8,7 @@ export type ToWorker =
   | { type: 'engineResult'; id: number; lines: EngineLine[] };
 
 export type FromWorker =
-  | { type: 'engine'; id: number; fen: string; opts: { depth?: number; multipv?: number; searchmoves?: string[] } }
+  | { type: 'engine'; id: number; fen: string; opts: { depth?: number; multipv?: number; searchmoves?: string[]; priority?: number } }
   | { type: 'progress'; done: number; total: number }
   | { type: 'move'; move: MoveAnalysis }
   | { type: 'done'; result: GameAnalysis }

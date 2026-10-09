@@ -157,7 +157,8 @@ export function scoreMove(f: StaticFeatures, d: DeepFeatures | null): StyleResul
   // ── 반격 ──
   // 상대가 노리던 것을 막지 않고, 새로 커진 내 위협으로 맞받거나 상쇄
   // 내 맞위협은 물질 위협(소형 탐색)이거나 상대 킹을 향한 압박·체크
-  const counter = !!d && d.threatBefore >= 150 && f.rescued < 0.5 && !f.inCheckBefore && d.cpLoss <= 80 &&
+  // 반격은 다소 무리한 수(예: 트랙슬러)도 많아 명백한 실수(150cp 초과)만 제외한다. 좋고 나쁨은 품질 축에서 따로 본다
+  const counter = !!d && d.threatBefore >= 150 && f.rescued < 0.5 && !f.inCheckBefore && d.cpLoss <= 150 &&
     ((d.ourThreatAfter >= 100 && d.ourThreatAfter >= d.ourThreatBefore + 50) || f.kingAttack >= 2 || f.isCheck);
   if (counter) add('counterattack', 2.5, '상대 위협을 막지 않고 맞위협으로 상쇄');
   if (d) {

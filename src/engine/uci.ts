@@ -17,7 +17,8 @@ export const expectedScore = (l: EngineLine) =>
   l.wdl ? (l.wdl[0] + l.wdl[1] / 2) / 1000 : l.cp > 0 ? 1 : l.cp < 0 ? 0 : 0.5;
 
 export interface Engine {
-  analyse(fen: string, opts?: { depth?: number; multipv?: number; searchmoves?: string[] }): Promise<EngineLine[]>;
+  /** priority: 엔진 풀에서 먼저 처리할 요청일수록 크게 (단일 엔진은 무시) */
+  analyse(fen: string, opts?: { depth?: number; multipv?: number; searchmoves?: string[]; priority?: number }): Promise<EngineLine[]>;
   quit(): void;
 }
 
@@ -54,7 +55,7 @@ export class UciEngine implements Engine {
     await r;
   }
 
-  analyse(fen: string, { depth = 14, multipv = 3, searchmoves }: { depth?: number; multipv?: number; searchmoves?: string[] } = {}): Promise<EngineLine[]> {
+  analyse(fen: string, { depth = 14, multipv = 3, searchmoves }: { depth?: number; multipv?: number; searchmoves?: string[]; priority?: number } = {}): Promise<EngineLine[]> {
     const job = async () => {
       if (multipv !== this.currentMultiPv) {
         this.t.send(`setoption name MultiPV value ${multipv}`);

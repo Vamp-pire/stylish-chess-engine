@@ -1,6 +1,6 @@
 // 메인 스레드: Stockfish Worker와 분석 Worker를 띄우고 둘 사이 요청을 중계한다.
 import { createBrowserEngine } from '../engine/browser';
-import type { UciEngine } from '../engine/uci';
+import type { EnginePool } from '../engine/pool';
 import type { GameAnalysis, MoveAnalysis } from '../core/analyzer';
 import type { FromWorker, ToWorker } from '../workers/protocol';
 import AnalysisWorker from '../workers/analysis.worker?worker';
@@ -10,28 +10,34 @@ export interface RunCallbacks {
   onMove(m: MoveAnalysis): void;
 }
 
-let enginePromise: Promise<{ engine: UciEngine }> | null = null;
+let enginePromise: Promise<{ engine: EnginePool }> | null = null;
 export function getEngine() {
   enginePromise ??= createBrowserEngine(import.meta.env.BASE_URL + 'engine/');
   return enginePromise;
 }
 
+let runSeq = 0;
+
 export class AnalysisRun {
   private worker = new AnalysisWorker();
   private cancelled = false;
+  private id = ++runSeq;
+  private pool: EnginePool | null = null;
 
   constructor(private cb: RunCallbacks) {}
 
   async start(pgn: string, depth: number): Promise<GameAnalysis> {
     const { engine } = await getEngine();
+    this.pool = engine;
     return new Promise((resolve, reject) => {
       const send = (m: ToWorker) => this.worker.postMessage(m);
       this.worker.onmessage = async (e: MessageEvent<FromWorker>) => {
         const msg = e.data;
         switch (msg.type) {
           case 'engine': {
-            const lines = await engine.analyse(msg.fen, msg.opts);
-            if (!this.cancelled) send({ type: 'engineResult', id: msg.id, lines });
+            // 이 분석의 요청임을 표시해 두면 취소할 때 대기열에서 한꺼번에 버릴 수 있다
+            const lines = await engine.analyse(msg.fen, msg.opts, this.id).catch(() => null);
+            if (lines && !this.cancelled) send({ type: 'engineResult', id: msg.id, lines });
             break;
           }
           case 'progress': this.cb.onProgress(msg.done, msg.total); break;
@@ -48,5 +54,6 @@ export class AnalysisRun {
   cancel() {
     this.cancelled = true;
     this.worker.terminate();
+    this.pool?.cancel(this.id);
   }
 }

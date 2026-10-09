@@ -73,8 +73,18 @@ function terminalLines(fen: string): EngineLine[] | null {
   return null;
 }
 
-async function evalLines(engine: Engine, fen: string, depth: number, multipv = 3): Promise<EngineLine[]> {
-  return terminalLines(fen) ?? engine.analyse(fen, { depth, multipv });
+/** 판정 중에 생기는 추가 분석은 엔진 풀에서 먼저 처리한다 (앞 수부터 결과가 나오도록) */
+const URGENT = 10;
+
+async function evalLines(engine: Engine, fen: string, depth: number, multipv = 3, priority = 0): Promise<EngineLine[]> {
+  return terminalLines(fen) ?? engine.analyse(fen, { depth, multipv, priority });
+}
+
+/** 둘 수 있는 수가 1개뿐이거나, 체크를 피하는 수가 2개 이하인 국면: 선택의 여지가 없어 얕게 분석한다 */
+function isForcedPosition(fen: string) {
+  const ch = new Chess(fen);
+  const n = ch.moves().length;
+  return n === 1 || (ch.inCheck() && n <= 2);
 }
 
 function toMoveLike(m: Move): MoveLike {
@@ -149,12 +159,16 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
   const results: MoveAnalysis[] = [];
   const total = fens.length;
 
-  lines[0] = await evalLines(engine, fens[0], depth);
+  // 모든 국면 분석을 한꺼번에 요청한다. 엔진 풀이면 여러 엔진이 나눠서 동시에 처리하고,
+  // 단일 엔진이면 차례대로 처리된다. 강제된 국면은 얕게.
+  const pending = fens.map((fen) => evalLines(engine, fen, isForcedPosition(fen) ? Math.max(8, depth - 4) : depth));
+  pending.forEach((p) => p.catch(() => {})); // 중단 시 처리되지 않은 거부 방지
+  lines[0] = await pending[0];
   opts.onProgress?.(1, total);
 
   for (let i = 0; i < history.length; i++) {
     if (opts.signal?.aborted) break;
-    lines[i + 1] = await evalLines(engine, fens[i + 1], depth);
+    lines[i + 1] = await pending[i + 1];
     const m = history[i];
     const res = await analyzeMove({
       move: m, prev: i > 0 ? history[i - 1] : null, ply: i,
@@ -209,7 +223,7 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
   const second = before[1] ? cap(before[1].cp) : legal > 1 ? best - 300 : best - 1000;
   const inList = before.find((l) => l.uci === uci);
   // 후보에 없으면 같은 국면·같은 깊이에서 그 수만 분석해 비교한다 (서로 다른 수평선 비교 방지)
-  const playedLine = inList ?? (await engine.analyse(B, { depth, multipv: 1, searchmoves: [uci] }))[0];
+  const playedLine = inList ?? (await engine.analyse(B, { depth, multipv: 1, searchmoves: [uci], priority: URGENT }))[0];
   const played = playedLine ? cap(playedLine.cp) : cap(-after[0].cp);
   const cpLoss = before[0].uci === uci ? 0 : Math.max(0, Math.round(best - played));
   const bestGap = Math.max(0, Math.round(best - second));
@@ -274,7 +288,7 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
       for (const c of cands) {
         const chA = new Chess(A);
         const nm = chA.move({ from: c.r.uci.slice(0, 2), to: c.r.uci.slice(2, 4), promotion: c.r.uci[4] });
-        const verify = await evalLines(engine, chA.fen(), Math.max(8, depth - 2), 1);
+        const verify = await evalLines(engine, chA.fen(), Math.max(8, depth - 2), 1, URGENT);
         const value = cap(verify[0].cp); // 둔 쪽이 다시 둘 차례 → 둔 쪽 관점
         if (!worst || value > worst.value) worst = { san: nm.san, reason: c.r.reason, value };
       }
@@ -300,7 +314,7 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
   // ── 대기수: 상대가 '쉬고 싶은' 국면인가 (Stockfish, 후보일 때만) ──
   let zugzwang = 0;
   if (f.quietShuffle && cpLoss <= 20 && (f.isEndgame || legal <= 12) && after[0].pv.length) {
-    const flipped = await evalLines(engine, flipSide(A), Math.max(8, depth - 2), 1);
+    const flipped = await evalLines(engine, flipSide(A), Math.max(8, depth - 2), 1, URGENT);
     zugzwang = Math.max(0, cap(-flipped[0].cp) - cap(after[0].cp));
   }
 
