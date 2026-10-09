@@ -472,8 +472,9 @@ function updateBatch() {
           <div class="stat"><b>${agg.profile.counted}</b><span>평가한 수 (이론·강제 제외)</span></div>
         </div>
         ${agg.missed.length ? `<div><button class="btn" id="batch-quiz">🧩 놓친 기회 퀴즈 ${agg.missed.length}문제</button></div>` : ''}
-        ${openingSection(b.games.filter((g) => b.results.has(g.id)).map((g) => { const r = b.results.get(g.id)!; return { opening: r.opening?.name ?? g.opening, profile: r.profiles[g.userColor] }; }))}`;
-      pe.innerHTML = profileCard(agg.profile, null, {}, { name: b.user, sub: `${SOURCE_LABEL[b.source]} · ${b.results.size}판 종합`, extra, color: '#b5562d' });
+        `;
+      const tail = openingSection(b.games.filter((g) => b.results.has(g.id)).map((g) => { const r = b.results.get(g.id)!; return { opening: r.opening?.name ?? g.opening, profile: r.profiles[g.userColor] }; }));
+      pe.innerHTML = profileCard(agg.profile, null, {}, { name: b.user, sub: `${SOURCE_LABEL[b.source]} · ${b.results.size}판 종합`, extra, tail, color: '#b5562d' });
       $('#batch-quiz')?.addEventListener('click', () => openQuiz(agg.missed.slice(0, 30)));
     }
   }
@@ -935,7 +936,7 @@ function renderProfiles() {
   el.innerHTML = order.map((c) => profileCard(g.analysis!.profiles[c], c, g.headers, { focus: g.focus === c })).join('');
 }
 
-interface CardOptions { name?: string; sub?: string; extra?: string; color?: string; focus?: boolean }
+interface CardOptions { name?: string; sub?: string; extra?: string; tail?: string; color?: string; focus?: boolean }
 
 function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, string>, o: CardOptions = {}) {
   const color = o.color ?? (c === 'b' ? '#5b6ee1' : '#c9a227');
@@ -981,6 +982,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
         <div class="qbar">${qOrder.map((k) => `<i style="width:${(p.quality[k] / qTotal) * 100}%;background:${qColors[k]}"></i>`).join('')}</div>
         <div class="qlegend">${qOrder.map((k) => `<span><span class="dot" style="background:${qColors[k]}"></span> ${QUALITY_LABEL[k]} ${p.quality[k]}</span>`).join('')}</div>
       </div>
+      ${o.tail ?? ''}
     </div>`;
 }
 
@@ -1029,7 +1031,8 @@ function renderPlayers() {
       <div class="stat"><b>${prof.counted}</b><span>평가한 수 (이론·강제 제외)</span></div>
       <div class="stat"><b>백 ${games.filter((g) => g.color === 'w').length} · 흑 ${games.filter((g) => g.color === 'b').length}</b><span>둔 색</span></div>
     </div>
-    ${trendSection(games.map((g) => ({ date: g.date ?? g.savedAt, profile: g.profile })))}
+    `;
+  const tail = `${trendSection(games.map((g) => ({ date: g.date ?? g.savedAt, profile: g.profile })))}
     ${openingSection(games.map((g) => ({ opening: g.opening, profile: g.profile })))}`;
   const rows = games.map((g) => `<tr>
     <td class="faint">${g.date ? fmtDate(g.date) : '-'}</td>
@@ -1048,7 +1051,7 @@ function renderPlayers() {
       <button class="ghost danger" id="del-player">이 플레이어 삭제</button>
     </div>
     <div class="batch">
-      <div>${profileCard(prof, null, {}, { name: p.name, sub: `${SOURCE_NAME[p.source]} · 저장된 ${games.length}판 종합`, extra, color: '#b5562d' })}</div>
+      <div>${profileCard(prof, null, {}, { name: p.name, sub: `${SOURCE_NAME[p.source]} · 저장된 ${games.length}판 종합`, extra, tail, color: '#b5562d' })}</div>
       <div class="card card-pad">
         <div class="section-title">저장된 게임</div>
         <div class="game-table-wrap"><table class="game-table">${rows}</table></div>
@@ -1083,6 +1086,7 @@ function renderAbout() {
           <li>"사람이 둘 법한 수"는 규칙으로 근사하므로 함정수·도박수 판정은 완벽하지 않습니다.</li>
           <li>브라우저용 경량 엔진과 제한된 깊이를 쓰므로, 아주 깊은 수순이 필요한 수는 평가가 달라질 수 있습니다.</li>
           <li>스타일 가중치는 대표 국면과 고전 기보로 맞췄으며 계속 다듬고 있습니다.</li>
+          <li>"닮은 선수"는 유명 선수 10명의 기보를 선수당 24판씩 같은 방법(깊이 10)으로 분석한 평균과 비교한 것입니다. 표본이 작아 재미로 보는 참고 지표입니다. (기보 출처: GitHub의 antlr/grammars-v4 예제, CRAN bigchess 예제. 사이트에는 집계 숫자만 들어 있습니다.)</li>
         </ul>
       </div>
       <div class="card card-pad">
