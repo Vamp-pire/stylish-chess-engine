@@ -17,6 +17,9 @@ import { cacheKey, getCached, putCached, gameHash } from './ui/cache';
 import { savePlayerGame, listPlayers, getPlayer, deletePlayer, deleteGame, clearPlayers, combinedProfile, gamesOf, isNamed, SOURCE_NAME, type PlayerSource } from './ui/players';
 import { timeSection, openingSection, trendSection, fmtSec, fmtClock, GROUP_AXES, groupScore } from './ui/insights';
 import { shareUrl, readSharedGame } from './ui/share';
+import { pickHighlights, drawCard, cardBlob } from './ui/highlights';
+import { findMissed, openQuiz } from './ui/quiz';
+import { openModal } from './ui/modal';
 import { STYLES, STYLE_KEYS, RISK_KINDS, RISK_LABEL, QUALITY_LABEL, type StyleKey, type QualityKey } from './core/styles';
 
 // ───────────── 상태 ─────────────
@@ -44,7 +47,11 @@ interface GameState {
   date: number | null;
   /** 분석이 끝나면 성향을 저장할 쪽 */
   save: ('w' | 'b')[];
+  /** 보드에서 보고 있는 변화 수순 (미끼를 물었다면 / 최선 수순) */
+  variation: Variation | null;
 }
+
+interface Variation { title: string; ply: number; startFen: string; sans: string[]; fens: string[]; moves: [string, string][]; idx: number }
 
 /** 아이디로 불러온 게임 목록 */
 interface AccountState {
@@ -111,7 +118,7 @@ const fmtEval = (cp: number, mate: number | null) => {
 const glyph = (m: MoveAnalysis) => {
   if (m.risk === 'soundSacrifice') return '<span class="glyph g-risk">!</span>';
   if (m.risk === 'speculative') return '<span class="glyph g-risk">!?</span>';
-  if (m.risk === 'gamble') return '<span class="glyph g-risk">?!</span>';
+  if (m.risk === 'gamble') return '<span class="glyph g-risk">⚂</span>';
   if (m.risk === 'trap') return '<span class="glyph g-risk">⚑</span>';
   if (m.quality === 'blunder') return '<span class="glyph g-blunder">??</span>';
   if (m.quality === 'mistake') return '<span class="glyph g-mistake">?</span>';
@@ -398,10 +405,13 @@ async function runBatch(b: BatchState) {
 /** 고른 판들에서 그 아이디의 수만 모아 프로필을 만든다 */
 function batchProfile(b: BatchState) {
   const moves: MoveAnalysis[] = [];
+  const missed: { move: MoveAnalysis; game: string }[] = [];
   let w = 0, l = 0, d = 0, leftFirst = 0, withBook = 0;
   for (const g of b.games) {
     const r = b.results.get(g.id); if (!r) continue;
     moves.push(...r.moves.filter((m) => m.color === g.userColor));
+    const opp = g.userColor === 'w' ? g.black : g.white;
+    for (const m of findMissed(r.moves, g.userColor)) missed.push({ move: m, game: `vs ${opp.name} · ${fmtDate(g.date)}` });
     const res = userResult(g); if (res === 'win') w++; else if (res === 'loss') l++; else if (res === 'draw') d++;
     const p = r.profiles[g.userColor];
     if (p.opening.leftBookFirst != null) { withBook++; if (p.opening.leftBookFirst) leftFirst++; }
@@ -409,6 +419,7 @@ function batchProfile(b: BatchState) {
   return {
     profile: moves.length ? buildProfile(moves) : null,
     record: { w, l, d }, leftFirst, withBook,
+    missed: missed.sort((x, y) => y.move.deep.winDrop - x.move.deep.winDrop),
   };
 }
 
@@ -458,8 +469,10 @@ function updateBatch() {
           <div class="stat"><b>${agg.withBook ? Math.round((agg.leftFirst / agg.withBook) * 100) : 0}%</b><span>먼저 이론을 벗어난 비율</span></div>
           <div class="stat"><b>${agg.profile.counted}</b><span>평가한 수 (이론·강제 제외)</span></div>
         </div>
+        ${agg.missed.length ? `<div><button class="btn" id="batch-quiz">🧩 놓친 기회 퀴즈 ${agg.missed.length}문제</button></div>` : ''}
         ${openingSection(b.games.filter((g) => b.results.has(g.id)).map((g) => { const r = b.results.get(g.id)!; return { opening: r.opening?.name ?? g.opening, profile: r.profiles[g.userColor] }; }))}`;
       pe.innerHTML = profileCard(agg.profile, null, {}, { name: b.user, sub: `${SOURCE_LABEL[b.source]} · ${b.results.size}판 종합`, extra, color: '#b5562d' });
+      $('#batch-quiz')?.addEventListener('click', () => openQuiz(agg.missed.slice(0, 30)));
     }
   }
   const ge = $('#batch-games');
@@ -537,7 +550,7 @@ function prepareGame(pgn: string, opts: StartOptions): GameState | null {
     plies: history.map((m, i) => ({ san: m.san, color: m.color, from: m.from, to: m.to, fenAfter: m.after, moveNumber: Math.floor(i / 2) + 1 })),
     results: [], analysis: null, progress: [0, history.length + 1], ply: -1, error: null,
     focus: opts.focus ?? null, fromCache: false,
-    source: opts.source ?? 'pgn', url: opts.url ?? null, date: opts.date ?? null, save: opts.save ?? ['w', 'b'],
+    source: opts.source ?? 'pgn', url: opts.url ?? null, date: opts.date ?? null, save: opts.save ?? ['w', 'b'], variation: null,
   };
 }
 
@@ -547,7 +560,7 @@ function prepareGameQuiet(pgn: string): GameState | null {
   try { chess.loadPgn(pgn); } catch { return null; }
   return {
     pgn, headers: chess.getHeaders() as Record<string, string>, startFen: '', plies: [], results: [], analysis: null,
-    progress: [1, 1], ply: -1, error: null, focus: null, fromCache: true, source: 'pgn', url: null, date: null, save: [],
+    progress: [1, 1], ply: -1, error: null, focus: null, fromCache: true, source: 'pgn', url: null, date: null, save: [], variation: null,
   };
 }
 
@@ -612,6 +625,7 @@ function renderReview() {
       <span class="chip opening-chip" id="opening-chip" hidden></span>
       <span class="faint">${esc([h.Event, h.Date].filter((x) => x && !x.includes('?')).join(' · '))}</span>
       <div class="progress" id="progress"></div>
+      <span class="head-extras" id="head-extras"></span>
       ${state.batch ? '<button class="btn" id="to-batch">← 종합 프로필</button>' : ''}
       <button class="btn" id="share" title="이 기보를 담은 링크를 복사합니다">공유 링크</button>
       <button class="btn" id="new">새 기보</button>
@@ -679,8 +693,65 @@ function updateOpening() {
   if (o) el.textContent = `📖 ${o.eco} ${o.name}`;
 }
 
+/** 분석이 끝나면 머리줄에 명수 카드·퀴즈 버튼 */
+function updateHeadExtras() {
+  const g = state.game, el = $('#head-extras'); if (!g?.analysis || !el) return;
+  const side = g.focus ?? undefined;
+  const missed = findMissed(g.analysis.moves, side);
+  const hl = pickHighlights(g.analysis.moves, side);
+  el.innerHTML = `${hl.length ? '<button class="btn" id="highlights">✨ 명수 카드</button>' : ''}${missed.length ? `<button class="btn" id="quiz">🧩 놓친 기회 ${missed.length}</button>` : ''}`;
+  $('#highlights')?.addEventListener('click', () => openHighlights(g));
+  $('#quiz')?.addEventListener('click', () => openQuiz(missed.map((m) => ({ move: m }))));
+}
+
+/** 이 판의 명수를 카드 이미지로 보여주고 저장·공유한다 */
+async function openHighlights(g: GameState) {
+  const hl = pickHighlights(g.analysis!.moves, g.focus ?? undefined);
+  const body = openModal('이 판의 명수', `<p class="faint">${g.focus ? `${esc(playerName(g.headers, g.focus))}의 수 중 ` : ''}희생·함정·조용한 결정타 등 인상적인 수를 골랐습니다. 이미지를 저장해 공유해 보세요.</p><div class="hl-list">${hl.map((_, i) => `<div class="hl-item" data-hl="${i}"><div class="hl-img faint">그리는 중…</div></div>`).join('')}</div>`);
+  const info = { white: playerName(g.headers, 'w'), black: playerName(g.headers, 'b'), event: [g.headers.Event, g.headers.Date].filter((x) => x && !x.includes('?')).join(' · '), flip: state.orientation === 'black' };
+  for (let i = 0; i < hl.length; i++) {
+    const item = body.querySelector<HTMLElement>(`[data-hl="${i}"]`)!;
+    try {
+      const cv = await drawCard(hl[i], info);
+      const blob = await cardBlob(cv);
+      const url = URL.createObjectURL(blob);
+      const name = `stylish-${hl[i].move.moveNumber}${hl[i].move.color}-${hl[i].move.san.replace(/[^\w]/g, '')}.png`;
+      item.innerHTML = `<img class="hl-img" src="${url}" alt="${esc(hl[i].move.san)} 카드" />
+        <div class="hl-actions"><a class="btn small" href="${url}" download="${name}">이미지 저장</a>${navigator.canShare?.({ files: [new File([blob], name, { type: 'image/png' })] }) ? '<button class="btn small" data-share-img>공유</button>' : ''}<button class="btn small" data-goto="${hl[i].move.ply}">보드에서 보기</button></div>`;
+      item.querySelector<HTMLButtonElement>('[data-share-img]')?.addEventListener('click', () => navigator.share({ files: [new File([blob], name, { type: 'image/png' })] }).catch(() => {}));
+      item.querySelector<HTMLButtonElement>('[data-goto]')!.onclick = () => { (body.closest('.modal-backdrop') as HTMLElement & { close?: () => void })?.close?.(); select(hl[i].move.ply); };
+    } catch { item.innerHTML = '<p class="error">이미지를 만들지 못했습니다.</p>'; }
+  }
+}
+
+/** 변화 수순 보기: start 국면에서 sans를 차례로 둔다 */
+function openVariation(title: string, ply: number, startFen: string, sans: string[]) {
+  const g = state.game; if (!g) return;
+  const ch = new Chess(startFen);
+  const fens: string[] = [], moves: [string, string][] = [], ok: string[] = [];
+  for (const san of sans) {
+    try { const mv = ch.move(san); fens.push(ch.fen()); moves.push([mv.from, mv.to]); ok.push(mv.san); } catch { break; }
+  }
+  if (!ok.length) return;
+  g.variation = { title, ply, startFen, sans: ok, fens, moves, idx: 1 };
+  updatePosition();
+}
+
+function stepVariation(to: number | 'exit') {
+  const g = state.game; if (!g?.variation) return;
+  if (to === 'exit') { g.variation = null; updatePosition(); return; }
+  g.variation.idx = Math.max(0, Math.min(g.variation.sans.length, to));
+  updatePosition();
+}
+
 function go(where: string) {
   const g = state.game; if (!g) return;
+  if (g.variation && where !== 'flip') {
+    const v = g.variation;
+    if (where === 'prev') return stepVariation(v.idx - 1);
+    if (where === 'next') return stepVariation(v.idx + 1);
+    g.variation = null;
+  }
   if (where === 'flip') { state.orientation = state.orientation === 'white' ? 'black' : 'white'; cg?.set({ orientation: state.orientation }); return; }
   const n = g.plies.length;
   select(where === 'first' ? -1 : where === 'last' ? n - 1 : where === 'prev' ? Math.max(-1, g.ply - 1) : Math.min(n - 1, g.ply + 1));
@@ -689,6 +760,7 @@ function go(where: string) {
 function select(ply: number) {
   if (!state.game) return;
   state.game.ply = ply;
+  state.game.variation = null;
   updatePosition();
   $(`.mv[data-ply="${ply}"]`)?.scrollIntoView({ block: 'nearest' });
 }
@@ -699,22 +771,35 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') { go('next'); e.preventDefault(); }
   if (e.key === 'Home') go('first');
   if (e.key === 'End') go('last');
+  if (e.key === 'Escape' && state.game.variation && !document.querySelector('.modal-backdrop')) stepVariation('exit');
 });
 
 function updateProgress() {
   const g = state.game, el = $('#progress'); if (!g || !el) return;
   if (g.error) { el.innerHTML = `<span class="error">분석 오류: ${esc(g.error)}</span>`; return; }
-  if (g.analysis) { el.innerHTML = `<span class="faint">분석 완료 · 깊이 ${g.analysis.depth}</span>`; return; }
+  if (g.analysis) { el.innerHTML = `<span class="faint">분석 완료 · 깊이 ${g.analysis.depth}</span>`; updateHeadExtras(); return; }
   const [d, t] = g.progress;
   el.innerHTML = `<span class="faint">${d === 0 ? '엔진 준비 중…' : `분석 중 ${Math.max(0, d - 1)}/${t - 1}수`}</span><div class="bar"><i style="width:${(d / t) * 100}%"></i></div>`;
 }
 
 function updatePosition() {
   const g = state.game; if (!g || !cg) return;
+  const v = g.variation;
+  if (v) {
+    const fen = v.idx ? v.fens[v.idx - 1] : v.startFen;
+    const last = v.idx ? v.moves[v.idx - 1] : null;
+    cg.set({
+      fen, lastMove: last ? [last[0] as Key, last[1] as Key] : undefined,
+      turnColor: fen.split(' ')[1] === 'w' ? 'white' : 'black', check: new Chess(fen).inCheck(), drawable: { autoShapes: [] },
+    });
+    updateCard();
+    return;
+  }
   const p = g.ply >= 0 ? g.plies[g.ply] : null;
   const m = g.ply >= 0 ? g.results[g.ply] : undefined;
   const shapes: { orig: Key; dest?: Key; brush: string }[] = [];
   if (m && m.deep.bestMove && !m.deep.isBest) shapes.push({ orig: m.deep.bestMove.slice(0, 2) as Key, dest: m.deep.bestMove.slice(2, 4) as Key, brush: 'paleGreen' });
+  if (m?.trapLine) shapes.push({ orig: m.trapLine.replyUci.slice(0, 2) as Key, dest: m.trapLine.replyUci.slice(2, 4) as Key, brush: 'red' });
   cg.set({
     fen: p ? p.fenAfter : g.startFen,
     lastMove: p ? [p.from as Key, p.to as Key] : undefined,
@@ -757,7 +842,7 @@ function updateCard() {
   const g = state.game, el = $('#card'); if (!g || !el) return;
   if (g.ply < 0) {
     el.innerHTML = `<div><div class="section-title">시작 국면</div><p class="muted">수 목록에서 수를 누르거나 ← → 키로 이동하세요. 각 수의 스타일, 판단 근거, Stockfish 최선 수를 보여줍니다.</p>
-      <p class="faint">색 점은 그 수의 대표 스타일, 기호는 품질(?! 부정확, ? 실수, ?? 블런더)과 위험 판정(! 건전한 희생, !? 도박수, ⚑ 함정수)입니다.</p></div>`;
+      <p class="faint">색 점은 그 수의 대표 스타일, 기호는 품질(?! 부정확, ? 실수, ?? 블런더)과 위험 판정(! 건전한 희생, !? 무리한 희생, ⚂ 도박수, ⚑ 함정수)입니다.</p></div>`;
     return;
   }
   const p = g.plies[g.ply], m = g.results[g.ply];
@@ -773,8 +858,26 @@ function updateCard() {
     ? STYLE_KEYS.filter((k) => (m.choiceDelta![k] ?? 0) >= 15).sort((a, b) => m.choiceDelta![b]! - m.choiceDelta![a]!).slice(0, 3)
     : [];
   const evalAfter = fmtEval(m.evalWhiteAfter, m.mateAfter);
+  const v = g.variation;
+  const varPanel = v ? `
+    <div class="variation">
+      <div class="var-head"><strong>${esc(v.title)}</strong><button class="ghost small-x" data-var-exit title="실제 수순으로 돌아가기 (Esc)">✕</button></div>
+      <div class="var-line">${v.sans.map((san, i) => {
+        const fen = i ? v.fens[i - 1] : v.startFen;
+        const white = fen.split(' ')[1] === 'w';
+        const no = Number(fen.split(' ')[5]);
+        const label = white ? `${no}. ` : i === 0 ? `${no}... ` : '';
+        return `<button class="var-mv ${v.idx === i + 1 ? 'active' : ''}" data-var-idx="${i + 1}">${label}${esc(san)}</button>`;
+      }).join('')}</div>
+      <div class="var-controls"><button class="btn small" data-var-idx="${v.idx - 1}" ${v.idx ? '' : 'disabled'}>◀</button><button class="btn small" data-var-idx="${v.idx + 1}" ${v.idx < v.sans.length ? '' : 'disabled'}>▶</button><span class="faint">← → 키로 이동 · Esc로 돌아가기</span></div>
+    </div>` : '';
+  const varButtons = [
+    m.trapLine ? `<button class="btn small" data-var="trap">${m.risk === 'gamble' ? '🎲' : '🪤'} 상대가 ${esc(m.trapLine.replySan)}를 뒀다면 ▶</button>` : '',
+    !m.deep.isBest && m.bestPvSan.length ? `<button class="btn small" data-var="best">최선 수순 보기 ▶</button>` : '',
+    m.playedPvSan.length ? `<button class="btn small" data-var="played">이후 예상 수순 ▶</button>` : '',
+  ].join('');
 
-  el.innerHTML = `
+  el.innerHTML = `${varPanel}
     <div class="mc-head">
       <span class="mc-num">${m.moveNumber}${m.color === 'w' ? '.' : '...'}</span>
       <span class="mc-san">${esc(m.san)}</span>
@@ -782,6 +885,7 @@ function updateCard() {
       ${m.forced ? '<span class="chip" title="선택의 여지가 거의 없던 수라 플레이어 평가에서 제외">강제된 수</span>' : ''}
     </div>
     ${m.risk ? `<div class="risk ${m.risk}"><strong>${RISK_LABEL[m.risk]}</strong><span>${esc(m.riskWhy)}</span></div>` : ''}
+    ${varButtons ? `<div class="var-buttons">${varButtons}</div>` : ''}
     ${m.book ? `<div class="book-banner"><strong>📖 오프닝 이론${m.opening ? ` · ${esc(m.opening.eco)} ${esc(m.opening.name)}` : ''}</strong><span>누구나 두는 이론 수라 스타일은 참고용으로 흐리게 보여주고, 플레이어 평가에서는 뺍니다.</span></div>` : ''}
     ${!m.book && g.ply > 0 && g.results[g.ply - 1]?.book ? `<div class="book-banner dev"><strong>↳ 이론 이탈</strong><span>여기서부터 알려진 오프닝 이론을 벗어났습니다.</span></div>` : ''}
     <div class="${m.book ? 'dim' : ''}">
@@ -800,6 +904,13 @@ function updateCard() {
       ${m.playedPvSan.length ? `<div class="faint">이후 예상 수순</div><div class="line">${esc(m.playedPvSan.join(' '))}</div>` : ''}
     </div>
     ${reasons ? `<details class="reasons"><summary>판단 근거 보기</summary>${reasons}</details>` : ''}`;
+  el.querySelectorAll<HTMLButtonElement>('[data-var]').forEach((b) => b.onclick = () => {
+    if (b.dataset.var === 'trap' && m.trapLine) openVariation(`상대가 ${m.trapLine.replySan}(을)를 뒀다면`, g.ply, m.fenAfter, [m.trapLine.replySan, ...m.trapLine.line]);
+    if (b.dataset.var === 'best') openVariation(`최선 수 ${m.bestSan ?? ''} 수순`, g.ply, m.fenBefore, m.bestPvSan);
+    if (b.dataset.var === 'played') openVariation('이후 예상 수순 (Stockfish)', g.ply, m.fenAfter, m.playedPvSan);
+  });
+  el.querySelectorAll<HTMLButtonElement>('[data-var-idx]').forEach((b) => b.onclick = () => stepVariation(Number(b.dataset.varIdx)));
+  el.querySelector<HTMLButtonElement>('[data-var-exit]')?.addEventListener('click', () => stepVariation('exit'));
 }
 
 // ───────────── 플레이어 프로필 ─────────────

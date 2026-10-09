@@ -345,3 +345,43 @@ input.pick { width: 22px; height: 22px; accent-color: var(--accent); cursor: poi
 .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12px; color: var(--text-2); margin-top: 6px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
 .warn-chip { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, transparent); padding: 1px 7px; font-size: 11px; }
+
+/* ── 대화 상자 ── */
+body.modal-open { overflow: hidden; }
+.modal-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(15, 12, 8, .55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); width: min(920px, 100%); max-height: calc(100dvh - 32px); display: flex; flex-direction: column; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.modal-head h2 { margin: 0; font-size: 18px; }
+.modal-body { padding: 18px; overflow: auto; }
+
+/* ── 명수 카드 ── */
+.hl-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.hl-item { display: flex; flex-direction: column; gap: 8px; }
+.hl-img { width: 100%; aspect-ratio: 4 / 5; border-radius: 10px; background: var(--surface-2); display: flex; align-items: center; justify-content: center; object-fit: cover; }
+.hl-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+a.btn { text-decoration: none; color: inherit; display: inline-flex; align-items: center; }
+
+/* ── 퀴즈 ── */
+.quiz { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.quiz-board { width: 100%; }
+.quiz-board .cg { width: 100%; aspect-ratio: 1; }
+.quiz-side { display: flex; flex-direction: column; gap: 12px; }
+.quiz-q p { margin: 6px 0 0; color: var(--text-2); }
+.quiz-msg { min-height: 48px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 14px; }
+.quiz-msg:empty { background: transparent; padding: 0; }
+.quiz-msg.ok { background: color-mix(in srgb, var(--good) 14%, transparent); }
+.quiz-msg.no { background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.quiz-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 720px) { .quiz { grid-template-columns: 1fr; } }
+
+/* ── 변화 수순 ── */
+.head-extras { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.head-extras:empty { display: none; }
+.var-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.variation { border: 1px solid var(--accent); background: var(--accent-soft); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.var-head { display: flex; align-items: center; justify-content: space-between; }
+.var-line { display: flex; flex-wrap: wrap; gap: 2px 4px; font-family: var(--mono); font-size: 13px; }
+.var-mv { all: unset; cursor: pointer; padding: 2px 5px; border-radius: 6px; }
+.var-mv:hover { background: var(--surface); }
+.var-mv.active { background: var(--accent); color: #fff; }
+.var-controls { display: flex; align-items: center; gap: 6px; font-size: 12px; }
