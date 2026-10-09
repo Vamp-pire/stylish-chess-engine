@@ -43,6 +43,8 @@ src/core/
   profile.ts     플레이어 프로필 집계, BASELINE, 유형(archetype), mergeProfiles(여러 판 합치기)
   openings.ts / openingKey.js(.d.ts)   오프닝 이론 조회 (국면 해시 → 이름)
   clock.ts       [%clk]·TimeControl → 수별 소요/남은 시간, 시간 부족 여부
+  coach.ts       코치와 두기: CoachSession(수 하나 평가·위협·국면 캐시), chooseBotMove(레벨 = 깊이·후보 수·무작위성, 스타일 = 후보 중 스타일 적합도 가산)
+  coachText.ts   코치 말풍선 문장 틀 (내 수 / 상대 수)
   masters.ts     닮은 선수 찾기 (BASELINE 대비 편차 방향의 코사인 유사도). 데이터는 src/data/masters.json
 src/search/
   position.ts    0x88 수 생성기 (perft 검증됨)
@@ -51,9 +53,10 @@ src/engine/
   uci.ts         UCI 프로토콜(UciEngine), expectedScore(WDL)
   pool.ts        EnginePool: 우선순위 큐, 분석별 취소(tag)
   browser.ts     Stockfish Worker 생성, poolSize()
-src/workers/     analysis.worker.ts(분석 스레드) + protocol.ts. 엔진 요청은 메인 스레드가 풀로 중계
+src/workers/     analysis.worker.ts(분석 스레드) + protocol.ts, coach.worker.ts(코치 RPC). 엔진 요청은 메인 스레드가 풀로 중계
 src/online/sources.ts   Chess.com·Lichess 아이디 → 최근 게임 (브라우저에서 직접 호출, CORS 허용 확인됨)
 src/ui/          runner.ts(분석 실행·중계) charts.ts(그래프·레이더·추이) guide.ts(스타일 사전·HOW 설명) cache.ts(IndexedDB) players.ts(localStorage 프로필)
+                 coachView.ts(코치 화면) coachClient.ts(코치 Worker 연결)
                  insights.ts(시간·오프닝별·추이·닮은 선수 섹션) share.ts(공유 링크 #g=) highlights.ts(명수 카드 PNG) quiz.ts(놓친 기회 퀴즈) modal.ts
 src/main.ts      ★ 화면 전부 (입력 탭, 아이디 목록, 리뷰, 종합 분석, 프로필 메뉴, 소개). 문자열 템플릿 + esc()
 src/style.css    디자인 토큰(:root, 다크 모드) + 화면별 스타일
@@ -91,6 +94,8 @@ node scripts/build-masters.mjs <결과폴더>
 - 게임 목록에서 체크 시 전체를 다시 그리지 말 것(스크롤 튐 버그가 있었음) → `syncSelection()` 패턴 사용.
 
 ## 7. 현재 상태와 남은 일 (2026-10-09)
+- 코치와 두기(메뉴 "코치") 추가: analyzer의 analyzeMove·markBook·finalizeGame을 export해 수 단위로 재사용. 봇 강도 이름은 상대 단계일 뿐 레이팅 아님(Stockfish UCI_Elo는 lite 빌드 지원 미확인이라 안 씀). 승격은 퀸 자동.
+- **확인 필요(사용자 결정)**: 품질 '블런더' 기준 50%p는 평형·약간 불리한 국면에서 사실상 도달 불가(1.e4 e5 2.Nf3 Qg5??가 '실수'). 기준 조정은 사용자 확인 후.
 - 브랜치 `claude/nifty-hamilton-qp9prs`: 희생·도박수 판정 개선(무리한 희생 추가, WDL 기준), 기능 8종(닮은 선수, 퀴즈, 명수 카드, 변화 수순, 공유 링크, 시간, 오프닝별, 추이), 모바일 UI 정리. 2026-10-09 main에 병합·배포됨.
 - 유명 선수 10명 모두 유형이 대부분 "만능형"으로 나옴 → BASELINE이 고전 공격 기보 기준이라 현대 선수의 편차가 작음. 닮은 선수는 편차 '방향'을 표준화해 비교하므로 동작하지만, BASELINE 재보정 시 masters.json도 다시 만들 것.
 - 토팔로프 PGN은 스페인어 기보법(C·A/F·T·D·R)이라 변환 후 사용.

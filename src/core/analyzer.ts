@@ -88,14 +88,14 @@ function terminalLines(fen: string): EngineLine[] | null {
 }
 
 /** 판정 중에 생기는 추가 분석은 엔진 풀에서 먼저 처리한다 (앞 수부터 결과가 나오도록) */
-const URGENT = 10;
+export const URGENT = 10;
 
-async function evalLines(engine: Engine, fen: string, depth: number, multipv = 3, priority = 0): Promise<EngineLine[]> {
+export async function evalLines(engine: Engine, fen: string, depth: number, multipv = 3, priority = 0): Promise<EngineLine[]> {
   return terminalLines(fen) ?? engine.analyse(fen, { depth, multipv, priority });
 }
 
 /** 둘 수 있는 수가 1개뿐이거나, 체크를 피하는 수가 2개 이하인 국면: 선택의 여지가 없어 얕게 분석한다 */
-function isForcedPosition(fen: string) {
+export function isForcedPosition(fen: string) {
   const ch = new Chess(fen);
   const n = ch.moves().length;
   return n === 1 || (ch.inCheck() && n <= 2);
@@ -105,7 +105,7 @@ function toMoveLike(m: Move): MoveLike {
   return { from: m.from, to: m.to, color: m.color, piece: m.piece, captured: m.captured, promotion: m.promotion, san: m.san, flags: m.flags };
 }
 
-function uciToSanLine(fen: string, ucis: string[], max = 8): string[] {
+export function uciToSanLine(fen: string, ucis: string[], max = 8): string[] {
   const ch = new Chess(fen);
   const out: string[] = [];
   for (const u of ucis.slice(0, max)) {
@@ -151,7 +151,7 @@ function walkPv(fenAfter: string, pv: string[], mover: Color, baseline: number, 
   return { gainEnd: Math.min(...tail), lossEnd: Math.max(...tail), forcing, checks, kingPressureMax };
 }
 
-function flipSide(fen: string): string {
+export function flipSide(fen: string): string {
   const p = fen.split(' ');
   p[1] = p[1] === 'w' ? 'b' : 'w';
   p[3] = '-';
@@ -189,17 +189,26 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
       move: m, prev: i > 0 ? history[i - 1] : null, ply: i,
       before: lines[i], after: lines[i + 1], engine, depth, searcher,
     });
-    // 오프닝 이론: 처음부터 끊기지 않고 이어진 구간만 (한 번 벗어나면 다시 들어와도 이론으로 보지 않는다)
-    const info = opts.book?.lookup(m.after) ?? null;
-    const stillBook = !!info && (i === 0 || !!results[i - 1]?.book);
     Object.assign(res, clocks[i]);
-    res.book = stillBook;
-    res.opening = stillBook ? info : null;
+    markBook(res, results[i - 1] ?? null, opts.book ?? null);
     results.push(res);
     opts.onMove?.(res);
     opts.onProgress?.(i + 2, total);
   }
 
+  return finalizeGame(results, headers, startFen, depth);
+}
+
+/** 오프닝 이론: 처음부터 끊기지 않고 이어진 구간만 (한 번 벗어나면 다시 들어와도 이론으로 보지 않는다) */
+export function markBook(res: MoveAnalysis, prev: MoveAnalysis | null, book: OpeningBook | null) {
+  const info = book?.lookup(res.fenAfter) ?? null;
+  const stillBook = !!info && (res.ply === 0 || !!prev?.book);
+  res.book = stillBook;
+  res.opening = stillBook ? info : null;
+}
+
+/** 수별 분석을 모아 게임 결과로: 위험 수 적중 여부, 오프닝 이름, 플레이어 프로필 */
+export function finalizeGame(results: MoveAnalysis[], headers: Record<string, string>, startFen: string, depth: number): GameAnalysis {
   // 위험 판정 수의 성공 여부: 상대가 다음 수에서 크게 틀렸는가
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
@@ -215,13 +224,14 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
   return { headers, startFen, moves: results, profiles: buildProfiles(results), depth, opening: named, bookPlies };
 }
 
-interface MoveInput {
+export interface MoveInput {
   move: Move; prev: Move | null; ply: number;
   before: EngineLine[]; after: EngineLine[];
   engine: Engine; depth: number; searcher: Searcher;
 }
 
-async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
+/** 수 하나 분석: before/after는 수 두기 전·후 국면의 Stockfish 후보(MultiPV 3) */
+export async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
   const { move, prev, ply, before, after, engine, depth, searcher } = x;
   const B = move.before, A = move.after;
   const chB = new Chess(B);

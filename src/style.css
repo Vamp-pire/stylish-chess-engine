@@ -414,3 +414,52 @@ a.btn { text-decoration: none; color: inherit; display: inline-flex; align-items
 .master-top p { margin: 2px 0 0; font-size: 13px; color: var(--text-2); }
 .master-score { flex: none; width: 64px; height: 64px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; }
 .master-score small { font-size: 12px; margin-left: 1px; }
+
+/* ── 코치와 두기 ── */
+.coach-setup { max-width: 720px; margin: 0 auto; display: grid; gap: 14px; }
+.setup-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.setup-row > .muted:first-child { min-width: 64px; }
+.setup-row.check { cursor: pointer; font-size: 14px; }
+.setup-bot { display: grid; gap: 14px; }
+.setup-foot { display: flex; justify-content: flex-end; }
+select.select { width: auto; min-width: 220px; padding: 8px 12px; }
+.coach { display: grid; grid-template-columns: minmax(300px, 600px) minmax(280px, 1fr); gap: 16px; align-items: start; }
+.coach-board-col { display: grid; gap: 12px; }
+.coach-board-row { display: grid; grid-template-columns: 22px 1fr; gap: 8px; }
+.coach-board-row .board-wrap .cg { position: absolute; inset: 0; }
+.eval-bar { position: relative; border-radius: 6px; overflow: hidden; background: var(--black-side); border: 1px solid var(--border); }
+.eval-bar i { position: absolute; left: 0; right: 0; bottom: 0; background: var(--white-side); transition: height .35s ease; }
+.eval-bar.flipped i { top: 0; bottom: auto; }
+.eval-bar span { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font-size: 9px; font-weight: 700; color: var(--text-3); writing-mode: horizontal-tb; }
+.eval-bar.flipped span { bottom: auto; top: 4px; }
+.eval-bar.off { visibility: hidden; }
+.coach-side { display: grid; gap: 12px; }
+.coach-panel { padding: 16px; display: grid; gap: 12px; min-height: 160px; align-content: start; }
+.coach-moves { padding: 12px 14px; max-height: 180px; overflow: auto; }
+.coach-move-flow { font-family: var(--mono); font-size: 13px; line-height: 1.9; }
+.coach-move-flow .no { color: var(--text-3); margin-left: 4px; }
+.cm { padding: 1px 4px; border-radius: 5px; }
+.q-dot-inaccuracy { background: color-mix(in srgb, var(--warn) 22%, transparent); }
+.q-dot-mistake { background: color-mix(in srgb, #e07a2e 24%, transparent); }
+.q-dot-blunder { background: color-mix(in srgb, var(--bad) 24%, transparent); }
+.q-dot-best { color: var(--good); }
+.status { font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.mine-move { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.mine-move .mc-san { font-size: 22px; }
+.risk-pill { background: color-mix(in srgb, #a855f7 15%, transparent); color: #a855f7; }
+.bubble { border-radius: 12px; padding: 10px 14px; background: var(--surface-2); border-left: 4px solid var(--text-3); }
+.bubble p { margin: 2px 0 0; font-size: 14px; color: var(--text-2); }
+.bubble strong { font-size: 15px; }
+.bubble-who { font-size: 12px; color: var(--text-3); font-weight: 600; margin-bottom: 2px; }
+.tone-great { border-left-color: var(--good); }
+.tone-good { border-left-color: #8fd1ae; }
+.tone-warn { border-left-color: var(--warn); }
+.tone-bad { border-left-color: var(--bad); }
+.tone-info { border-left-color: var(--accent); }
+.coach-actions { display: flex; gap: 8px; }
+.over-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); }
+.over-banner strong { font-size: 17px; }
+@media (max-width: 900px) { .coach { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { .coach-board-row { grid-template-columns: 14px 1fr; gap: 6px; } .eval-bar span { display: none; } .board-controls { flex-wrap: wrap; } .board-controls .btn { padding: 8px 10px; font-size: 13px; min-width: 0; } }

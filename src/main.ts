@@ -20,11 +20,12 @@ import { shareUrl, readSharedGame } from './ui/share';
 import { pickHighlights, drawCard, cardBlob } from './ui/highlights';
 import { findMissed, openQuiz } from './ui/quiz';
 import { openModal } from './ui/modal';
+import { renderCoach, leaveCoach } from './ui/coachView';
 import { STYLES, STYLE_KEYS, RISK_KINDS, RISK_LABEL, QUALITY_LABEL, type StyleKey, type QualityKey } from './core/styles';
 
 // ───────────── 상태 ─────────────
 
-type View = 'analyze' | 'guide' | 'about' | 'players';
+type View = 'analyze' | 'coach' | 'guide' | 'about' | 'players';
 type InputTab = 'paste' | 'samples' | 'file' | 'lichess' | 'chesscom' | 'lichessUser';
 
 interface PlyInfo { san: string; color: 'w' | 'b'; from: string; to: string; fenAfter: string; moveNumber: number }
@@ -143,6 +144,8 @@ document.querySelectorAll<HTMLElement>('[data-nav]').forEach((el) =>
 
 function render() {
   cg?.destroy(); cg = null;
+  if (state.view !== 'coach') leaveCoach();
+  if (state.view === 'coach') { renderCoach(app, { openReview: openCoachReview }); return; }
   if (state.view === 'guide') { app.innerHTML = renderGuide(); return; }
   if (state.view === 'about') { app.innerHTML = renderAbout(); return; }
   if (state.view === 'players') { renderPlayers(); return; }
@@ -1094,6 +1097,13 @@ function renderAbout() {
         <p>기보와 분석 결과는 서버로 전송되지 않고 이 브라우저 안에서만 처리됩니다. Chess.com·Lichess 아이디나 링크를 쓰면 이 브라우저가 해당 사이트에서 공개된 기보를 직접 받아옵니다. 분석 결과는 다시 볼 때 바로 보여주려고 이 브라우저(IndexedDB)에만 저장되고, 플레이어별 성향 요약은 프로필 메뉴용으로 이 브라우저(localStorage)에만 저장됩니다. 프로필 메뉴에서 언제든 지울 수 있습니다.</p>
       </div>
     </div>`;
+}
+
+/** 코치 대국이 끝나면 이미 계산한 수별 평가로 바로 리뷰 화면을 연다 (내 성향은 '나'로 저장) */
+function openCoachReview(pgn: string, result: GameAnalysis, color: 'w' | 'b') {
+  state.view = 'analyze';
+  document.querySelectorAll<HTMLButtonElement>('.nav button').forEach((b) => b.classList.toggle('active', b.dataset.nav === 'analyze'));
+  showAnalyzed(pgn, result, { focus: color, save: [color] });
 }
 
 /** 공유 링크(#g=...)로 들어오면 그 기보를 바로 분석한다 */
