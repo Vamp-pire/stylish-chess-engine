@@ -15,6 +15,8 @@ import { buildProfile, riskTotal, type PlayerProfile } from './core/profile';
 import { fetchGames, userResult, SOURCE_LABEL, type OnlineGame, type Source } from './online/sources';
 import { cacheKey, getCached, putCached, gameHash } from './ui/cache';
 import { savePlayerGame, listPlayers, getPlayer, deletePlayer, deleteGame, clearPlayers, combinedProfile, gamesOf, isNamed, SOURCE_NAME, type PlayerSource } from './ui/players';
+import { timeSection, openingSection, trendSection, fmtSec, fmtClock, GROUP_AXES, groupScore } from './ui/insights';
+import { shareUrl, readSharedGame } from './ui/share';
 import { STYLES, STYLE_KEYS, RISK_KINDS, RISK_LABEL, QUALITY_LABEL, type StyleKey, type QualityKey } from './core/styles';
 
 // ───────────── 상태 ─────────────
@@ -217,7 +219,7 @@ async function onGo() {
     const id = state.lichessUrl.match(/lichess\.org\/([a-zA-Z0-9]{8})/)?.[1];
     if (!id) { state.inputError = 'Lichess 게임 링크 형식이 아닙니다 (예: https://lichess.org/abcd1234)'; renderInput(); return; }
     try {
-      const res = await fetch(`https://lichess.org/game/export/${id}?clocks=false&evals=false&literate=false`, { headers: { Accept: 'application/x-chess-pgn' } });
+      const res = await fetch(`https://lichess.org/game/export/${id}?clocks=true&evals=false&literate=false`, { headers: { Accept: 'application/x-chess-pgn' } });
       if (!res.ok) throw new Error(String(res.status));
       startAnalysis(await res.text());
     } catch {
@@ -396,20 +398,16 @@ async function runBatch(b: BatchState) {
 /** 고른 판들에서 그 아이디의 수만 모아 프로필을 만든다 */
 function batchProfile(b: BatchState) {
   const moves: MoveAnalysis[] = [];
-  const openings = new Map<string, number>();
   let w = 0, l = 0, d = 0, leftFirst = 0, withBook = 0;
   for (const g of b.games) {
     const r = b.results.get(g.id); if (!r) continue;
     moves.push(...r.moves.filter((m) => m.color === g.userColor));
-    const name = r.opening?.name ?? g.opening;
-    if (name) openings.set(name, (openings.get(name) ?? 0) + 1);
     const res = userResult(g); if (res === 'win') w++; else if (res === 'loss') l++; else if (res === 'draw') d++;
     const p = r.profiles[g.userColor];
     if (p.opening.leftBookFirst != null) { withBook++; if (p.opening.leftBookFirst) leftFirst++; }
   }
   return {
     profile: moves.length ? buildProfile(moves) : null,
-    openings: [...openings].sort((x, y) => y[1] - x[1]).slice(0, 5),
     record: { w, l, d }, leftFirst, withBook,
   };
 }
@@ -460,7 +458,7 @@ function updateBatch() {
           <div class="stat"><b>${agg.withBook ? Math.round((agg.leftFirst / agg.withBook) * 100) : 0}%</b><span>먼저 이론을 벗어난 비율</span></div>
           <div class="stat"><b>${agg.profile.counted}</b><span>평가한 수 (이론·강제 제외)</span></div>
         </div>
-        ${agg.openings.length ? `<div><div class="section-title">자주 둔 오프닝</div><div class="chips">${agg.openings.map(([n, c]) => `<span class="chip">${esc(n)} · ${c}판</span>`).join('')}</div></div>` : ''}`;
+        ${openingSection(b.games.filter((g) => b.results.has(g.id)).map((g) => { const r = b.results.get(g.id)!; return { opening: r.opening?.name ?? g.opening, profile: r.profiles[g.userColor] }; }))}`;
       pe.innerHTML = profileCard(agg.profile, null, {}, { name: b.user, sub: `${SOURCE_LABEL[b.source]} · ${b.results.size}판 종합`, extra, color: '#b5562d' });
     }
   }
@@ -615,6 +613,7 @@ function renderReview() {
       <span class="faint">${esc([h.Event, h.Date].filter((x) => x && !x.includes('?')).join(' · '))}</span>
       <div class="progress" id="progress"></div>
       ${state.batch ? '<button class="btn" id="to-batch">← 종합 프로필</button>' : ''}
+      <button class="btn" id="share" title="이 기보를 담은 링크를 복사합니다">공유 링크</button>
       <button class="btn" id="new">새 기보</button>
     </div>
     <div class="review">
@@ -645,6 +644,7 @@ function renderReview() {
     render();
   };
   $('#to-batch')?.addEventListener('click', () => { state.run?.cancel(); state.game = null; render(); });
+  $('#share')!.onclick = () => shareGame(g);
   app.querySelectorAll<HTMLButtonElement>('[data-go]').forEach((b) => b.onclick = () => go(b.dataset.go!));
   $('#graph')!.onclick = (e) => {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -653,6 +653,21 @@ function renderReview() {
   };
   updateProgress(); updateMoveList(); updateGraph(); updatePosition(); updateOpening();
   if (g.analysis) renderProfiles();
+}
+
+/** 기보를 담은 링크를 공유(모바일)하거나 복사한다 */
+async function shareGame(g: GameState) {
+  const btn = $<HTMLButtonElement>('#share'); if (!btn) return;
+  const url = await shareUrl(g.pgn, g.analysis?.depth ?? state.depth);
+  const title = `${playerName(g.headers, 'w')} vs ${playerName(g.headers, 'b')} — Stylish`;
+  if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+    try { await navigator.share({ title, url }); return; } catch { /* 취소하면 복사로 */ }
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    btn.textContent = '링크 복사됨 ✓';
+    setTimeout(() => { if (btn.isConnected) btn.textContent = '공유 링크'; }, 2000);
+  } catch { prompt('이 링크를 복사하세요', url); }
 }
 
 /** 헤더의 오프닝 이름 (분석 중에는 지금까지 도달한 이론 국면 기준) */
@@ -780,6 +795,7 @@ function updateCard() {
     <div class="engine-box">
       <div class="kv"><span>평가 (백 기준)</span><b>${evalAfter}</b></div>
       <div class="kv"><span>손실</span><span>${m.cpLoss}cp</span></div>
+      ${m.spent != null ? `<div class="kv"><span>소요 시간 · 남은 시간</span><span>${fmtSec(m.spent)} · ${m.clock != null ? fmtClock(m.clock) : '-'}${m.lowTime ? ' <span class="chip warn-chip">시간 부족</span>' : ''}</span></div>` : ''}
       ${!m.deep.isBest && m.bestSan ? `<div class="kv"><span>Stockfish 최선 수</span><b>${esc(m.bestSan)}</b></div><div class="line">${esc(m.bestPvSan.join(' '))}</div>` : ''}
       ${m.playedPvSan.length ? `<div class="faint">이후 예상 수순</div><div class="line">${esc(m.playedPvSan.join(' '))}</div>` : ''}
     </div>
@@ -788,13 +804,6 @@ function updateCard() {
 
 // ───────────── 플레이어 프로필 ─────────────
 
-const GROUP_AXES: { label: string; keys: StyleKey[] }[] = [
-  { label: '공격', keys: ['aggressive', 'tactical', 'initiative', 'counterattack'] },
-  { label: '포지션', keys: ['positional', 'prophylactic', 'restriction', 'active', 'space', 'tension'] },
-  { label: '안전', keys: ['solid', 'defensive', 'simplifying'] },
-  { label: '실전', keys: ['complicating', 'quiet', 'waiting', 'practical'] },
-  { label: '엔드게임', keys: ['kingActivity', 'passedPawn'] },
-];
 
 function renderProfiles() {
   const g = state.game, el = $('#profiles'); if (!g?.analysis || !el) return;
@@ -813,10 +822,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
     ? `<div><div class="section-title">오프닝</div><p class="muted" style="margin:0">이론 ${op.bookMoves}수${op.leftBookFirst === true && op.deviation ? ` · 먼저 이론을 벗어남: ${op.deviation.moveNumber}${c === 'w' ? '.' : '...'} ${esc(op.deviation.san)}${op.deviation.quality ? ` (${QUALITY_LABEL[op.deviation.quality]})` : ''}` : op.leftBookFirst === false ? ' · 상대가 먼저 이론을 벗어남' : ''}</p></div>`
     : '';
   // 그룹 점수는 그룹 안 상위 2개 평균을 0~100으로 강조
-  const axes = GROUP_AXES.map((a) => {
-    const vals = a.keys.map((k) => p.avg[k]).sort((x, y) => y - x).slice(0, 2);
-    return { label: a.label, value: Math.min(100, (vals.reduce((s, v) => s + v, 0) / vals.length) * 1.6) };
-  });
+  const axes = GROUP_AXES.map((a) => ({ label: a.label, value: groupScore(p.avg, a.keys) }));
   const top = p.top.map((k) => `<div class="sbar" title="${esc(HOW[k])}"><span>${STYLES[k].label}</span><div class="track"><i style="width:${p.avg[k]}%;background:${STYLES[k].color}"></i></div><span class="val">${p.avg[k]}</span></div>`).join('');
   const qOrder: QualityKey[] = ['best', 'good', 'inaccuracy', 'mistake', 'blunder'];
   const qColors: Record<QualityKey, string> = { best: 'var(--good)', good: '#8fd1ae', inaccuracy: 'var(--warn)', mistake: '#e07a2e', blunder: 'var(--bad)' };
@@ -845,6 +851,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
       ${openingHtml}
       <div><div class="section-title">게임 단계별</div><div class="slices">${sliceHtml('오프닝', p.byPhase.opening)}${sliceHtml('미들게임', p.byPhase.middlegame)}${sliceHtml('엔드게임', p.byPhase.endgame)}</div></div>
       <div><div class="section-title">형세별</div><div class="slices">${sliceHtml('앞설 때', p.bySituation.ahead)}${sliceHtml('비슷할 때', p.bySituation.equal)}${sliceHtml('뒤질 때', p.bySituation.behind)}</div></div>
+      ${timeSection(p.time)}
       <div><div class="section-title">수의 품질</div>
         <div class="qbar">${qOrder.map((k) => `<i style="width:${(p.quality[k] / qTotal) * 100}%;background:${qColors[k]}"></i>`).join('')}</div>
         <div class="qlegend">${qOrder.map((k) => `<span><span class="dot" style="background:${qColors[k]}"></span> ${QUALITY_LABEL[k]} ${p.quality[k]}</span>`).join('')}</div>
@@ -890,18 +897,15 @@ function renderPlayers() {
   const prof = combinedProfile(p)!;
   const games = gamesOf(p);
   const rec = { win: 0, loss: 0, draw: 0 };
-  const openings = new Map<string, number>();
-  for (const g of games) {
-    if (g.result) rec[g.result]++;
-    if (g.opening) openings.set(g.opening, (openings.get(g.opening) ?? 0) + 1);
-  }
+  for (const g of games) if (g.result) rec[g.result]++;
   const extra = `
     <div class="stats">
       <div class="stat"><b>${rec.win}승 ${rec.draw}무 ${rec.loss}패</b><span>저장된 ${games.length}판</span></div>
       <div class="stat"><b>${prof.counted}</b><span>평가한 수 (이론·강제 제외)</span></div>
       <div class="stat"><b>백 ${games.filter((g) => g.color === 'w').length} · 흑 ${games.filter((g) => g.color === 'b').length}</b><span>둔 색</span></div>
     </div>
-    ${openings.size ? `<div><div class="section-title">자주 둔 오프닝</div><div class="chips">${[...openings].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([n, c]) => `<span class="chip">${esc(n)} · ${c}판</span>`).join('')}</div></div>` : ''}`;
+    ${trendSection(games.map((g) => ({ date: g.date ?? g.savedAt, profile: g.profile })))}
+    ${openingSection(games.map((g) => ({ opening: g.opening, profile: g.profile })))}`;
   const rows = games.map((g) => `<tr>
     <td class="faint">${g.date ? fmtDate(g.date) : '-'}</td>
     <td><span class="side-dot ${g.color}"></span></td>
@@ -963,6 +967,19 @@ function renderAbout() {
     </div>`;
 }
 
+/** 공유 링크(#g=...)로 들어오면 그 기보를 바로 분석한다 */
+async function openShared() {
+  const shared = await readSharedGame();
+  if (!shared) return false;
+  if (shared.depth && DEPTHS.some((d) => d.depth === shared.depth)) state.depth = shared.depth;
+  history.replaceState(null, '', location.pathname + location.search);
+  setView('analyze');
+  startAnalysis(shared.pgn);
+  return true;
+}
+window.addEventListener('hashchange', () => { openShared(); });
+
 // 엔진은 첫 화면에서 미리 띄워 둔다 (WASM 다운로드·초기화 시간 단축)
 getEngine().catch(() => {});
 render();
+openShared();

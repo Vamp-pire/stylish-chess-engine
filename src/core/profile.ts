@@ -7,6 +7,18 @@ type Situation = MoveAnalysis['situation'];
 
 export interface SliceProfile { count: number; avg: Record<StyleKey, number>; top: StyleKey[] }
 
+export interface TimeSlice extends SliceProfile { accuracy: number }
+export interface TimeProfile {
+  moves: number;
+  /** 수당 평균 소요 시간 (초) */
+  avgSpent: number;
+  /** 시간에 쫓길 때 (남은 시간 30초 또는 처음의 10% 미만) */
+  lowTime: TimeSlice;
+  normal: TimeSlice;
+  /** 오래 생각한 수 (평균의 2.5배 이상, 20초 이상) */
+  long: TimeSlice;
+}
+
 export interface PlayerProfile {
   moves: number;
   counted: number;
@@ -22,6 +34,8 @@ export interface PlayerProfile {
   byPhase: Record<Phase, SliceProfile>;
   bySituation: Record<Situation, SliceProfile>;
   archetype: { name: string; desc: string };
+  /** 시간 사용 (기보에 시계 기록이 있을 때만) */
+  time?: TimeProfile | null;
   /** 오프닝: 이론을 따라간 수, 이론 이탈 수 (한 게임 기준) */
   opening: { bookMoves: number; leftBookFirst: boolean | null; deviation: { san: string; moveNumber: number; quality: QualityKey | null } | null };
 }
@@ -111,6 +125,27 @@ function archetype(avg: Record<StyleKey, number>, riskRate: number): PlayerProfi
   }
 }
 
+function timeSlice(list: MoveAnalysis[]): TimeSlice {
+  const counted = list.filter((m) => !m.forced);
+  const avg = average(counted);
+  const accuracy = list.length ? Math.round(list.reduce((s, m) => s + moveAccuracy(m), 0) / list.length * 10) / 10 : 0;
+  return { count: list.length, avg, top: topOf(avg), accuracy };
+}
+
+function buildTime(all: MoveAnalysis[]): TimeProfile | null {
+  // 이론 수는 미리 준비한 수라 빠르게 두므로 뺀다
+  const timed = all.filter((m) => !m.book && m.spent != null);
+  if (!timed.length) return null;
+  const avgSpent = Math.round(timed.reduce((s, m) => s + m.spent!, 0) / timed.length * 10) / 10;
+  const longCut = Math.max(20, avgSpent * 2.5);
+  return {
+    moves: timed.length, avgSpent,
+    lowTime: timeSlice(timed.filter((m) => m.lowTime)),
+    normal: timeSlice(timed.filter((m) => !m.lowTime)),
+    long: timeSlice(timed.filter((m) => m.spent! >= longCut)),
+  };
+}
+
 export function buildProfile(all: MoveAnalysis[]): PlayerProfile {
   // 선택이 아닌 수(강제된 수)와 누구나 두는 오프닝 이론 수는 성향 집계에서 뺀다
   const counted = all.filter((m) => !m.forced && !m.book);
@@ -147,6 +182,7 @@ export function buildProfile(all: MoveAnalysis[]): PlayerProfile {
     byPhase: by(['opening', 'middlegame', 'endgame'], (m) => m.phase),
     bySituation: by(['ahead', 'equal', 'behind'], (m) => m.situation),
     archetype: archetype(avg, riskRate),
+    time: buildTime(all),
     opening: { bookMoves: all.filter((m) => m.book).length, leftBookFirst: null, deviation: null },
   };
 }
@@ -210,6 +246,7 @@ export function mergeProfiles(list: PlayerProfile[]): PlayerProfile | null {
 
   const riskRate = counted ? RISK_KINDS.reduce((s, k) => s + risk[k].count, 0) / counted : 0;
   return {
+    time: mergeTime(list.map((p) => p.time).filter((t): t is TimeProfile => !!t)),
     moves, counted, avg, primaryCounts, top: topOf(avg, 5),
     choice, choiceTop: choice ? topOf(choice, 3).filter((k) => choice[k] >= 5) : [],
     risk, quality,
@@ -219,5 +256,27 @@ export function mergeProfiles(list: PlayerProfile[]): PlayerProfile | null {
     bySituation: mergeSlices(['ahead', 'equal', 'behind'], (p) => p.bySituation),
     archetype: archetype(avg, riskRate),
     opening: { bookMoves: list.reduce((s, p) => s + p.opening.bookMoves, 0), leftBookFirst: null, deviation: null },
+  };
+}
+
+function mergeSlice(parts: TimeSlice[]): TimeSlice {
+  const live = parts.filter((s) => s.count);
+  const count = live.reduce((s, x) => s + x.count, 0);
+  const avg = zero();
+  for (const s of live) for (const k of STYLE_KEYS) avg[k] += (s.avg[k] * s.count) / count;
+  for (const k of STYLE_KEYS) avg[k] = Math.round(avg[k]);
+  const accuracy = count ? Math.round(live.reduce((s, x) => s + x.accuracy * x.count, 0) / count * 10) / 10 : 0;
+  return { count, avg, top: topOf(avg), accuracy };
+}
+
+function mergeTime(list: TimeProfile[]): TimeProfile | null {
+  const moves = list.reduce((s, t) => s + t.moves, 0);
+  if (!moves) return null;
+  return {
+    moves,
+    avgSpent: Math.round(list.reduce((s, t) => s + t.avgSpent * t.moves, 0) / moves * 10) / 10,
+    lowTime: mergeSlice(list.map((t) => t.lowTime)),
+    normal: mergeSlice(list.map((t) => t.normal)),
+    long: mergeSlice(list.map((t) => t.long)),
   };
 }

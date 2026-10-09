@@ -10,6 +10,7 @@ import { Position } from '../search/position';
 import { Searcher, threatOf, replyOutcomes, quickValue } from '../search/search';
 import { buildProfiles, type PlayerProfile } from './profile';
 import type { OpeningBook, OpeningInfo } from './openings';
+import { plyClocks, type PlyClock } from './clock';
 
 // 손실 계산용 상한: 이 이상은 사실상 결판난 국면
 const CAP = 1000;
@@ -35,7 +36,7 @@ export interface AnalyzeOptions {
   book?: OpeningBook | null;
 }
 
-export interface MoveAnalysis extends StyleResult {
+export interface MoveAnalysis extends StyleResult, PlyClock {
   ply: number;
   moveNumber: number;
   color: Color;
@@ -167,6 +168,7 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
   const startFen = history[0]?.before ?? chess.fen();
   const fens = [startFen, ...history.map((m) => m.after)];
   const searcher = new Searcher(40000);
+  const clocks = plyClocks(chess, history, headers);
 
   const lines: EngineLine[][] = [];
   const results: MoveAnalysis[] = [];
@@ -190,6 +192,7 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
     // 오프닝 이론: 처음부터 끊기지 않고 이어진 구간만 (한 번 벗어나면 다시 들어와도 이론으로 보지 않는다)
     const info = opts.book?.lookup(m.after) ?? null;
     const stillBook = !!info && (i === 0 || !!results[i - 1]?.book);
+    Object.assign(res, clocks[i]);
     res.book = stillBook;
     res.opening = stillBook ? info : null;
     results.push(res);
@@ -413,6 +416,6 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
     playedPvSan: uciToSanLine(A, after[0].pv, 7),
     phase: ply < 20 && f.phase > 0.75 ? 'opening' : f.isEndgame ? 'endgame' : 'middlegame',
     situation: evalBefore >= 150 ? 'ahead' : evalBefore <= -150 ? 'behind' : 'equal',
-    choiceDelta, trapLine, riskSucceeded: null, book: false, opening: null, features: f, deep,
+    choiceDelta, trapLine, riskSucceeded: null, clock: null, spent: null, lowTime: null, book: false, opening: null, features: f, deep,
   };
 }
