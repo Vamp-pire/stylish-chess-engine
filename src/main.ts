@@ -15,7 +15,7 @@ import { buildProfile, riskTotal, type PlayerProfile } from './core/profile';
 import { fetchGames, userResult, SOURCE_LABEL, type OnlineGame, type Source } from './online/sources';
 import { cacheKey, getCached, putCached, gameHash } from './ui/cache';
 import { savePlayerGame, listPlayers, getPlayer, deletePlayer, deleteGame, clearPlayers, combinedProfile, gamesOf, isNamed, SOURCE_NAME, type PlayerSource } from './ui/players';
-import { timeSection, openingSection, trendSection, fmtSec, fmtClock, GROUP_AXES, groupScore } from './ui/insights';
+import { timeSection, openingSection, trendSection, mastersSection, fmtSec, fmtClock, GROUP_AXES, groupScore } from './ui/insights';
 import { shareUrl, readSharedGame } from './ui/share';
 import { pickHighlights, drawCard, cardBlob } from './ui/highlights';
 import { findMissed, openQuiz } from './ui/quiz';
@@ -191,7 +191,9 @@ function renderInputInner() {
     <div class="features">
       <div class="feature"><h3>19가지 스타일</h3><p>공격적, 전술적, 예방적, 긴장 유지, 복잡화… 한 수가 여러 스타일을 동시에 가질 수 있습니다.</p></div>
       <div class="feature"><h3>희생 · 함정 · 도박</h3><p>Stockfish와 자체 탐색으로 위험한 수가 건전한지, 상대의 실수를 노린 수인지 가립니다.</p></div>
-      <div class="feature"><h3>내 스타일 찾기</h3><p>Chess.com·Lichess 아이디로 최근 게임을 불러와 여러 판을 종합한 내 플레이 스타일을 봅니다.</p></div>
+      <div class="feature"><h3>내 스타일 찾기</h3><p>Chess.com·Lichess 아이디로 최근 게임을 불러와 여러 판을 종합한 내 플레이 스타일과 닮은 유명 선수를 봅니다.</p></div>
+      <div class="feature"><h3>놓친 기회 퀴즈</h3><p>내가 크게 손해 본 국면에서 Stockfish 최선 수를 직접 찾아보며 복습합니다.</p></div>
+      <div class="feature"><h3>명수 카드 · 공유</h3><p>희생·함정 같은 인상적인 수를 이미지 카드로 저장하고, 기보를 링크 하나로 공유합니다.</p></div>
     </div>`;
 
   app.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((b) => b.onclick = () => { saveDraft(); state.tab = b.dataset.tab as InputTab; state.inputError = null; renderInput(); });
@@ -625,10 +627,12 @@ function renderReview() {
       <span class="chip opening-chip" id="opening-chip" hidden></span>
       <span class="faint">${esc([h.Event, h.Date].filter((x) => x && !x.includes('?')).join(' · '))}</span>
       <div class="progress" id="progress"></div>
-      <span class="head-extras" id="head-extras"></span>
-      ${state.batch ? '<button class="btn" id="to-batch">← 종합 프로필</button>' : ''}
-      <button class="btn" id="share" title="이 기보를 담은 링크를 복사합니다">공유 링크</button>
-      <button class="btn" id="new">새 기보</button>
+      <div class="head-actions">
+        <span class="head-extras" id="head-extras"></span>
+        ${state.batch ? '<button class="btn" id="to-batch">← 종합 프로필</button>' : ''}
+        <button class="btn" id="share" title="이 기보를 담은 링크를 복사합니다">🔗 공유</button>
+        <button class="btn" id="new">새 기보</button>
+      </div>
     </div>
     <div class="review">
       <div class="board-col">
@@ -680,7 +684,7 @@ async function shareGame(g: GameState) {
   try {
     await navigator.clipboard.writeText(url);
     btn.textContent = '링크 복사됨 ✓';
-    setTimeout(() => { if (btn.isConnected) btn.textContent = '공유 링크'; }, 2000);
+    setTimeout(() => { if (btn.isConnected) btn.textContent = '🔗 공유'; }, 2000);
   } catch { prompt('이 링크를 복사하세요', url); }
 }
 
@@ -762,7 +766,16 @@ function select(ply: number) {
   state.game.ply = ply;
   state.game.variation = null;
   updatePosition();
-  $(`.mv[data-ply="${ply}"]`)?.scrollIntoView({ block: 'nearest' });
+  scrollMoveIntoList(ply);
+}
+
+/** 수 목록 안에서만 스크롤한다 (페이지 전체가 튀지 않도록) */
+function scrollMoveIntoList(ply: number) {
+  const wrap = $('.movelist-wrap'), btn = $(`.mv[data-ply="${ply}"]`);
+  if (!wrap || !btn) return;
+  const w = wrap.getBoundingClientRect(), b = btn.getBoundingClientRect();
+  if (b.top < w.top) wrap.scrollTop -= w.top - b.top + 8;
+  else if (b.bottom > w.bottom) wrap.scrollTop += b.bottom - w.bottom + 8;
 }
 
 document.addEventListener('keydown', (e) => {
@@ -957,6 +970,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
         <div class="radar">${radar(axes, color)}</div>
         <div><div class="section-title">자주 보인 스타일</div><div class="style-bars">${top}</div></div>
       </div>
+      ${mastersSection(p)}
       ${p.choiceTop.length ? `<div><div class="section-title">선택 성향 — 비슷한 대안이 있을 때 고른 쪽</div><div class="chips">${p.choiceTop.map((k) => `<span class="chip"><span class="dot" style="background:${STYLES[k].color}"></span>${STYLES[k].label} +${p.choice![k]}</span>`).join('')}</div></div>` : ''}
       ${risks ? `<div><div class="section-title">위험한 수</div><div class="chips">${risks}</div></div>` : ''}
       ${openingHtml}
