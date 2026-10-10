@@ -9,6 +9,7 @@ import { BOT_LEVELS, BOT_STYLES } from '../core/coach';
 import { commentMine, commentOpponent, type CoachLine } from '../core/coachText';
 import { STYLES, QUALITY_LABEL, RISK_LABEL } from '../core/styles';
 import { CoachClient } from './coachClient';
+import { choosePromotion, isPromotion } from './promotion';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const COACH_DEPTH = 12;
@@ -258,12 +259,19 @@ async function botTurn(g: CoachGame) {
   afterPly();
 }
 
-function onUserMove(orig: Key, dest: Key) {
+async function onUserMove(orig: Key, dest: Key) {
   const g = game; if (!g) return;
-  const ch = new Chess(current(g));
-  const piece = ch.get(orig as Square);
-  // 승격은 퀸으로 자동 (가장 흔한 선택)
-  const promo = piece?.type === 'p' && (dest[1] === '8' || dest[1] === '1') ? 'q' : '';
+  const fen = current(g);
+  const piece = new Chess(fen).get(orig as Square);
+  let promo = '';
+  if (isPromotion(piece?.type, dest)) {
+    const board = $('#c-board');
+    const choice = board ? await choosePromotion(board, dest, piece!.color === 'w' ? 'white' : 'black', cg?.state.orientation ?? 'white') : 'q';
+    // 고르는 사이에 무르기·새 대국이 일어났으면 무시
+    if (game !== g || current(g) !== fen) return;
+    if (!choice) { syncBoard(); return; }
+    promo = choice;
+  }
   if (!applyMove(g, orig + dest + promo)) { syncBoard(); return; }
   afterPly();
 }
@@ -373,7 +381,9 @@ function updateEvalBar() {
     const m = g.results[i];
     if (!m) continue;
     exp = m.expWhiteAfter;
-    label = m.mateAfter != null ? `#${Math.abs(m.mateAfter)}` : (m.evalWhiteAfter / 100 >= 0 ? '+' : '') + (m.evalWhiteAfter / 100).toFixed(1);
+    const v = m.evalWhiteAfter / 100;
+    // 막대가 좁아 10 이상은 소수점 없이
+    label = m.mateAfter != null ? `#${Math.abs(m.mateAfter)}` : (v >= 0 ? '+' : '') + v.toFixed(Math.abs(v) >= 10 ? 0 : 1);
     break;
   }
   const flipped = cg?.state.orientation === 'black';

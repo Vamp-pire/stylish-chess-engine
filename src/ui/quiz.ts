@@ -5,6 +5,7 @@ import type { Api as CgApi } from 'chessground/api';
 import type { Key } from 'chessground/types';
 import type { MoveAnalysis } from '../core/analyzer';
 import { openModal } from './modal';
+import { choosePromotion, isPromotion } from './promotion';
 
 export interface QuizItem { move: MoveAnalysis; game?: string }
 
@@ -77,16 +78,22 @@ export function openQuiz(items: QuizItem[], title = '놓친 기회 퀴즈') {
     if (cg) cg.set(opts); else cg = Chessground($('#quiz-board'), opts);
   }
 
-  function onMove(orig: Key, dest: Key) {
+  async function onMove(orig: Key, dest: Key) {
+    const at = i;
     const m = items[i].move;
     const ch = new Chess(m.fenBefore);
     const piece = ch.get(orig as Square);
-    const promo = piece?.type === 'p' && (dest[1] === '8' || dest[1] === '1') ? 'q' : undefined;
+    let promo: string | undefined;
+    if (isPromotion(piece?.type, dest)) {
+      const choice = await choosePromotion($('#quiz-board'), dest, piece!.color === 'w' ? 'white' : 'black', cg!.state.orientation);
+      if (at !== i) return;
+      if (!choice) { cg!.set({ fen: m.fenBefore, movable: { color: m.color === 'w' ? 'white' : 'black', dests: dests(m.fenBefore) } }); return; }
+      promo = choice;
+    }
     const uci = orig + dest + (promo ?? '');
     const best = m.deep.bestMove!;
     const played = ch.move({ from: orig, to: dest, promotion: promo });
-    // 승격은 퀸으로 자동 처리하므로 최선 수가 다른 기물 승격이면 칸만 비교한다
-    if (uci === best || (best.length === 5 && uci.slice(0, 4) === best.slice(0, 4))) {
+    if (uci === best) {
       if (!tried.has(i)) solved++;
       tried.add(i);
       cg!.set({ fen: ch.fen(), movable: { color: undefined, dests: new Map() } });

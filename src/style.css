@@ -463,3 +463,9 @@ select.select { width: auto; min-width: 220px; padding: 8px 12px; }
 .over-banner strong { font-size: 17px; }
 @media (max-width: 900px) { .coach { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 560px) { .coach-board-row { grid-template-columns: 14px 1fr; gap: 6px; } .eval-bar span { display: none; } .board-controls { flex-wrap: wrap; } .board-controls .btn { padding: 8px 10px; font-size: 13px; min-width: 0; } }
+
+/* ── 폰 승격 고르기 ── */
+.promo-overlay { position: absolute; inset: 0; z-index: 20; background: rgba(20, 16, 10, .45); }
+.promo-choice { position: absolute; width: 12.5%; height: 12.5%; padding: 3px; border: 0; border-radius: 50%; background: #f6f5f2; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); cursor: pointer; transition: border-radius .15s, background .15s; }
+.promo-choice:hover { border-radius: 10%; background: #fff; }
+.cg-wrap .promo-choice piece { position: static; display: block; width: 100%; height: 100%; pointer-events: none; }
