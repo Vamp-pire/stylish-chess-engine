@@ -34,8 +34,8 @@ const QUALITY_DESC: Record<QualityKey, string> = {
   best: 'Stockfish 최선 수이거나 손실 10cp 이하',
   good: 'Stockfish 승/무/패 확률로 본 기대 점수 하락 12%p 미만',
   inaccuracy: '기대 점수 하락 12~25%p (평형 국면에서 대략 0.5폰)',
-  mistake: '기대 점수 하락 25~50%p (대략 1폰)',
-  blunder: '기대 점수 하락 50%p 이상 (대략 3폰)',
+  mistake: '기대 점수 하락 25%p 이상 (대략 1폰)이면서 블런더가 아닌 수',
+  blunder: '기대 점수 하락 50%p 이상, 또는 30%p 이상 잃으며 사실상 진 국면이 된 수, 또는 40%p 이상 잃고 2폰 이상 손해인 수',
 };
 
 export function renderGuide(): string {

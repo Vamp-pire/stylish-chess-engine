@@ -20,12 +20,11 @@ describe('코치', () => {
     expect(commentMine(m).title).toBe('오프닝 이론');
   });
 
-  it('퀸을 공짜로 내주는 수는 실수 이상', async () => {
+  it('퀸을 공짜로 내주는 수는 블런더', async () => {
     const s = new CoachSession(engine, 10, null);
     // 1.e4 e5 2.Nf3 Qg5?? — 나이트가 퀸을 잡는다
     const m = await s.evaluate({ fenBefore: fenAfter('e4 e5 Nf3'), uci: 'd8g5', ply: 3, prev: null });
-    // (평형 국면에서는 기대 점수 하락이 50%p에 못 미쳐 '실수'로 나올 수 있다: 품질 기준은 별도 검토)
-    expect(['mistake', 'blunder']).toContain(m.quality);
+    expect(m.quality).toBe('blunder');
     const c = commentMine(m);
     expect(c.tone).toBe('bad');
     expect(c.text).toContain('Nxg5');

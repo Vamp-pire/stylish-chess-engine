@@ -53,14 +53,16 @@ export const QUALITY_LABEL: Record<QualityKey, string> = {
  * 품질은 전적으로 Stockfish 출력으로 판정한다: Stockfish가 낸 승/무/패 확률(WDL)로 계산한
  * 기대 점수가 최선 수 대비 얼마나 떨어졌는가 (%p). 이미 이긴/진 국면의 큰 cp 변동은 실수로 보지 않는다.
  */
-export function qualityOf(cpLoss: number, winDrop: number, isBest: boolean): QualityKey {
+export function qualityOf(cpLoss: number, winDrop: number, isBest: boolean, expPlayed = 1): QualityKey {
   if (isBest || cpLoss <= 10) return 'best';
   // Stockfish 19의 WDL은 +1.00 = 승률 50%로 맞춰져 있어 기대 점수가 빠르게 움직인다.
-  // 평형 국면 기준 대략 -50cp / -100cp / -300cp 손실에 해당하도록 기준을 정했다.
+  // 평형 국면 기준 대략 -50cp / -100cp 손실에 해당하도록 부정확·실수 기준을 정했다.
   if (winDrop < 12) return 'good';
   if (winDrop < 25) return 'inaccuracy';
-  if (winDrop < 50) return 'mistake';
-  return 'blunder';
+  // 평형·약간 불리한 국면은 다 잃어도 하락폭이 50%p에 못 미친다. 그래서 50%p 외에
+  // 30%p 이상 잃으며 사실상 진 국면(기대 점수 10% 이하)이 됐거나, 40%p 이상 잃고 실제로 2폰 이상 손해면 블런더
+  if (winDrop >= 50 || (winDrop >= 30 && expPlayed <= 0.1) || (winDrop >= 40 && cpLoss >= 200)) return 'blunder';
+  return 'mistake';
 }
 
 /** 엔진·탐색으로 얻는 특징 (없으면 정적 특징만으로 채점) */
@@ -284,7 +286,7 @@ export function scoreMove(f: StaticFeatures, d: DeepFeatures | null): StyleResul
   return {
     scores, reasons: R, primary, top,
     risk: d?.risk ?? null, riskWhy: d?.riskWhy ?? null,
-    quality: d ? qualityOf(d.cpLoss, d.winDrop, d.isBest) : null,
+    quality: d ? qualityOf(d.cpLoss, d.winDrop, d.isBest, d.expPlayed) : null,
     forced: d?.forced ?? (f.legalMoveCount === 1),
   };
 }
