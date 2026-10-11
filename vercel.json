@@ -6,6 +6,11 @@
   "outputDirectory": "dist",
   "redirects": [
     {
+      "source": "/",
+      "destination": "https://stylish-chess-engine.pages.dev/",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "destination": "https://stylish-chess-engine.pages.dev/:path*",
       "permanent": true
