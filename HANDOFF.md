@@ -34,11 +34,15 @@
 src/core/
   grid.ts        보드 표현·공격 맵·핀/포크/패스폰/공간/긴장 등 정적 계산 도구
   features.ts    한 수의 전/후 국면 비교 → StaticFeatures (50여 개 특징)
-  natural.ts     "자연스러운(솔깃한) 수" 순위 — 함정수·도박수·강제수 판정에 사용 (나중에 Maia로 교체 가능)
+  natural.ts     규칙 기반 "자연스러운 수" — Maia를 못 받았을 때만 쓰는 예비 판정
   styles.ts      ★ 19종 스타일 채점 규칙(scoreMove), 품질(qualityOf), DeepFeatures 타입. 가중치 조정은 여기
   analyzer.ts    ★ 파이프라인: 전 국면 엔진 분석(동시 요청) → 수별 특징+PV 앞보기+소형 탐색 → 위험 판정(Stockfish 재확인) → 채점
   profile.ts     플레이어 프로필 집계, BASELINE, 유형(archetype), mergeProfiles(여러 판 합치기)
   openings.ts / openingKey.js(.d.ts)   오프닝 이론 조회 (국면 해시 → 이름)
+src/human/
+  maia3.ts       Maia3 입력 인코딩·출력 해석·HumanModel (브라우저/Node 공용, onnxruntime 주입)
+  maia.worker.ts 모델 조각을 받아 합치고 Cache Storage에 저장, 예측 수행 (오래 사는 Worker)
+  browser.ts     첫 분석 때 Worker를 띄움(지연 로딩), 다운로드 상태를 화면에 알림
 src/search/
   position.ts    0x88 수 생성기 (perft 검증됨)
   search.ts      알파-베타 + 정지 탐색, threatOf(null move)/replyOutcomes/zugzwangOf
@@ -82,4 +86,10 @@ node scripts/build-openings.mjs   # 오프닝 데이터 재생성 (네트워크 
 ## 7. 현재 상태와 남은 일 (2026-10-09)
 - 최신 커밋: 엔진 풀(깊이 12에서 2.4배) + 강제 국면 얕게. 테스트 53개 통과, 배포됨.
 - 사용자가 제안만 받고 보류한 속도 방안: ② 이론 구간 얕게(15~25% 절약), ④ MultiPV 3→2, ⑤ 깊이 대신 노드 제한.
-- 개선 거리: 스타일 대표 국면 보강(제한·실용적·복잡화·대기수 예시 부족), 다양한 현대 기보로 BASELINE 재보정, 모바일에서 수 카드가 보드 아래에 있어 스크롤 필요, "자연스러운 수"를 Maia로 교체 검토.
+- 개선 거리: 스타일 대표 국면 보강(제한·실용적·복잡화·대기수 예시 부족), 다양한 현대 기보로 BASELINE 재보정, 모바일에서 수 카드가 보드 아래에 있어 스크롤 필요.
+
+## 8. 2026-10-11 변경
+- 함정수·도박수의 상대 응수 예측을 **Maia3**로 교체 (상세: `PLAN.md` 12절). 테스트 `test/human.test.ts`(Node에서 onnxruntime-web으로 실제 모델 실행).
+- 모델은 `public/maia/`에 20MB 조각 3개 + `maia3.json`. 바꾸려면 `node scripts/fetch-maia.mjs` (커밋·해시 고정).
+- 호스팅을 **Cloudflare Pages**(pages.dev, 무료·상업 이용 가능)로 옮기는 중. 헤더는 `public/_headers`. Vercel은 이전 확인 후 정리.
+- 수익화 계획: 0단계 이전 → 1단계 콘텐츠(4글자 유형 16개 페이지, 오프닝 페이지, 영어, 개인정보처리방침) → pages.dev로 애드센스 신청, 거절되면 도메인 구입.

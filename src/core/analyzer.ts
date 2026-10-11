@@ -10,6 +10,17 @@ import { Position } from '../search/position';
 import { Searcher, threatOf, replyOutcomes, quickValue } from '../search/search';
 import { buildProfiles, type PlayerProfile } from './profile';
 import type { OpeningBook, OpeningInfo } from './openings';
+import { clampElo, type HumanModel, type HumanPolicy } from '../human/maia3';
+
+/** 사람 대부분이 둘 수 (Maia 확률): 이런 수는 '의도한 선택'으로 보지 않는다 */
+const OBVIOUS_P = 0.5;
+/** 상대가 솔깃해할 응수의 최소 확률과 최대 개수 */
+const TEMPT_P = 0.08, TEMPT_MAX = 5;
+/** 함정수: 상대가 틀리는 응수 = 나에게 150cp 이상 이득인 응수. 그런 응수의 확률 × 이득 합이 50cp 이상이면 함정.
+ *  (WDL은 완벽한 수읽기를 가정해 이미 이기는 국면에서 포화되므로 사람의 실수 크기는 cp로 잰다) */
+const TRAP_GAIN = 150, TRAP_EV = 50;
+/** Maia에 한 번에 보내는 국면 수 (앞 수부터 결과가 나오도록 나눠 보낸다) */
+const HUMAN_CHUNK = 16;
 
 // 손실 계산용 상한: 이 이상은 사실상 결판난 국면
 const CAP = 1000;
@@ -22,6 +33,8 @@ export interface AnalyzeOptions {
   signal?: { aborted: boolean };
   /** 오프닝 이론 판별용 (없으면 이론 판별을 하지 않는다) */
   book?: OpeningBook | null;
+  /** 사람 수 예측 모델 (없거나 실패하면 규칙 기반 '자연스러운 수'로 대신한다) */
+  human?: HumanModel | null;
 }
 
 export interface MoveAnalysis extends StyleResult {
@@ -50,6 +63,8 @@ export interface MoveAnalysis extends StyleResult {
   opening: OpeningInfo | null;
   /** 상대가 실제로 틀렸는지 (위험 판정 수의 성공 여부) */
   riskSucceeded: boolean | null;
+  /** 이 레이팅의 사람이 이 수를 둘 확률 (Maia, 없으면 null) */
+  humanP: number | null;
   features: StaticFeatures;
   deep: DeepFeatures;
 }
@@ -64,6 +79,10 @@ export interface GameAnalysis {
   opening: OpeningInfo | null;
   /** 이론 수 개수 (처음부터 이어진 구간) */
   bookPlies: number;
+  /** 상대 응수 예측에 쓴 방법 */
+  human: 'maia3' | 'rules';
+  /** Maia에 넣은 레이팅 (기보에 없으면 기본값) */
+  elo: { w: number; b: number };
 }
 
 function terminalLines(fen: string): EngineLine[] | null {
@@ -163,6 +182,23 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
   // 단일 엔진이면 차례대로 처리된다. 강제된 국면은 얕게.
   const pending = fens.map((fen) => evalLines(engine, fen, isForcedPosition(fen) ? Math.max(8, depth - 4) : depth));
   pending.forEach((p) => p.catch(() => {})); // 중단 시 처리되지 않은 거부 방지
+
+  // 사람 수 예측도 함께 요청한다 (국면마다 둘 차례인 쪽의 레이팅 기준). 실패한 국면은 null
+  const elo = { w: clampElo(Number(headers.WhiteElo)), b: clampElo(Number(headers.BlackElo)) };
+  const human = opts.human;
+  const humanChunks: Promise<(HumanPolicy | null)[]>[] = [];
+  if (human) {
+    for (let s = 0; s < fens.length; s += HUMAN_CHUNK) {
+      const queries = fens.slice(s, s + HUMAN_CHUNK).map((fen) => {
+        const side = fen.split(' ')[1] === 'w' ? 'w' : 'b';
+        return { fen, elo: elo[side], oppElo: elo[side === 'w' ? 'b' : 'w'] };
+      });
+      humanChunks.push(human.predict(queries).catch(() => queries.map(() => null)));
+    }
+  }
+  const humanAt = async (k: number) => (human ? (await humanChunks[Math.floor(k / HUMAN_CHUNK)])[k % HUMAN_CHUNK] : null);
+  let humanUsed = !!human;
+
   lines[0] = await pending[0];
   opts.onProgress?.(1, total);
 
@@ -170,9 +206,12 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
     if (opts.signal?.aborted) break;
     lines[i + 1] = await pending[i + 1];
     const m = history[i];
+    const humanBefore = await humanAt(i), humanAfter = await humanAt(i + 1);
+    if (!humanBefore || !humanAfter) humanUsed = false;
     const res = await analyzeMove({
       move: m, prev: i > 0 ? history[i - 1] : null, ply: i,
       before: lines[i], after: lines[i + 1], engine, depth, searcher,
+      humanBefore, humanAfter, oppElo: elo[m.color === 'w' ? 'b' : 'w'],
     });
     // 오프닝 이론: 처음부터 끊기지 않고 이어진 구간만 (한 번 벗어나면 다시 들어와도 이론으로 보지 않는다)
     const info = opts.book?.lookup(m.after) ?? null;
@@ -196,17 +235,25 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
   const lastBook = bookPlies ? results[bookPlies - 1].opening : null;
   // 이름은 정확히 일치한 가장 깊은 국면 우선
   const named = [...results.slice(0, bookPlies)].reverse().find((r) => r.opening?.exact)?.opening ?? lastBook;
-  return { headers, startFen, moves: results, profiles: buildProfiles(results), depth, opening: named, bookPlies };
+  return {
+    headers, startFen, moves: results, profiles: buildProfiles(results), depth, opening: named, bookPlies,
+    human: humanUsed ? 'maia3' : 'rules', elo,
+  };
 }
 
 interface MoveInput {
   move: Move; prev: Move | null; ply: number;
   before: EngineLine[]; after: EngineLine[];
   engine: Engine; depth: number; searcher: Searcher;
+  /** 수 두기 전(둔 쪽)·후(상대) 국면의 사람 수 확률. null이면 규칙 기반 */
+  humanBefore: HumanPolicy | null; humanAfter: HumanPolicy | null;
+  oppElo: number;
 }
 
+const pct = (p: number) => `${Math.round(p * 100)}%`;
+
 async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
-  const { move, prev, ply, before, after, engine, depth, searcher } = x;
+  const { move, prev, ply, before, after, engine, depth, searcher, humanBefore, humanAfter, oppElo } = x;
   const B = move.before, A = move.after;
   const chB = new Chess(B);
   const legal = chB.moves().length;
@@ -248,20 +295,81 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
 
   // 강제된 수: 선택의 여지가 없거나, 유일한 최선 수가 누구나 먼저 떠올릴 뻔한 수(되잡기·체크 피하기 등)인 경우.
   // 찾기 어려운 유일한 수(희생 등)는 플레이어의 선택으로 보고 평가에 넣는다.
-  const myNatural = rankNaturalMoves(B, prev?.to ?? null);
-  // 자연스러움 점수가 실제로 있는(잡기·체크·피하기 등) 수일 때만 "뻔한 수"로 본다
-  const playedIsMostNatural = myNatural[0]?.uci === uci && myNatural[0].score > 0;
+  // Maia가 있으면 "사람 대부분이 둘 수", 없으면 규칙상 가장 자연스러운 수(잡기·체크·피하기 등)를 "뻔한 수"로 본다
+  const humanP = humanBefore ? humanBefore.find((h) => h.uci === uci)?.p ?? 0 : null;
+  let playedIsMostNatural: boolean;
+  if (humanP != null) playedIsMostNatural = humanP >= OBVIOUS_P;
+  else {
+    const myNatural = rankNaturalMoves(B, prev?.to ?? null);
+    playedIsMostNatural = myNatural[0]?.uci === uci && myNatural[0].score > 0;
+  }
   const obvious = isBest && bestGap >= 200 && playedIsMostNatural;
   const forced = legal === 1 || (inCheckBefore && legal <= 2) || (f.isRecapture && cpLoss <= 30) || obvious;
 
   // ── 상대 응수: 자연스러운 수 vs 정답 ──
-  // 함정수·도박수는 '의도한 선택'일 때만: 강제된 수, 체크 대응, 누구나 먼저 떠올릴 수는 제외
-  const deliberate = !forced && !inCheckBefore && !playedIsMostNatural;
+  // 함정수·도박수는 '의도한 선택'일 때만: 강제된 수, 체크 대응은 제외.
+  // 규칙 기반일 때는 잡기·체크 같은 '가장 자연스러운 수'도 뺀다. Maia에서는 많이 두는 수라도
+  // (낚싯대 함정의 h5처럼 널리 알려진 함정) 함정일 수 있으므로 인기만으로 빼지 않는다.
+  const deliberate = !forced && !inCheckBefore && (humanP != null || !playedIsMostNatural);
   const oppSharpness = after[1] ? Math.max(0, Math.min(500, cap(after[0].cp) - cap(after[1].cp))) : after[0].pv.length ? 500 : 0;
   let replySpread = 0;
   let risk: RiskKind | null = null, riskWhy: string | null = null;
 
-  if (after[0].pv.length) {
+  if (after[0].pv.length && humanAfter) {
+    // ── Maia: 이 레이팅의 상대가 실제로 둘 응수의 확률로 판정 ──
+    const refutation = after[0].uci;
+    const likely = humanAfter.slice(0, 3).map((h) => h.uci);
+    const outcomes = replyOutcomes(A, [...new Set([...likely, refutation])], 2, searcher);
+    const natVals = likely.map((u) => outcomes.find((o) => o.uci === u)?.value).filter((v): v is number => v != null);
+    if (natVals.length > 1) replySpread = Math.max(...natVals) - Math.min(...natVals);
+
+    // 미끼를 무는 응수만 본다: 방금 움직인 기물이나 잡힐 위험에 놓인(놓아둔) 기물을 잡는 수.
+    // (그렇지 않으면 원래 국면에 있던 상대의 실수 가능성까지 이 수의 함정으로 잘못 돌리게 된다)
+    const bait = new Set([move.to, ...f.riskSquares]);
+    const tempting = humanAfter
+      .filter((h) => h.uci !== refutation && h.p >= TEMPT_P && bait.has(h.uci.slice(2, 4)))
+      .slice(0, TEMPT_MAX);
+    if (tempting.length && deliberate && (cpLoss <= 40 || (cpLoss >= 80 && winDrop >= 5))) {
+      // 응수별 결과 (둔 쪽 관점): Stockfish 후보 목록에 있으면 그대로 쓰고, 없으면 조금 얕게 직접 확인한다
+      const verifyDepth = Math.max(10, depth - 6);
+      const valued: { uci: string; p: number; san: string; cp: number; exp: number }[] = [];
+      for (const t of tempting) {
+        const san = uciToSanLine(A, [t.uci], 1)[0] ?? t.uci;
+        const line = after.find((l) => l.uci === t.uci);
+        if (line) { valued.push({ ...t, san, cp: cap(-line.cp), exp: 1 - expectedScore(line) }); continue; }
+        const chA = new Chess(A);
+        chA.move({ from: t.uci.slice(0, 2), to: t.uci.slice(2, 4), promotion: t.uci[4] });
+        const v = (await evalLines(engine, chA.fen(), verifyDepth, 1, URGENT))[0];
+        valued.push({ ...t, san, cp: cap(v.cp), exp: expectedScore(v) });
+      }
+      const refSan = uciToSanLine(A, [refutation], 1)[0] ?? refutation;
+      const refP = humanAfter.find((h) => h.uci === refutation)?.p ?? 0;
+      const who = `레이팅 ${oppElo} 상대`;
+      if (cpLoss <= 40) {
+        // 함정수: 손해 없는 수인데, 상대가 틀릴 확률 × 이득의 기댓값이 충분하다
+        // (드물어도 치명적이면 함정: 낚싯대 함정의 hxg4는 1500점 기준 14%지만 이득이 400cp가 넘는다)
+        const errors = valued.map((v) => ({ ...v, gain: v.cp - cap(evalAfter) })).filter((v) => v.gain >= TRAP_GAIN);
+        const ev = errors.reduce((s, v) => s + v.p * v.gain, 0);
+        if (ev >= TRAP_EV && !realSacrifice && evalAfter < 600) {
+          const e = errors.sort((a, b) => b.p * b.gain - a.p * a.gain)[0];
+          risk = 'trap';
+          riskWhy = `${who}가 ${pct(e.p)} 확률로 ${e.san}를 두면 ${Math.round(e.gain)}cp 이득. 정답 ${refSan}을 둘 확률은 ${pct(refP)}`;
+        }
+      } else if (f.capturedValue < 3) {
+        // 도박수: 객관적으로 손해지만, 상대의 실제 응수 확률로 따진 기대 점수가 최선 수 이상
+        // (나머지 확률은 정답을 둔다고 보수적으로 가정. 큰 기물을 잡는 수는 욕심이므로 뺀다)
+        const pT = valued.reduce((s, v) => s + v.p, 0);
+        const humanExp = valued.reduce((s, v) => s + v.p * v.exp, 0) + (1 - pT) * expPlayed;
+        const lures = valued.filter((v) => v.cp >= best + 30).sort((a, b) => b.p - a.p);
+        if (lures.length && humanExp >= expBefore) {
+          const l = lures[0];
+          risk = 'gamble';
+          riskWhy = `객관적으로 ${cpLoss}cp 손해지만, ${who}는 ${pct(l.p)} 확률로 ${l.san}를 둬서 최선 수보다 ${Math.round(l.cp - best)}cp 좋아짐. 사람 상대 기대 점수 ${pct(humanExp)} (최선 수 ${pct(expBefore)}). 정답 ${refSan}을 둘 확률은 ${pct(refP)}`;
+        }
+      }
+    }
+  } else if (after[0].pv.length) {
+    // ── 규칙 기반 (Maia를 못 쓸 때) ──
     const ranked = rankNaturalMoves(A, move.to);
     const refutation = after[0].uci;
     const refRank = ranked.findIndex((r) => r.uci === refutation);
@@ -365,6 +473,6 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
     playedPvSan: uciToSanLine(A, after[0].pv, 7),
     phase: ply < 20 && f.phase > 0.75 ? 'opening' : f.isEndgame ? 'endgame' : 'middlegame',
     situation: evalBefore >= 150 ? 'ahead' : evalBefore <= -150 ? 'behind' : 'equal',
-    choiceDelta, riskSucceeded: null, book: false, opening: null, features: f, deep,
+    choiceDelta, riskSucceeded: null, humanP, book: false, opening: null, features: f, deep,
   };
 }

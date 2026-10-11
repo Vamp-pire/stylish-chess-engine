@@ -4,6 +4,7 @@ import type { EnginePool } from '../engine/pool';
 import type { GameAnalysis, MoveAnalysis } from '../core/analyzer';
 import type { FromWorker, ToWorker } from '../workers/protocol';
 import AnalysisWorker from '../workers/analysis.worker?worker';
+import { getHumanModel } from '../human/browser';
 
 export interface RunCallbacks {
   onProgress(done: number, total: number): void;
@@ -40,6 +41,13 @@ export class AnalysisRun {
             if (lines && !this.cancelled) send({ type: 'engineResult', id: msg.id, lines });
             break;
           }
+          case 'human': {
+            // 모델은 첫 분석 때 받기 시작한다. 실패하면 null을 돌려줘 규칙 기반으로 계속한다
+            const model = await getHumanModel();
+            const policies = model ? await model.predict(msg.queries).catch(() => null) : null;
+            if (!this.cancelled) send({ type: 'humanResult', id: msg.id, policies });
+            break;
+          }
           case 'progress': this.cb.onProgress(msg.done, msg.total); break;
           case 'move': this.cb.onMove(msg.move); break;
           case 'done': this.worker.terminate(); resolve(msg.result); break;
@@ -47,7 +55,7 @@ export class AnalysisRun {
         }
       };
       this.worker.onerror = (e) => reject(new Error(e.message));
-      send({ type: 'analyze', pgn, depth, bookUrl: new URL(import.meta.env.BASE_URL + 'openings.json', location.href).href });
+      send({ type: 'analyze', pgn, depth, bookUrl: new URL(import.meta.env.BASE_URL + 'openings.json', location.href).href, human: true });
     });
   }
 

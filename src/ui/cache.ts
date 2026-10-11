@@ -4,7 +4,7 @@ import type { GameAnalysis } from '../core/analyzer';
 
 const DB = 'stylish', STORE = 'analyses', VERSION = 1;
 /** 판정 규칙이 바뀌면 올려서 예전 결과를 무효화한다 */
-const RULES_VERSION = 2;
+const RULES_VERSION = 3;
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 function db() {
@@ -44,6 +44,8 @@ export async function getCached(key: string): Promise<GameAnalysis | null> {
 }
 
 export async function putCached(key: string, value: GameAnalysis): Promise<void> {
+  // 사람 수 예측 모델 없이 낸 결과는 저장하지 않는다 (모델을 받은 뒤 다시 분석되도록)
+  if (value.human !== 'maia3') return;
   const d = await db(); if (!d) return;
   await new Promise<void>((resolve) => {
     try {

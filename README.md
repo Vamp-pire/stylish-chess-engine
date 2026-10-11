@@ -60,7 +60,7 @@ PGN_FILE=test/fixtures/karpov-unzicker.pgn npx vitest run test/game.test.ts --re
 
 ```
 src/
-  core/      grid.ts(공격 관계·구조) · features.ts(정적 특징) · natural.ts(자연스러운 수)
+  core/      grid.ts(공격 관계·구조) · features.ts(정적 특징) · natural.ts(예비용 규칙 기반 자연스러운 수)
              styles.ts(19종 채점·위험·품질) · analyzer.ts(파이프라인) · profile.ts(플레이어 평가)
   search/    position.ts(0x88 수 생성기) · search.ts(알파-베타, 위협·응수 질의)
   engine/    uci.ts(UCI 프로토콜) · browser.ts(Stockfish WASM Worker)

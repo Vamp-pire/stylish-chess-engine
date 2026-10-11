@@ -8,6 +8,7 @@ import type { Api as CgApi } from 'chessground/api';
 import type { Key } from 'chessground/types';
 import { SAMPLES } from './samples';
 import { AnalysisRun, getEngine } from './ui/runner';
+import { humanStatus, onHumanStatus } from './human/browser';
 import { evalGraph, radar } from './ui/charts';
 import { renderGuide, HOW } from './ui/guide';
 import type { GameAnalysis, MoveAnalysis } from './core/analyzer';
@@ -442,7 +443,7 @@ function updateBatchProgress() {
   if (b.current < 0) { el.innerHTML = `<span class="faint">분석 완료 · ${done}/${b.games.length}판 · 깊이 ${b.depth}</span>${b.error ? ` <span class="error">${esc(b.error)}</span>` : ''}`; return; }
   const [d, t] = b.progress;
   const frac = (done + (t ? d / t : 0)) / b.games.length;
-  el.innerHTML = `<span class="faint">${b.current + 1}/${b.games.length}판 분석 중</span><div class="bar"><i style="width:${frac * 100}%"></i></div>`;
+  el.innerHTML = `<span class="faint">${b.current + 1}/${b.games.length}판 분석 중${esc(humanNote())}</span><div class="bar"><i style="width:${frac * 100}%"></i></div>`;
 }
 
 function updateBatch() {
@@ -685,13 +686,29 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'End') go('last');
 });
 
+/** 사람 수 예측 모델(Maia3) 상태 안내: 처음 한 번 내려받는 동안과 실패했을 때만 보인다 */
+function humanNote() {
+  const s = humanStatus();
+  if (s.state === 'loading') {
+    const mb = (n: number) => (n / 1048576).toFixed(0);
+    return ` · 사람 수 예측 모델 받는 중${s.total ? ` ${mb(s.loaded)}/${mb(s.total)}MB` : '…'} (처음 한 번만)`;
+  }
+  if (s.state === 'failed') return ' · 사람 수 예측 모델을 못 받아 간이 규칙으로 판정합니다';
+  return '';
+}
+
 function updateProgress() {
   const g = state.game, el = $('#progress'); if (!g || !el) return;
   if (g.error) { el.innerHTML = `<span class="error">분석 오류: ${esc(g.error)}</span>`; return; }
-  if (g.analysis) { el.innerHTML = `<span class="faint">분석 완료 · 깊이 ${g.analysis.depth}</span>`; return; }
+  if (g.analysis) {
+    const rules = g.analysis.human === 'rules' ? ' · 응수 예측: 간이 규칙' : '';
+    el.innerHTML = `<span class="faint">분석 완료 · 깊이 ${g.analysis.depth}${rules}</span>`;
+    return;
+  }
   const [d, t] = g.progress;
-  el.innerHTML = `<span class="faint">${d === 0 ? '엔진 준비 중…' : `분석 중 ${Math.max(0, d - 1)}/${t - 1}수`}</span><div class="bar"><i style="width:${(d / t) * 100}%"></i></div>`;
+  el.innerHTML = `<span class="faint">${d === 0 ? '엔진 준비 중…' : `분석 중 ${Math.max(0, d - 1)}/${t - 1}수`}${esc(humanNote())}</span><div class="bar"><i style="width:${(d / t) * 100}%"></i></div>`;
 }
+onHumanStatus(() => { updateProgress(); updateBatchProgress(); });
 
 function updatePosition() {
   const g = state.game; if (!g || !cg) return;
@@ -764,6 +781,7 @@ function updateCard() {
       <span class="mc-san">${esc(m.san)}</span>
       ${m.quality ? `<span class="pill q-${m.quality}">${QUALITY_LABEL[m.quality]}</span>` : ''}
       ${m.forced ? '<span class="chip" title="선택의 여지가 거의 없던 수라 플레이어 평가에서 제외">강제된 수</span>' : ''}
+      ${m.humanP != null ? `<span class="chip" title="같은 레이팅의 사람이 이 국면에서 이 수를 둘 확률 (Maia3 예측)">사람 선택률 ${Math.round(m.humanP * 100)}%</span>` : ''}
     </div>
     ${m.risk ? `<div class="risk ${m.risk}"><strong>${RISK_LABEL[m.risk]}</strong><span>${esc(m.riskWhy)}</span></div>` : ''}
     ${m.book ? `<div class="book-banner"><strong>📖 오프닝 이론${m.opening ? ` · ${esc(m.opening.eco)} ${esc(m.opening.name)}` : ''}</strong><span>누구나 두는 이론 수라 스타일은 참고용으로 흐리게 보여주고, 플레이어 평가에서는 뺍니다.</span></div>` : ''}

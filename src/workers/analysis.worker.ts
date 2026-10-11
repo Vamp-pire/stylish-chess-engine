@@ -3,6 +3,7 @@
 import { analyzeGame } from '../core/analyzer';
 import { loadOpeningBook } from '../core/openings';
 import type { Engine, EngineLine } from '../engine/uci';
+import type { HumanModel, HumanPolicy } from '../human/maia3';
 import type { ToWorker, FromWorker } from './protocol';
 
 const post = (m: FromWorker) => (self as unknown as Worker).postMessage(m);
@@ -22,11 +23,26 @@ const engine: Engine = {
   quit() {},
 };
 
+// 사람 수 예측(Maia3)도 메인 스레드가 띄운 Worker에 중계한다
+const humanPending = new Map<number, (p: HumanPolicy[] | null) => void>();
+const human: HumanModel = {
+  predict(queries) {
+    const id = ++seq;
+    return new Promise((resolve, reject) => {
+      humanPending.set(id, (p) => (p ? resolve(p) : reject(new Error('Maia 예측 실패'))));
+      post({ type: 'human', id, queries });
+    });
+  },
+};
+
 self.onmessage = async (e: MessageEvent<ToWorker>) => {
   const msg = e.data;
   if (msg.type === 'engineResult') {
     pending.get(msg.id)?.(msg.lines);
     pending.delete(msg.id);
+  } else if (msg.type === 'humanResult') {
+    humanPending.get(msg.id)?.(msg.policies);
+    humanPending.delete(msg.id);
   } else if (msg.type === 'abort') {
     signal.aborted = true;
   } else if (msg.type === 'analyze') {
@@ -37,6 +53,7 @@ self.onmessage = async (e: MessageEvent<ToWorker>) => {
       const result = await analyzeGame(msg.pgn, engine, {
         depth: msg.depth,
         book,
+        human: msg.human ? human : null,
         signal,
         onProgress: (done, total) => post({ type: 'progress', done, total }),
         onMove: (move) => post({ type: 'move', move }),
