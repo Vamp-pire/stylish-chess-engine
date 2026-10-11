@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo skip",
-  "buildCommand": "mkdir -p dist",
+  "buildCommand": "mkdir -p dist && echo '<meta http-equiv=\"refresh\" content=\"0; url=https://stylish-chess-engine.pages.dev/\">' > dist/index.html",
   "outputDirectory": "dist",
   "redirects": [
     {
