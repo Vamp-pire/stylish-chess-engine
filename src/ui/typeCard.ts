@@ -1,5 +1,5 @@
 // 프로필 카드 맨 위의 4글자 체스 유형 + 축별 막대 + 공유 버튼
-import { chessTypeOf, groupOf, TYPE_DATA, MIN_COUNTED, type ChessType } from '../core/chessType';
+import { chessTypeOf, groupOf, ratingOf, TYPE_DATA, MIN_COUNTED, type ChessType } from '../core/chessType';
 import type { PlayerProfile } from '../core/profile';
 import CALIB from '../data/type-calib.json';
 
@@ -33,6 +33,7 @@ export function typeSection(p: PlayerProfile): string {
     </div>
     <p class="type-tagline">${esc(t.info.tagline)}</p>
     <div class="type-axes">${bars}</div>
+    <p class="faint type-note">${p.rating ? `레이팅 ${ratingOf(p)}` : '레이팅 정보가 없어 1500'} 전후 플레이어들과 비교한 결과예요.</p>
     ${note}
     <div class="type-actions">
       <a href="/types/${t.code}" target="_blank" rel="noopener">${esc(t.info.name)} 유형 자세히 보기</a>

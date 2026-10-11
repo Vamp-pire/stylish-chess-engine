@@ -5,10 +5,10 @@ import type { PlayerProfile } from '../src/core/profile';
 
 const METRICS: Metric[] = ['aggressive', 'tactical', 'positional', 'prophylactic', 'complicating', 'risk', 'solid', 'simplifying', 'initiative', 'defensive', 'rare'];
 const linear = Array.from({ length: 101 }, (_, i) => -2 + (4 * i) / 100);
-/** 모든 지표 평균 10·표준편차 5, 축 분포는 −2~2 균등 */
+/** 모든 지표 기대값 10(레이팅 무관)·표준편차 5, 축 분포는 −2~2 균등 */
 const CAL: Calibration = {
   players: 100,
-  metrics: Object.fromEntries(METRICS.map((k) => [k, { mean: 10, std: 5 }])) as Calibration['metrics'],
+  metrics: Object.fromEntries(METRICS.map((k) => [k, { a: 10, b: 0, std: 5 }])) as Calibration['metrics'],
   quantiles: { AP: linear, WS: linear, IR: linear, OE: linear },
 };
 
@@ -46,6 +46,15 @@ describe('체스 유형', () => {
     expect(wild.axes.every((a) => a.strength > 50)).toBe(true);
     const calm = chessTypeOf(profile({ aggressive: 5, tactical: 5, positional: 20, prophylactic: 20, complicating: 5, solid: 20, simplifying: 20, initiative: 5, defensive: 20 }, 0.02, 0), CAL)!;
     expect(calm.code).toBe('PSRE');
+  });
+
+  it('같은 지표라도 레이팅 기대값이 다르면 글자가 바뀐다 (같은 레이팅끼리 비교)', () => {
+    // 레이팅이 높을수록 공격 지표 기대값이 낮아지는 보정: 1000점에선 평범, 2000점에선 공격적
+    const cal: Calibration = { ...CAL, metrics: { ...CAL.metrics, aggressive: { a: 20, b: -0.005, std: 5 }, tactical: { a: 20, b: -0.005, std: 5 } } };
+    const p = profile({ aggressive: 14, tactical: 14 }, 0.1);
+    const at = (rating: number) => chessTypeOf({ ...p, rating } as PlayerProfile, cal)!.code[0];
+    expect(at(800)).toBe('P');
+    expect(at(2000)).toBe('A');
   });
 
   it('Maia 기록이 없는 프로필은 유형을 정하지 않는다', () => {

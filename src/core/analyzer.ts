@@ -262,7 +262,11 @@ export function finalizeGame(
   const lastBook = bookPlies ? results[bookPlies - 1].opening : null;
   // 이름은 정확히 일치한 가장 깊은 국면 우선
   const named = [...results.slice(0, bookPlies)].reverse().find((r) => r.opening?.exact)?.opening ?? lastBook;
-  return { headers, startFen, moves: results, profiles: buildProfiles(results), depth, opening: named, bookPlies, human, elo };
+  const profiles = buildProfiles(results);
+  const rating = (v: string | undefined) => (Number(v) > 0 ? Number(v) : null);
+  profiles.w.rating = rating(headers.WhiteElo);
+  profiles.b.rating = rating(headers.BlackElo);
+  return { headers, startFen, moves: results, profiles, depth, opening: named, bookPlies, human, elo };
 }
 
 export interface MoveInput {

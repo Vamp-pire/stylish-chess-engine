@@ -1,4 +1,5 @@
-// 4글자 유형 보정 데이터 만들기: 실제 플레이어들의 분석 결과(JSONL)에서 지표 평균·표준편차와 축별 분포를 구한다.
+// 4글자 유형 보정 데이터 만들기: 실제 플레이어들의 분석 결과(JSONL)에서 지표별 '레이팅 기대값'(선형 회귀)과
+// 잔차 표준편차, 그리고 축별 분포를 구한다. 지표 대부분이 레이팅과 상관이 커서 같은 레이팅끼리 비교한다.
 // 입력 한 줄 = 플레이어 한 명 { name, elo, moves: [{ s: 스타일 점수, r: 위험 판정, hp: Maia 확률, f: 강제, b: 이론 }] }
 // 사용: node scripts/build-type-calib.mjs <jsonl 파일들...>  → src/data/type-calib.json
 // 축 정의는 src/core/chessType.ts의 AXIS_DEF와 같아야 한다.
@@ -13,6 +14,8 @@ const AXIS_DEF = {
 const METRICS = [...new Set(Object.values(AXIS_DEF).flatMap((d) => [...d.plus, ...d.minus]))];
 const STYLES = METRICS.filter((m) => m !== 'risk' && m !== 'rare');
 const MIN_COUNTED = 80, RARE_P = 0.1;
+const RATING_MIN = 600, RATING_MAX = 2600, RATING_DEFAULT = 1500;
+const clampRating = (r) => Math.max(RATING_MIN, Math.min(RATING_MAX, r || RATING_DEFAULT));
 
 const players = [];
 for (const file of process.argv.slice(2)) {
@@ -27,7 +30,7 @@ for (const file of process.argv.slice(2)) {
     for (const k of STYLES) m[k] = Math.round(counted.reduce((s, x) => s + x.s[k], 0) / counted.length);
     m.risk = (p.moves.filter((x) => x.r).length / counted.length) * 100;
     m.rare = (hps.filter((x) => x < RARE_P).length / hps.length) * 100;
-    players.push({ name: p.name, elo: p.elo, band: p.band, m });
+    players.push({ id: p.id ?? p.name, elo: clampRating(p.elo), band: p.band, m });
   }
 }
 if (players.length < 50) throw new Error(`플레이어가 너무 적습니다: ${players.length}`);
@@ -36,9 +39,17 @@ const stat = (xs) => {
   const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
   return { mean, std: Math.sqrt(xs.reduce((s, x) => s + (x - mean) ** 2, 0) / xs.length) };
 };
-const metrics = Object.fromEntries(METRICS.map((k) => [k, stat(players.map((p) => p.m[k]))]));
-const axisValue = (m, axis) => {
-  const z = (k) => (m[k] - metrics[k].mean) / (metrics[k].std || 1);
+// 지표 = a + b × 레이팅 + 잔차. 잔차의 표준편차로 표준점수를 낸다
+const fit = (k) => {
+  const xs = players.map((p) => p.elo), ys = players.map((p) => p.m[k]);
+  const mx = stat(xs).mean, my = stat(ys).mean;
+  const b = xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0) / xs.reduce((s, x) => s + (x - mx) ** 2, 0);
+  const a = my - b * mx;
+  return { a, b, std: stat(ys.map((y, i) => y - (a + b * xs[i]))).std };
+};
+const metrics = Object.fromEntries(METRICS.map((k) => [k, fit(k)]));
+const axisValue = (m, elo, axis) => {
+  const z = (k) => (m[k] - (metrics[k].a + metrics[k].b * elo)) / (metrics[k].std || 1);
   const mean = (ks) => (ks.length ? ks.reduce((s, k) => s + z(k), 0) / ks.length : 0);
   return mean(AXIS_DEF[axis].plus) - mean(AXIS_DEF[axis].minus);
 };
@@ -48,22 +59,22 @@ const quantile = (sorted, q) => {
 };
 const quantiles = {};
 for (const axis of Object.keys(AXIS_DEF)) {
-  const vals = players.map((p) => axisValue(p.m, axis)).sort((a, b) => a - b);
+  const vals = players.map((p) => axisValue(p.m, p.elo, axis)).sort((a, b) => a - b);
   quantiles[axis] = Array.from({ length: 101 }, (_, i) => Math.round(quantile(vals, i / 100) * 10000) / 10000);
 }
-const round = (x) => Math.round(x * 1000) / 1000;
+const round = (x) => Math.round(x * 1e6) / 1e6;
 const out = {
   players: players.length,
-  metrics: Object.fromEntries(Object.entries(metrics).map(([k, v]) => [k, { mean: round(v.mean), std: round(v.std) }])),
+  metrics: Object.fromEntries(Object.entries(metrics).map(([k, v]) => [k, { a: round(v.a), b: round(v.b), std: round(v.std) }])),
   quantiles,
 };
 writeFileSync(new URL('../src/data/type-calib.json', import.meta.url), JSON.stringify(out) + '\n');
 
 // ── 보고: 유형 분포, 축끼리 상관, 레이팅과의 상관 ──
 const letters = { AP: ['A', 'P'], WS: ['W', 'S'], IR: ['I', 'R'], OE: ['O', 'E'] };
-const codeOf = (m) => Object.keys(AXIS_DEF).map((a) => (axisValue(m, a) >= quantiles[a][50] ? letters[a][0] : letters[a][1])).join('');
+const codeOf = (p) => Object.keys(AXIS_DEF).map((a) => (axisValue(p.m, p.elo, a) >= quantiles[a][50] ? letters[a][0] : letters[a][1])).join('');
 const dist = {};
-for (const p of players) dist[codeOf(p.m)] = (dist[codeOf(p.m)] ?? 0) + 1;
+for (const p of players) dist[codeOf(p)] = (dist[codeOf(p)] ?? 0) + 1;
 console.log(`플레이어 ${players.length}명`);
 console.log('유형 분포:', Object.entries(dist).sort((a, b) => b[1] - a[1]).map(([c, n]) => `${c} ${n}`).join(', '));
 const corr = (xs, ys) => {
@@ -71,6 +82,9 @@ const corr = (xs, ys) => {
   return xs.reduce((s, x, i) => s + (x - a.mean) * (ys[i] - b.mean), 0) / xs.length / (a.std * b.std || 1);
 };
 const axes = Object.keys(AXIS_DEF);
-const vals = Object.fromEntries(axes.map((a) => [a, players.map((p) => axisValue(p.m, a))]));
+const vals = Object.fromEntries(axes.map((a) => [a, players.map((p) => axisValue(p.m, p.elo, a))]));
 console.log('축 상관:', axes.flatMap((a, i) => axes.slice(i + 1).map((b) => `${a}-${b} ${corr(vals[a], vals[b]).toFixed(2)}`)).join(', '));
 console.log('레이팅 상관:', axes.map((a) => `${a} ${corr(vals[a], players.map((p) => p.elo)).toFixed(2)}`).join(', '));
+const byBand = {};
+for (const p of players) (byBand[p.band] ??= []).push(codeOf(p));
+console.log('레이팅 구간별 서로 다른 유형 수:', Object.entries(byBand).map(([b, cs]) => `${b} ${new Set(cs).size}/16 (${cs.length}명)`).join(', '));

@@ -1,5 +1,7 @@
 // 4글자 체스 유형: 큰 스타일 8개 + Maia 독창성으로 축 4개를 만들고, 실제 플레이어 분포(보정 데이터)에서의 위치로 글자를 정한다.
 // 축 값 = (+쪽 지표의 표준점수 평균) − (−쪽 지표의 표준점수 평균). 보정 데이터: src/data/type-calib.json (scripts/build-type-calib.mjs)
+// 지표 대부분이 레이팅과 상관이 커서(예: 낮을수록 전술적·드문 수가 많음), 표준점수는 '같은 레이팅의 기대값' 대비로 잰다.
+// 즉 유형은 같은 레이팅 플레이어들 사이에서의 성향이다.
 import type { PlayerProfile } from './profile';
 import { RISK_KINDS } from './styles';
 import TYPES from '../data/chess-types.json';
@@ -25,8 +27,8 @@ export const AXIS_DEF: Record<AxisKey, { plus: Metric[]; minus: Metric[] }> = {
 export interface Calibration {
   /** 보정에 쓴 플레이어 수 */
   players: number;
-  /** 지표별 평균·표준편차 (표준점수용) */
-  metrics: Record<Metric, { mean: number; std: number }>;
+  /** 지표별 레이팅 회귀(기대값 = a + b × 레이팅)와 잔차 표준편차 */
+  metrics: Record<Metric, { a: number; b: number; std: number }>;
   /** 축별 분포: 0~100 백분위에 해당하는 축 값 101개 */
   quantiles: Record<AxisKey, number[]>;
 }
@@ -48,6 +50,10 @@ export const oppositeOf = (code: string) =>
 /** 유형 판정에 필요한 최소 평가 대상 수 (대략 5판) */
 export const MIN_COUNTED = 80;
 
+/** 레이팅 범위 (Maia3와 같음). 기보에 없으면 기본값 */
+export const RATING_MIN = 600, RATING_MAX = 2600, RATING_DEFAULT = 1500;
+export const ratingOf = (p: PlayerProfile) => Math.max(RATING_MIN, Math.min(RATING_MAX, p.rating || RATING_DEFAULT));
+
 /** 프로필 → 지표 값. 독창성(Maia)이 없으면 null */
 export function metricsOf(p: PlayerProfile): Record<Metric, number> | null {
   if (!p.human || !p.counted) return null;
@@ -61,8 +67,8 @@ export function metricsOf(p: PlayerProfile): Record<Metric, number> | null {
   };
 }
 
-export function axisValue(m: Record<Metric, number>, axis: AxisKey, cal: Calibration = CALIB as Calibration) {
-  const z = (k: Metric) => (m[k] - cal.metrics[k].mean) / (cal.metrics[k].std || 1);
+export function axisValue(m: Record<Metric, number>, rating: number, axis: AxisKey, cal: Calibration = CALIB as Calibration) {
+  const z = (k: Metric) => { const c = cal.metrics[k]; return (m[k] - (c.a + c.b * rating)) / (c.std || 1); };
   const mean = (ks: Metric[]) => (ks.length ? ks.reduce((s, k) => s + z(k), 0) / ks.length : 0);
   const d = AXIS_DEF[axis];
   return mean(d.plus) - mean(d.minus);
@@ -93,7 +99,7 @@ export function chessTypeOf(p: PlayerProfile, cal: Calibration = CALIB as Calibr
   const m = metricsOf(p);
   if (!m) return null;
   const axes = AXIS_KEYS.map((key, i): AxisResult => {
-    const pct = percentile(axisValue(m, key, cal), cal.quantiles[key]);
+    const pct = percentile(axisValue(m, ratingOf(p), key, cal), cal.quantiles[key]);
     const first = pct >= 0.5;
     return { key, letter: TYPE_DATA.axes[i].letters[first ? 0 : 1], strength: Math.round((first ? pct : 1 - pct) * 100), pct: Math.round(pct * 100) };
   });

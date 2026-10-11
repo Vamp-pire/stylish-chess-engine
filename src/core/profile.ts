@@ -36,6 +36,8 @@ export interface PlayerProfile {
   archetype: { name: string; desc: string };
   /** 시간 사용 (기보에 시계 기록이 있을 때만) */
   time?: TimeProfile | null;
+  /** 기보에 적힌 이 플레이어의 레이팅 (없으면 null). 유형 판정을 같은 레이팅끼리 비교하는 데 쓴다 */
+  rating?: number | null;
   /** 사람 수 예측(Maia3) 기준 독창성: 같은 레이팅 사람들이 잘 안 두는 수를 얼마나 두는가 (예전 저장본·규칙 기반엔 없음) */
   human?: HumanStats | null;
   /** 오프닝: 이론을 따라간 수, 이론 이탈 수 (한 게임 기준) */
@@ -72,6 +74,13 @@ function mergeHuman(list: (HumanStats | null | undefined)[]): HumanStats | null 
     rare: live.reduce((s, h) => s + h.rare * h.n, 0) / n,
     surprise: live.reduce((s, h) => s + h.surprise * h.n, 0) / n,
   };
+}
+
+/** 레이팅은 평가 대상 수로 가중 평균 (레이팅이 있는 판만) */
+function mergeRating(list: PlayerProfile[]): number | null {
+  const live = list.filter((p) => p.rating && p.counted);
+  const n = live.reduce((s, p) => s + p.counted, 0);
+  return n ? Math.round(live.reduce((s, p) => s + p.rating! * p.counted, 0) / n) : null;
 }
 
 const emptyRisk = () => Object.fromEntries(RISK_KINDS.map((k) => [k, { count: 0, success: 0 }])) as PlayerProfile['risk'];
@@ -291,6 +300,7 @@ export function mergeProfiles(list: PlayerProfile[]): PlayerProfile | null {
     bySituation: mergeSlices(['ahead', 'equal', 'behind'], (p) => p.bySituation),
     archetype: archetype(avg, riskRate),
     human: mergeHuman(list.map((p) => p.human)),
+    rating: mergeRating(list),
     opening: { bookMoves: list.reduce((s, p) => s + p.opening.bookMoves, 0), leftBookFirst: null, deviation: null },
   };
 }

@@ -112,3 +112,7 @@ node scripts/build-masters.mjs <결과폴더>
 - 모델은 `public/maia/`에 20MB 조각 3개 + `maia3.json`. 바꾸려면 `node scripts/fetch-maia.mjs` (커밋·해시 고정).
 - 호스팅을 **Cloudflare Pages**(pages.dev, 무료·상업 이용 가능)로 옮기는 중. 헤더는 `public/_headers`. Vercel은 이전 확인 후 정리.
 - 수익화 계획: 0단계 이전 → 1단계 콘텐츠(4글자 유형 16개 페이지, 오프닝 페이지, 영어, 개인정보처리방침) → pages.dev로 애드센스 신청, 거절되면 도메인 구입.
+- 4글자 유형(PLAN 15절): src/core/chessType.ts(판정), src/data/chess-types.json(16유형 글), src/data/type-calib.json(보정), src/ui/typeCard.ts(카드). 정적 페이지는 빌드 후 scripts/build-pages.mjs가 생성(/types/, /about, /contact, /privacy, sitemap).
+- 보정 다시 하기: GitHub Actions 'Calibrate chess types' 수동 실행 → 아티팩트 type-calib의 src/data/type-calib.json과 report.txt 확인 후 커밋. 스타일 규칙(styles.ts)이나 Maia 판정을 바꾸면 다시 보정할 것.
+- 배포: Cloudflare Pages(stylish-chess-engine.pages.dev, main push 시 자동). Vercel(stylish-engine.vercel.app)은 308로 새 주소 이동만 함. 애드센스 ca-pub-8762647584529985(ads.txt), Search Console 메타 태그 index.html.
+
