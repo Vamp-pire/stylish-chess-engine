@@ -50,3 +50,21 @@ export function radar(axes: { label: string; value: number }[], color: string, s
     ${labels}
   </svg>`;
 }
+
+/** 꺾은선 차트 (값 0~100). 점이 적을 때 쓰는 단순한 추이 그래프 */
+export function lineChart(labels: string[], series: { label: string; color: string; values: number[]; dashed?: boolean }[], w = 520, h = 170): string {
+  const padL = 28, padR = 10, padT = 10, padB = 24;
+  const n = labels.length;
+  const x = (i: number) => padL + (n <= 1 ? 0 : (i / (n - 1)) * (w - padL - padR));
+  const y = (v: number) => padT + (1 - Math.max(0, Math.min(100, v)) / 100) * (h - padT - padB);
+  const grid = [0, 50, 100].map((v) => `<line x1="${padL}" x2="${w - padR}" y1="${y(v)}" y2="${y(v)}" stroke="var(--border)" /><text x="${padL - 6}" y="${y(v)}" text-anchor="end" dominant-baseline="middle" font-size="10" fill="var(--text-3)">${v}</text>`).join('');
+  // 라벨이 많으면 몇 개만
+  const every = Math.ceil(n / 6);
+  const xl = labels.map((l, i) => (i % every === 0 || i === n - 1) ? `<text x="${x(i)}" y="${h - 6}" text-anchor="middle" font-size="10" fill="var(--text-3)">${l}</text>` : '').join('');
+  const lines = series.map((s) => {
+    const d = s.values.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join('');
+    const dots = s.values.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="${s.color}"><title>${s.label} ${labels[i]}: ${v}</title></circle>`).join('');
+    return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"${s.dashed ? ' stroke-dasharray="4 4"' : ''} />${dots}`;
+  }).join('');
+  return `<svg class="line-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="추이 그래프">${grid}${xl}${lines}</svg>`;
+}

@@ -33,6 +33,8 @@ export interface StaticFeatures {
   promoValue: number;
   sacrifice: number;          // 새로 위험에 노출된 물질 - 얻은 물질
   ignoredThreat: number;      // 위협받던 기물을 그대로 둔 양
+  /** 내준 물질: 새로 노출한 것 + 위협받던 것을 그대로 둔 것 - 얻은 물질 (그냥 내버려 두는 희생도 포함) */
+  offered: number;
   rescued: number;            // 위험에서 벗어난 양
   threatsCreated: number;     // 상대 기물에 새로 생긴 위협
   hangOwnAfter: number;
@@ -185,6 +187,7 @@ export function extractFeatures(fenBefore: string, fenAfter: string, move: MoveL
   const newlyExposed = sumLoss(riskA.filter((x) => !beforeSq.has(x.square) || x.square === move.to));
   const escaped = sumLoss(riskB.filter((x) => !afterSq.has(x.square) || x.square === move.from));
   const sacrifice = Math.max(0, newlyExposed - capturedValue - promoValue);
+  const offered = Math.max(0, newlyExposed + ignoredThreat - capturedValue - promoValue);
   const rescued = Math.max(0, escaped - newlyExposed);
   const threatsCreated = Math.max(0, hangOppAfter - Math.max(0, hangOppBefore - capturedValue));
 
@@ -262,7 +265,7 @@ export function extractFeatures(fenBefore: string, fenAfter: string, move: MoveL
   return {
     color: c, piece: move.piece, phase, isEndgame, ply: ctx.ply,
     materialBalance: material(B, c) - material(B, o),
-    capturedValue, promoValue, sacrifice, ignoredThreat, rescued, threatsCreated,
+    capturedValue, promoValue, sacrifice, offered, ignoredThreat, rescued, threatsCreated,
     hangOwnAfter, hangOwnBefore,
     riskSquares: riskA.map((x) => x.square),
     isRecapture, isTrade, piecesTraded,

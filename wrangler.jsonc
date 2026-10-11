@@ -1,0 +1,11 @@
+// Cloudflare Workers 정적 사이트 배포 설정 (서버 코드 없이 dist만 올린다).
+// 빌드: npm run build → 배포: npx wrangler deploy. 응답 헤더는 public/_headers
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stylish-chess-engine",
+  "compatibility_date": "2026-10-06",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}

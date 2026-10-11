@@ -67,7 +67,7 @@ async function chesscomPage(user: string, cursor: ChesscomCursor | null, want = 
 async function lichessPage(user: string, until: number | null, want = 20): Promise<GamePage> {
   const u = user.trim();
   const params = new URLSearchParams({
-    max: String(want), pgnInJson: 'true', opening: 'true', clocks: 'false', evals: 'false',
+    max: String(want), pgnInJson: 'true', opening: 'true', clocks: 'true', evals: 'false',
     perfType: 'ultraBullet,bullet,blitz,rapid,classical,correspondence', // 변형 체스 제외
   });
   if (until) params.set('until', String(until));

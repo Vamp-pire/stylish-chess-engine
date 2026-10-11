@@ -10,20 +10,31 @@ import { Position } from '../search/position';
 import { Searcher, threatOf, replyOutcomes, quickValue } from '../search/search';
 import { buildProfiles, type PlayerProfile } from './profile';
 import type { OpeningBook, OpeningInfo } from './openings';
-import { clampElo, type HumanModel, type HumanPolicy } from '../human/maia3';
+import { plyClocks, type PlyClock } from './clock';
+import { clampElo, ELO_DEFAULT, type HumanModel, type HumanPolicy } from '../human/maia3';
 
 /** 사람 대부분이 둘 수 (Maia 확률): 이런 수는 '의도한 선택'으로 보지 않는다 */
 const OBVIOUS_P = 0.5;
 /** 상대가 솔깃해할 응수의 최소 확률과 최대 개수 */
 const TEMPT_P = 0.08, TEMPT_MAX = 5;
-/** 함정수: 상대가 틀리는 응수 = 나에게 150cp 이상 이득인 응수. 그런 응수의 확률 × 이득 합이 50cp 이상이면 함정.
- *  (WDL은 완벽한 수읽기를 가정해 이미 이기는 국면에서 포화되므로 사람의 실수 크기는 cp로 잰다) */
-const TRAP_GAIN = 150, TRAP_EV = 50;
+/** Maia 함정수: 상대가 틀리는 응수들의 확률 × 이득(cp) 합이 이 이상 (드물어도 치명적이면 함정) */
+const TRAP_EV = 50;
 /** Maia에 한 번에 보내는 국면 수 (앞 수부터 결과가 나오도록 나눠 보낸다) */
 const HUMAN_CHUNK = 16;
 
 // 손실 계산용 상한: 이 이상은 사실상 결판난 국면
 const CAP = 1000;
+/** 이 이상 기대 점수가 떨어지면 '손해 보는 수' (평형 국면에서 약 40cp) */
+const LOSS_PP = 10;
+/** 함정: 솔깃한 응수를 두면 둔 쪽 기대 점수가 이만큼 오른다 (%p) */
+const TRAP_GAIN_PP = 20;
+/** 위험 판정 수가 통했다: 상대의 다음 수가 기대 점수를 이만큼 잃었다 (%p) */
+const PUNISH_PP = 20;
+const PIECE_VALUE: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+const pieceValueAt = (fen: string, sq: string) => {
+  const p = new Chess(fen).get(sq as Parameters<Chess['get']>[0]);
+  return p ? PIECE_VALUE[p.type] : 0;
+};
 const cap = (x: number) => Math.max(-CAP, Math.min(CAP, x));
 
 export interface AnalyzeOptions {
@@ -37,7 +48,7 @@ export interface AnalyzeOptions {
   human?: HumanModel | null;
 }
 
-export interface MoveAnalysis extends StyleResult {
+export interface MoveAnalysis extends StyleResult, PlyClock {
   ply: number;
   moveNumber: number;
   color: Color;
@@ -61,6 +72,8 @@ export interface MoveAnalysis extends StyleResult {
   book: boolean;
   /** 이 수까지 도달한 오프닝 이름 (이론 안에 있을 때) */
   opening: OpeningInfo | null;
+  /** 함정수·도박수: 상대가 솔깃한 응수를 뒀을 때의 변화 (Stockfish 확인 수순) */
+  trapLine: { replySan: string; replyUci: string; line: string[]; gainCp: number } | null;
   /** 상대가 실제로 틀렸는지 (위험 판정 수의 성공 여부) */
   riskSucceeded: boolean | null;
   /** 이 레이팅의 사람이 이 수를 둘 확률 (Maia, 없으면 null) */
@@ -93,14 +106,14 @@ function terminalLines(fen: string): EngineLine[] | null {
 }
 
 /** 판정 중에 생기는 추가 분석은 엔진 풀에서 먼저 처리한다 (앞 수부터 결과가 나오도록) */
-const URGENT = 10;
+export const URGENT = 10;
 
-async function evalLines(engine: Engine, fen: string, depth: number, multipv = 3, priority = 0): Promise<EngineLine[]> {
+export async function evalLines(engine: Engine, fen: string, depth: number, multipv = 3, priority = 0): Promise<EngineLine[]> {
   return terminalLines(fen) ?? engine.analyse(fen, { depth, multipv, priority });
 }
 
 /** 둘 수 있는 수가 1개뿐이거나, 체크를 피하는 수가 2개 이하인 국면: 선택의 여지가 없어 얕게 분석한다 */
-function isForcedPosition(fen: string) {
+export function isForcedPosition(fen: string) {
   const ch = new Chess(fen);
   const n = ch.moves().length;
   return n === 1 || (ch.inCheck() && n <= 2);
@@ -110,7 +123,7 @@ function toMoveLike(m: Move): MoveLike {
   return { from: m.from, to: m.to, color: m.color, piece: m.piece, captured: m.captured, promotion: m.promotion, san: m.san, flags: m.flags };
 }
 
-function uciToSanLine(fen: string, ucis: string[], max = 8): string[] {
+export function uciToSanLine(fen: string, ucis: string[], max = 8): string[] {
   const ch = new Chess(fen);
   const out: string[] = [];
   for (const u of ucis.slice(0, max)) {
@@ -156,7 +169,7 @@ function walkPv(fenAfter: string, pv: string[], mover: Color, baseline: number, 
   return { gainEnd: Math.min(...tail), lossEnd: Math.max(...tail), forcing, checks, kingPressureMax };
 }
 
-function flipSide(fen: string): string {
+export function flipSide(fen: string): string {
   const p = fen.split(' ');
   p[1] = p[1] === 'w' ? 'b' : 'w';
   p[3] = '-';
@@ -173,6 +186,7 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
   const startFen = history[0]?.before ?? chess.fen();
   const fens = [startFen, ...history.map((m) => m.after)];
   const searcher = new Searcher(40000);
+  const clocks = plyClocks(chess, history, headers);
 
   const lines: EngineLine[][] = [];
   const results: MoveAnalysis[] = [];
@@ -213,47 +227,58 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
       before: lines[i], after: lines[i + 1], engine, depth, searcher,
       humanBefore, humanAfter, oppElo: elo[m.color === 'w' ? 'b' : 'w'],
     });
-    // 오프닝 이론: 처음부터 끊기지 않고 이어진 구간만 (한 번 벗어나면 다시 들어와도 이론으로 보지 않는다)
-    const info = opts.book?.lookup(m.after) ?? null;
-    const stillBook = !!info && (i === 0 || !!results[i - 1]?.book);
-    res.book = stillBook;
-    res.opening = stillBook ? info : null;
+    Object.assign(res, clocks[i]);
+    markBook(res, results[i - 1] ?? null, opts.book ?? null);
     results.push(res);
     opts.onMove?.(res);
     opts.onProgress?.(i + 2, total);
   }
 
+  return finalizeGame(results, headers, startFen, depth, humanUsed ? 'maia3' : 'rules', elo);
+}
+
+/** 오프닝 이론: 처음부터 끊기지 않고 이어진 구간만 (한 번 벗어나면 다시 들어와도 이론으로 보지 않는다) */
+export function markBook(res: MoveAnalysis, prev: MoveAnalysis | null, book: OpeningBook | null) {
+  const info = book?.lookup(res.fenAfter) ?? null;
+  const stillBook = !!info && (res.ply === 0 || !!prev?.book);
+  res.book = stillBook;
+  res.opening = stillBook ? info : null;
+}
+
+/** 수별 분석을 모아 게임 결과로: 위험 수 적중 여부, 오프닝 이름, 플레이어 프로필 */
+export function finalizeGame(
+  results: MoveAnalysis[], headers: Record<string, string>, startFen: string, depth: number,
+  human: GameAnalysis['human'] = 'rules', elo: GameAnalysis['elo'] = { w: ELO_DEFAULT, b: ELO_DEFAULT },
+): GameAnalysis {
   // 위험 판정 수의 성공 여부: 상대가 다음 수에서 크게 틀렸는가
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
     if (!r.risk) continue;
     const next = results[i + 1];
-    r.riskSucceeded = next ? next.cpLoss >= 100 : null;
+    r.riskSucceeded = next ? next.deep.winDrop >= PUNISH_PP : null;
   }
 
   const bookPlies = results.filter((r) => r.book).length;
   const lastBook = bookPlies ? results[bookPlies - 1].opening : null;
   // 이름은 정확히 일치한 가장 깊은 국면 우선
   const named = [...results.slice(0, bookPlies)].reverse().find((r) => r.opening?.exact)?.opening ?? lastBook;
-  return {
-    headers, startFen, moves: results, profiles: buildProfiles(results), depth, opening: named, bookPlies,
-    human: humanUsed ? 'maia3' : 'rules', elo,
-  };
+  return { headers, startFen, moves: results, profiles: buildProfiles(results), depth, opening: named, bookPlies, human, elo };
 }
 
-interface MoveInput {
+export interface MoveInput {
   move: Move; prev: Move | null; ply: number;
   before: EngineLine[]; after: EngineLine[];
   engine: Engine; depth: number; searcher: Searcher;
-  /** 수 두기 전(둔 쪽)·후(상대) 국면의 사람 수 확률. null이면 규칙 기반 */
-  humanBefore: HumanPolicy | null; humanAfter: HumanPolicy | null;
-  oppElo: number;
+  /** 수 두기 전(둔 쪽)·후(상대) 국면의 사람 수 확률. 없으면 규칙 기반 */
+  humanBefore?: HumanPolicy | null; humanAfter?: HumanPolicy | null;
+  oppElo?: number;
 }
 
 const pct = (p: number) => `${Math.round(p * 100)}%`;
 
-async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
-  const { move, prev, ply, before, after, engine, depth, searcher, humanBefore, humanAfter, oppElo } = x;
+/** 수 하나 분석: before/after는 수 두기 전·후 국면의 Stockfish 후보(MultiPV 3) */
+export async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
+  const { move, prev, ply, before, after, engine, depth, searcher, humanBefore = null, humanAfter = null, oppElo = ELO_DEFAULT } = x;
   const B = move.before, A = move.after;
   const chB = new Chess(B);
   const legal = chB.moves().length;
@@ -284,7 +309,20 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
 
   // ── PV 앞보기 ──
   const pv = walkPv(A, after[0].pv, mover, f.materialBalance);
-  const realSacrifice = !f.isMate && pv.lossEnd <= -0.9 && (f.sacrifice >= 1.5 || f.hangOwnAfter >= 1.5);
+  // 희생: 상대 최선 수순을 따라가도 물질이 회복되지 않는 수. 정적 계산(1수 교환 정산)은 교환 희생이나
+  // 공격받던 기물을 그냥 두는 희생을 놓치므로, 엔진 수순의 물질 변화를 기준으로 하고 정적 값은 보조로만 쓴다.
+  // 다른 후보 수를 뒀어도 잃었을 물질(이미 진 국면, 갇힌 기물 등)은 희생이 아니다: 후보 중 가장 덜 잃는 수와 비교한다
+  const altLost = Math.min(...before.filter((l) => l.uci && l.uci !== uci).map((l) => {
+    const ch = new Chess(B);
+    try { ch.move({ from: l.uci.slice(0, 2), to: l.uci.slice(2, 4), promotion: l.uci[4] }); } catch { return Infinity; }
+    return Math.max(0, -walkPv(ch.fen(), l.pv.slice(1), mover, f.materialBalance).lossEnd);
+  }), Infinity);
+  const rawLost = Math.max(0, -pv.lossEnd);
+  const pvLost = Math.max(0, rawLost - (Number.isFinite(altLost) ? altLost : 0));
+  // 이 수가 직접 기물을 내놓았으면(정적 값) 후보들도 희생이어도 희생으로 본다.
+  // 이미 진 국면(기대 점수 10% 미만)에서 물질을 잃는 것은 선택한 희생으로 보지 않는다
+  const realSacrifice = !f.isMate && expBefore >= 0.1 &&
+    (pvLost >= 1.5 || (rawLost >= 0.9 && (f.sacrifice >= 1.5 || f.offered >= 1.5)));
 
   // ── 위협 (소형 탐색) ──
   const posB = Position.fromFen(B), posA = Position.fromFen(A);
@@ -314,6 +352,12 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
   const oppSharpness = after[1] ? Math.max(0, Math.min(500, cap(after[0].cp) - cap(after[1].cp))) : after[0].pv.length ? 500 : 0;
   let replySpread = 0;
   let risk: RiskKind | null = null, riskWhy: string | null = null;
+  let trapLine: MoveAnalysis['trapLine'] = null;
+  const expAfter = 1 - expectedScore(after[0]); // 수 둔 후 둔 쪽 기대 점수
+
+  // 손해 여부·이득 크기는 모두 Stockfish WDL 기대 점수(%p)로 본다: 이미 이긴/진 국면의 큰 cp 변동에 속지 않도록
+  // 단, 진 국면에서는 큰 cp 손실도 기대 점수가 거의 안 변하므로 cp 상한을 함께 둔다
+  const noLoss = winDrop < LOSS_PP && cpLoss <= 100;
 
   if (after[0].pv.length && humanAfter) {
     // ── Maia: 이 레이팅의 상대가 실제로 둘 응수의 확률로 판정 ──
@@ -329,41 +373,52 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
     const tempting = humanAfter
       .filter((h) => h.uci !== refutation && h.p >= TEMPT_P && bait.has(h.uci.slice(2, 4)))
       .slice(0, TEMPT_MAX);
-    if (tempting.length && deliberate && (cpLoss <= 40 || (cpLoss >= 80 && winDrop >= 5))) {
+    if (tempting.length && deliberate) {
       // 응수별 결과 (둔 쪽 관점): Stockfish 후보 목록에 있으면 그대로 쓰고, 없으면 조금 얕게 직접 확인한다
       const verifyDepth = Math.max(10, depth - 6);
-      const valued: { uci: string; p: number; san: string; cp: number; exp: number }[] = [];
+      const valued: { uci: string; p: number; san: string; cp: number; exp: number; pv: string[] }[] = [];
       for (const t of tempting) {
-        const san = uciToSanLine(A, [t.uci], 1)[0] ?? t.uci;
-        const line = after.find((l) => l.uci === t.uci);
-        if (line) { valued.push({ ...t, san, cp: cap(-line.cp), exp: 1 - expectedScore(line) }); continue; }
         const chA = new Chess(A);
-        chA.move({ from: t.uci.slice(0, 2), to: t.uci.slice(2, 4), promotion: t.uci[4] });
+        const nm = chA.move({ from: t.uci.slice(0, 2), to: t.uci.slice(2, 4), promotion: t.uci[4] });
+        const line = after.find((l) => l.uci === t.uci);
+        if (line) {
+          valued.push({ ...t, san: nm.san, cp: cap(-line.cp), exp: 1 - expectedScore(line), pv: uciToSanLine(chA.fen(), line.pv.slice(1), 6) });
+          continue;
+        }
         const v = (await evalLines(engine, chA.fen(), verifyDepth, 1, URGENT))[0];
-        valued.push({ ...t, san, cp: cap(v.cp), exp: expectedScore(v) });
+        valued.push({ ...t, san: nm.san, cp: cap(v.cp), exp: expectedScore(v), pv: uciToSanLine(chA.fen(), v.pv, 6) });
       }
       const refSan = uciToSanLine(A, [refutation], 1)[0] ?? refutation;
       const refP = humanAfter.find((h) => h.uci === refutation)?.p ?? 0;
       const who = `레이팅 ${oppElo} 상대`;
-      if (cpLoss <= 40) {
-        // 함정수: 손해 없는 수인데, 상대가 틀릴 확률 × 이득의 기댓값이 충분하다
+      if (noLoss && !realSacrifice) {
+        // 함정수: 손해 없는 수인데, 상대가 크게 틀릴 확률 × 이득의 기댓값이 충분하다
         // (드물어도 치명적이면 함정: 낚싯대 함정의 hxg4는 1500점 기준 14%지만 이득이 400cp가 넘는다)
-        const errors = valued.map((v) => ({ ...v, gain: v.cp - cap(evalAfter) })).filter((v) => v.gain >= TRAP_GAIN);
-        const ev = errors.reduce((s, v) => s + v.p * v.gain, 0);
-        if (ev >= TRAP_EV && !realSacrifice && evalAfter < 600) {
-          const e = errors.sort((a, b) => b.p * b.gain - a.p * a.gain)[0];
+        const errors = valued
+          .map((v) => ({ ...v, gainCp: v.cp - cap(evalAfter), gainPp: (v.exp - expAfter) * 100 }))
+          .filter((v) => v.gainPp >= TRAP_GAIN_PP || (v.gainCp >= 150 && evalAfter < 600));
+        const ev = errors.reduce((s, v) => s + v.p * Math.max(0, v.gainCp), 0);
+        if (errors.length && ev >= TRAP_EV) {
+          const e = errors.sort((a, b) => b.p * b.gainCp - a.p * a.gainCp)[0];
           risk = 'trap';
-          riskWhy = `${who}가 ${pct(e.p)} 확률로 ${e.san}를 두면 ${Math.round(e.gain)}cp 이득. 정답 ${refSan}을 둘 확률은 ${pct(refP)}`;
+          trapLine = { replySan: e.san, replyUci: e.uci, line: e.pv, gainCp: Math.round(e.gainCp) };
+          // 미끼가 기물(3점 이상)을 그냥 내주는 것이면 '받으면 손해인 희생'이기도 하다
+          const to = e.uci.slice(2, 4);
+          const baitValue = pieceValueAt(A, to);
+          const baitNet = baitValue - (to === move.to ? f.capturedValue : 0);
+          riskWhy = (baitValue >= 3 && baitNet >= 1.5 ? `기물을 미끼로 내준 희생. ` : '') +
+            `${who}가 ${pct(e.p)} 확률로 ${e.san}를 두면 ${e.gainPp >= TRAP_GAIN_PP ? `기대 점수 +${Math.round(e.gainPp)}%p` : `${Math.round(e.gainCp)}cp 이득`}. 정답 ${refSan}을 둘 확률은 ${pct(refP)}`;
         }
-      } else if (f.capturedValue < 3) {
+      } else if (!noLoss && winDrop >= 5 && f.capturedValue < 3) {
         // 도박수: 객관적으로 손해지만, 상대의 실제 응수 확률로 따진 기대 점수가 최선 수 이상
         // (나머지 확률은 정답을 둔다고 보수적으로 가정. 큰 기물을 잡는 수는 욕심이므로 뺀다)
         const pT = valued.reduce((s, v) => s + v.p, 0);
-        const humanExp = valued.reduce((s, v) => s + v.p * v.exp, 0) + (1 - pT) * expPlayed;
-        const lures = valued.filter((v) => v.cp >= best + 30).sort((a, b) => b.p - a.p);
+        const humanExp = valued.reduce((s, v) => s + v.p * v.exp, 0) + (1 - pT) * expAfter;
+        const lures = valued.filter((v) => v.exp >= expBefore + 0.03 || v.cp >= best + 30).sort((a, b) => b.p - a.p);
         if (lures.length && humanExp >= expBefore) {
           const l = lures[0];
           risk = 'gamble';
+          trapLine = { replySan: l.san, replyUci: l.uci, line: l.pv, gainCp: Math.round(l.cp - best) };
           riskWhy = `객관적으로 ${cpLoss}cp 손해지만, ${who}는 ${pct(l.p)} 확률로 ${l.san}를 둬서 최선 수보다 ${Math.round(l.cp - best)}cp 좋아짐. 사람 상대 기대 점수 ${pct(humanExp)} (최선 수 ${pct(expBefore)}). 정답 ${refSan}을 둘 확률은 ${pct(refP)}`;
         }
       }
@@ -390,33 +445,50 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
       .sort((a, b) => b.gain - a.gain)
       .slice(0, 2);
 
-    if (cands.length && deliberate && (cpLoss <= 40 || (cpLoss >= 80 && winDrop >= 5))) {
+    if (cands.length && deliberate) {
       // 후보마다 Stockfish로 확인해서 상대에게 가장 치명적인 응수를 고른다
-      let worst: { san: string; reason: string; value: number } | null = null;
+      let worst: { san: string; uci: string; reason: string; exp: number; cp: number; to: string; pv: string[] } | null = null;
       for (const c of cands) {
         const chA = new Chess(A);
         const nm = chA.move({ from: c.r.uci.slice(0, 2), to: c.r.uci.slice(2, 4), promotion: c.r.uci[4] });
         const verify = await evalLines(engine, chA.fen(), Math.max(8, depth - 2), 1, URGENT);
-        const value = cap(verify[0].cp); // 둔 쪽이 다시 둘 차례 → 둔 쪽 관점
-        if (!worst || value > worst.value) worst = { san: nm.san, reason: c.r.reason, value };
+        const exp = expectedScore(verify[0]); // 둔 쪽이 다시 둘 차례 → 둔 쪽 관점
+        const vcp = cap(verify[0].cp);
+        if (!worst || vcp > worst.cp) worst = { san: nm.san, uci: c.r.uci, reason: c.r.reason, exp, cp: vcp, to: c.r.uci.slice(2, 4), pv: uciToSanLine(chA.fen(), verify[0].pv, 6) };
       }
       const w = worst!;
-      const trapGain = w.value - cap(evalAfter);
+      // 이득은 기대 점수(%p)로 보되, 이미 크게 앞선 국면은 기대 점수가 포화되므로 cp 이득도 인정한다
+      const trapGain = (w.exp - expAfter) * 100;
+      const trapGainCp = w.cp - cap(evalAfter);
+      const trapBig = trapGain >= TRAP_GAIN_PP || (trapGainCp >= 150 && evalAfter < 600);
       const refSan = uciToSanLine(A, [refutation], 1)[0] ?? refutation;
-      if (cpLoss <= 40 && trapGain >= 150 && !realSacrifice && evalAfter < 600) {
+      if (noLoss && trapBig && !realSacrifice) {
         risk = 'trap';
-        riskWhy = `상대가 자연스럽게 ${w.san}(${w.reason})를 두면 ${Math.round(trapGain)}cp 이득. 정답은 ${refSan}`;
-      } else if (cpLoss >= 80 && winDrop >= 5 && w.value >= best + 30 && f.capturedValue < 3) {
+        // 미끼가 기물(3점 이상)을 그냥 내주는 것이면 '받으면 손해인 희생'이기도 하다
+        const baitValue = pieceValueAt(A, w.to);
+        const baitNet = baitValue - (w.to === move.to ? f.capturedValue : 0);
+        trapLine = { replySan: w.san, replyUci: w.uci, line: w.pv, gainCp: Math.round(trapGainCp) };
+        riskWhy = (baitValue >= 3 && baitNet >= 1.5 ? `기물을 미끼로 내준 희생. ` : '') +
+          `상대가 자연스럽게 ${w.san}(${w.reason})를 두면 ${trapGain >= TRAP_GAIN_PP ? `기대 점수 +${Math.round(trapGain)}%p` : `${Math.round(trapGainCp)}cp 이득`}. 정답은 ${refSan}`;
+      } else if (!noLoss && winDrop >= 5 && (w.exp >= expBefore + 0.03 || w.cp >= best + 30) && f.capturedValue < 3) {
         // (큰 기물을 잡는 수는 위험을 감수한 수가 아니라 욕심이므로 도박수에서 뺀다)
         risk = 'gamble';
+        trapLine = { replySan: w.san, replyUci: w.uci, line: w.pv, gainCp: Math.round(w.cp - best) };
         const hard = refRank >= 1 ? '찾기 어려운' : '비교적 자연스러운';
-        riskWhy = `객관적으로 ${cpLoss}cp 손해지만, 상대가 솔깃한 ${w.san}(${w.reason})를 두면 최선 수보다 ${Math.round(w.value - best)}cp 더 좋아짐. 정답은 ${hard} ${refSan}`;
+        riskWhy = `객관적으로 ${cpLoss}cp 손해지만, 상대가 솔깃한 ${w.san}(${w.reason})를 두면 최선 수보다 ${Math.round(w.cp - best)}cp 더 좋아짐. 정답은 ${hard} ${refSan}`;
       }
     }
   }
-  if (realSacrifice && cpLoss <= 40 && !forced && !inCheckBefore) {
-    risk = 'soundSacrifice';
-    riskWhy = `물질 ${Math.round(-pv.lossEnd * 10) / 10}점을 내주지만 엔진 평가는 유지됨`;
+  if (realSacrifice && !forced && !inCheckBefore) {
+    const amount = Math.round(Math.max(pvLost, Math.min(rawLost, f.offered)) * 10) / 10;
+    if (winDrop < LOSS_PP) {
+      risk = 'soundSacrifice';
+      riskWhy = `물질 ${amount}점을 내주지만 엔진 평가는 유지됨`;
+    } else if (risk !== 'gamble' && winDrop < 40 && f.capturedValue < 3) {
+      // 엔진상 손해지만 블런더는 아닌 희생: 실전에서 통할 수 있는 공격적 선택 (탈·안데르센식). 큰 기물을 잡는 욕심수는 제외
+      risk = 'speculative';
+      riskWhy = `물질 ${amount}점을 내주는 희생. 엔진 기준 기대 점수 −${Math.round(winDrop)}%p로 정확한 수비에는 불리하지만 실전에서 통할 수 있음`;
+    }
   }
 
   // ── 대기수: 상대가 '쉬고 싶은' 국면인가 (Stockfish, 후보일 때만) ──
@@ -473,6 +545,6 @@ async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
     playedPvSan: uciToSanLine(A, after[0].pv, 7),
     phase: ply < 20 && f.phase > 0.75 ? 'opening' : f.isEndgame ? 'endgame' : 'middlegame',
     situation: evalBefore >= 150 ? 'ahead' : evalBefore <= -150 ? 'behind' : 'equal',
-    choiceDelta, riskSucceeded: null, humanP, book: false, opening: null, features: f, deep,
+    choiceDelta, trapLine, riskSucceeded: null, humanP, clock: null, spent: null, lowTime: null, book: false, opening: null, features: f, deep,
   };
 }
