@@ -36,8 +36,42 @@ export interface PlayerProfile {
   archetype: { name: string; desc: string };
   /** 시간 사용 (기보에 시계 기록이 있을 때만) */
   time?: TimeProfile | null;
+  /** 사람 수 예측(Maia3) 기준 독창성: 같은 레이팅 사람들이 잘 안 두는 수를 얼마나 두는가 (예전 저장본·규칙 기반엔 없음) */
+  human?: HumanStats | null;
   /** 오프닝: 이론을 따라간 수, 이론 이탈 수 (한 게임 기준) */
   opening: { bookMoves: number; leftBookFirst: boolean | null; deviation: { san: string; moveNumber: number; quality: QualityKey | null } | null };
+}
+
+export interface HumanStats {
+  /** Maia 확률이 있는 평가 대상 수 */
+  n: number;
+  /** 같은 레이팅 사람들이 둘 확률이 RARE_P 미만인 수의 비율 */
+  rare: number;
+  /** 평균 놀라움: −ln(확률)의 평균 */
+  surprise: number;
+}
+/** '드문 수'의 기준 확률 */
+export const RARE_P = 0.1;
+
+function humanStats(counted: MoveAnalysis[]): HumanStats | null {
+  const ps = counted.map((m) => m.humanP).filter((p): p is number => p != null);
+  if (!ps.length) return null;
+  return {
+    n: ps.length,
+    rare: ps.filter((p) => p < RARE_P).length / ps.length,
+    surprise: ps.reduce((s, p) => s - Math.log(Math.max(p, 1e-4)), 0) / ps.length,
+  };
+}
+
+function mergeHuman(list: (HumanStats | null | undefined)[]): HumanStats | null {
+  const live = list.filter((h): h is HumanStats => !!h && h.n > 0);
+  const n = live.reduce((s, h) => s + h.n, 0);
+  if (!n) return null;
+  return {
+    n,
+    rare: live.reduce((s, h) => s + h.rare * h.n, 0) / n,
+    surprise: live.reduce((s, h) => s + h.surprise * h.n, 0) / n,
+  };
 }
 
 const emptyRisk = () => Object.fromEntries(RISK_KINDS.map((k) => [k, { count: 0, success: 0 }])) as PlayerProfile['risk'];
@@ -183,6 +217,7 @@ export function buildProfile(all: MoveAnalysis[]): PlayerProfile {
     bySituation: by(['ahead', 'equal', 'behind'], (m) => m.situation),
     archetype: archetype(avg, riskRate),
     time: buildTime(all),
+    human: humanStats(counted),
     opening: { bookMoves: all.filter((m) => m.book).length, leftBookFirst: null, deviation: null },
   };
 }
@@ -255,6 +290,7 @@ export function mergeProfiles(list: PlayerProfile[]): PlayerProfile | null {
     byPhase: mergeSlices(['opening', 'middlegame', 'endgame'], (p) => p.byPhase),
     bySituation: mergeSlices(['ahead', 'equal', 'behind'], (p) => p.bySituation),
     archetype: archetype(avg, riskRate),
+    human: mergeHuman(list.map((p) => p.human)),
     opening: { bookMoves: list.reduce((s, p) => s + p.opening.bookMoves, 0), leftBookFirst: null, deviation: null },
   };
 }

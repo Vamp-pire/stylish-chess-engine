@@ -469,3 +469,25 @@ select.select { width: auto; min-width: 220px; padding: 8px 12px; }
 .promo-choice { position: absolute; width: 12.5%; height: 12.5%; padding: 3px; border: 0; border-radius: 50%; background: #f6f5f2; box-shadow: 0 2px 8px rgba(0, 0, 0, .35); cursor: pointer; transition: border-radius .15s, background .15s; }
 .promo-choice:hover { border-radius: 10%; background: #fff; }
 .cg-wrap .promo-choice piece { position: static; display: block; width: 100%; height: 100%; pointer-events: none; }
+
+/* ── 4글자 체스 유형 카드 ── */
+.type-card { --g: var(--accent); border: 1px solid var(--border); border-top: 5px solid var(--g); border-radius: 12px; padding: 14px 16px; background: var(--surface); }
+.type-card.g-AW { --g: #d4453a; } .type-card.g-AS { --g: #c77d1e; } .type-card.g-PW { --g: #6e56cf; } .type-card.g-PS { --g: #2f8f6b; }
+.type-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.type-code { font-size: 32px; font-weight: 800; letter-spacing: .05em; color: var(--g); line-height: 1.1; }
+.type-name { font-size: 20px; font-weight: 800; }
+.type-name small { font-size: 13px; font-weight: 600; color: var(--text-3); margin-left: 6px; }
+.type-tagline { margin: 4px 0 10px; color: var(--text-2); }
+.type-axes { display: grid; gap: 8px; }
+.type-axis { display: grid; grid-template-columns: 76px 1fr 76px; align-items: center; gap: 8px; font-size: 13px; color: var(--text-3); }
+.type-axis span:last-child { text-align: right; }
+.type-axis span.on { color: var(--g); font-weight: 800; }
+.type-track { position: relative; height: 8px; border-radius: 99px; background: var(--surface-2); }
+.type-track b { position: absolute; top: -3px; width: 1px; height: 14px; background: var(--border); }
+.type-track i { position: absolute; top: -3px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--g); box-shadow: 0 0 0 2px var(--surface); }
+.type-note { margin: 8px 0 0; font-size: 13px; }
+.type-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.type-actions a, .type-actions button { font: inherit; font-size: 14px; padding: 7px 14px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); text-decoration: none; cursor: pointer; }
+.type-actions button { background: var(--g); border-color: var(--g); color: #fff; font-weight: 700; }
+footer .footer-links { margin-top: 6px; }
+footer .footer-links a { color: inherit; }

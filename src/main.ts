@@ -9,6 +9,7 @@ import type { Key } from 'chessground/types';
 import { SAMPLES } from './samples';
 import { AnalysisRun, getEngine } from './ui/runner';
 import { humanStatus, onHumanStatus } from './human/browser';
+import { typeSection, shareType } from './ui/typeCard';
 import { evalGraph, radar } from './ui/charts';
 import { renderGuide, HOW } from './ui/guide';
 import type { GameAnalysis, MoveAnalysis } from './core/analyzer';
@@ -982,6 +983,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
   return `
     <div class="card profile ${o.focus ? 'focus' : ''}">
       <div class="profile-head">${c ? `<span class="side-dot ${c}"></span>` : ''}<span class="name">${esc(name)}</span><span class="faint">${esc(sub)}</span></div>
+      ${typeSection(p)}
       <div class="archetype"><strong>${esc(p.archetype.name)}</strong><span>${esc(p.archetype.desc)}</span></div>
       ${o.extra ?? ''}
       <div class="stats">
@@ -1136,6 +1138,11 @@ async function openShared() {
   return true;
 }
 window.addEventListener('hashchange', () => { openShared(); });
+// 체스 유형 공유 버튼 (카드는 innerHTML로 그려지므로 위임으로 처리)
+document.addEventListener('click', (e) => {
+  const b = (e.target as HTMLElement).closest<HTMLElement>('[data-share-type]');
+  if (b) shareType(b.dataset.shareType!, b);
+});
 
 // 엔진은 첫 화면에서 미리 띄워 둔다 (WASM 다운로드·초기화 시간 단축)
 getEngine().catch(() => {});
