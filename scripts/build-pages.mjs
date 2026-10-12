@@ -1,4 +1,5 @@
-// 정적 페이지 만들기 (vite build 뒤에 실행): 체스 유형 소개 16개 + 유형 목록, 개인정보처리방침, 문의, 사이트맵.
+// 정적 페이지 만들기 (vite build 뒤에 실행): 첫 화면(유형 소개 + 아이디 입력), 체스 유형 16개 + 목록, 소개·문의·개인정보처리방침, 사이트맵.
+// 분석 앱은 /app (app.html). 유형 이미지는 scripts/build-type-images.mjs로 만들어 public/img/types/에 커밋해 둔다.
 // 검색엔진과 광고 심사가 읽을 수 있도록 자바스크립트 없이 보이는 HTML로 만든다. 내용은 src/data/chess-types.json
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 
@@ -6,7 +7,10 @@ const SITE = (process.env.SITE_URL ?? 'https://stylish-chess-engine.pages.dev').
 const ADSENSE = 'ca-pub-8762647584529985';
 const CONTACT_FORM = 'https://forms.gle/d9PbZSYZKkzpykgq8';
 const REPO = 'https://github.com/Vamp-pire/stylish-chess-engine';
-const UPDATED = '2026-10-11';
+const UPDATED = '2026-10-12';
+const SEARCH_CONSOLE = 'T4-fwXM8oe_n6an574Sidq3X6cvTdKS9b5MsTB0bvgw';
+const PRETENDARD = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css';
+const GROUP_ORDER = ['AW', 'AS', 'PW', 'PS'];
 
 const DIST = new URL('../dist/', import.meta.url);
 const data = JSON.parse(readFileSync(new URL('../src/data/chess-types.json', import.meta.url), 'utf8'));
@@ -17,10 +21,10 @@ const list = (xs) => `<ul>${xs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
 const opposite = (code) => [...code].map((c, i) => { const l = data.axes[i].letters; return c === l[0] ? l[1] : l[0]; }).join('');
 const byCode = Object.fromEntries(data.types.map((t) => [t.code, t]));
 
-function page({ path, title, description, body, active = '' }) {
+function page({ path, title, description, body, active = '', image = '/img/types/landing.png', wide = false }) {
   const url = `${SITE}${path}`;
-  const nav = [['/', '분석하기', 'cta'], ['/types/', '체스 유형', 'types'], ['/about', '소개', 'about'], ['/contact', '문의', 'contact']]
-    .map(([href, label, key]) => `<a href="${href}" class="${key === 'cta' ? 'cta' : ''}${key === active ? ' active' : ''}">${label}</a>`).join('');
+  const nav = [['/types/', '체스 유형', 'types'], ['/app?view=coach', '코치와 두기', 'coach'], ['/about', '소개', 'about']]
+    .map(([href, label, key]) => `<a href="${href}"${key === active ? ' class="active"' : ''}>${label}</a>`).join('');
   return `<!doctype html>
 <html lang="ko">
 <head>
@@ -28,29 +32,62 @@ function page({ path, title, description, body, active = '' }) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}" />
+<meta name="google-site-verification" content="${SEARCH_CONSOLE}" />
 <link rel="canonical" href="${url}" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Stylish" />
 <meta property="og:title" content="${esc(title)}" />
 <meta property="og:description" content="${esc(description)}" />
 <meta property="og:url" content="${url}" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
+<meta property="og:image" content="${SITE}${image}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" type="image/png" href="/logo.png" />
+<link rel="stylesheet" href="${PRETENDARD}" />
 <link rel="stylesheet" href="/pages.css" />
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE}" crossorigin="anonymous"></script>
 </head>
 <body>
-<header class="topbar"><a class="brand" href="/">♞ Stylish<em>.</em></a><nav>${nav}</nav></header>
-<main>
+<header class="topbar"><div class="topbar-in">
+<a class="brand" href="/"><img src="/logo.png" alt="" width="28" height="28" /><span>Stylish<em>.</em></span></a>
+<nav>${nav}<a class="cta" href="/app">분석하기</a></nav>
+</div></header>
+<main class="${wide ? 'wide' : ''}">
 ${body}
 </main>
-<footer>
-<a href="/types/">체스 유형</a><a href="/about">소개</a><a href="/privacy">개인정보처리방침</a><a href="/contact">문의</a>
-<p>Stylish는 <a href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener">GPLv3</a> 오픈소스입니다. 분석 엔진 Stockfish 19, 사람 수 예측 Maia3(CSSLab), 보드 chessground. 모든 분석은 방문자의 브라우저 안에서 이뤄집니다.</p>
-</footer>
+<footer><div class="footer-in">
+<div class="footer-brand"><a class="brand" href="/"><img src="/logo.png" alt="" width="22" height="22" /><span>Stylish<em>.</em></span></a>
+<p>내 게임으로 알아보는 체스 스타일과 4글자 체스 유형.</p></div>
+<div class="footer-links"><a href="/types/">체스 유형</a><a href="/app">분석하기</a><a href="/about">소개</a><a href="/privacy">개인정보처리방침</a><a href="/contact">문의</a></div>
+<p class="footer-note">Stylish는 <a href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener">GPLv3</a> 오픈소스입니다. 분석 엔진 Stockfish 19, 사람 수 예측 Maia3(CSSLab), 보드·기물 chessground(cburnett). 모든 분석은 방문자의 브라우저 안에서 이뤄집니다.</p>
+</div></footer>
 </body>
 </html>
 `;
 }
+
+/** 유형 타일 (정사각형 이미지 + 이름) */
+const tile = (t) => `<a class="type-tile g-${t.code.slice(0, 2)}" href="/types/${t.code}">
+<img src="/img/types/${t.code}-square.png" alt="${t.code} ${esc(t.name)}" width="600" height="600" loading="lazy" />
+<span class="tile-text"><span class="code">${t.code}</span><span class="nm">${esc(t.name)}</span><span class="tg">${esc(t.tagline)}</span></span></a>`;
+
+/** 유형 그리드 (그룹별 줄) */
+const typeGrid = () => GROUP_ORDER.map((g) => {
+  const info = data.groups[g];
+  return `<section class="group g-${g}"><div class="group-head"><h3>${esc(info.name)} <span>${esc(info.en)} · ${g}</span></h3><p>${esc(info.desc)}</p></div>
+<div class="tiles">${data.types.filter((t) => t.code.startsWith(g)).map(tile).join('')}</div></section>`;
+}).join('\n');
+
+/** 아이디로 바로 분석 (첫 화면·유형 목록) */
+const idForm = (label = '내 유형 알아보기') => `<form class="id-form" action="/app" method="get">
+<div class="seg" role="radiogroup" aria-label="사이트">
+<label><input type="radio" name="source" value="lichess" checked /><span>Lichess</span></label>
+<label><input type="radio" name="source" value="chesscom" /><span>Chess.com</span></label>
+</div>
+<input name="user" required minlength="2" maxlength="40" placeholder="아이디 입력" autocomplete="username" aria-label="아이디" />
+<button type="submit">${label}</button>
+</form>`;
 
 function write(path, html) {
   const file = new URL(path.replace(/^\//, '') + (path.endsWith('/') ? 'index.html' : '.html'), DIST);
@@ -65,29 +102,88 @@ const howMeasured = `
 그 분포의 가운데를 기준으로 삼았습니다. 또 스타일은 실력에 따라 달라지기 때문에(예: 레이팅이 낮을수록 체크·잡기 같은 전술적인 수가 많음) <b>같은 레이팅의 플레이어들과 비교</b>합니다.
 그래서 각 글자는 "비슷한 실력의 플레이어들 사이에서 어느 쪽에 가까운가"를 뜻하고, 초보든 고수든 16가지 유형이 모두 나옵니다. 정확한 판정을 위해 5판 이상, 가능하면 10판 이상을 분석하는 것을 권장합니다.</p>`;
 
-const axesTable = `<table><thead><tr><th>축</th><th>글자</th><th>뜻</th></tr></thead><tbody>${data.axes.map((a) =>
-  `<tr><td>${esc(a.question)}</td><td class="code">${a.letters[0]} / ${a.letters[1]}</td><td><b>${a.letters[0]} ${esc(a.names[0])}</b>: ${esc(a.desc[0])}<br><b>${a.letters[1]} ${esc(a.names[1])}</b>: ${esc(a.desc[1])}</td></tr>`).join('')}</tbody></table>`;
+const axesCards = `<div class="axes">${data.axes.map((a) => `<div class="axis">
+<div class="axis-q">${esc(a.question)}</div>
+<div class="axis-pair"><span><b>${a.letters[0]}</b>${esc(a.names[0])}</span><i>vs</i><span><b>${a.letters[1]}</b>${esc(a.names[1])}</span></div>
+<p><b>${a.letters[0]}</b> ${esc(a.desc[0])}</p><p><b>${a.letters[1]}</b> ${esc(a.desc[1])}</p></div>`).join('')}</div>`;
+
+// ── 첫 화면 ──
+write('/', page({
+  path: '/', wide: true,
+  title: '나는 어떤 체스 플레이어일까? — 체스 유형 16가지 | Stylish',
+  description: 'Chess.com·Lichess 아이디만 넣으면 최근 게임을 분석해 4글자 체스 유형을 알려줍니다. Stockfish와 사람 수 예측 AI Maia3로 수마다 스타일과 함정수·도박수까지. 무료, 설치 없음.',
+  body: `<section class="landing-hero">
+<div class="hero-copy">
+<p class="eyebrow">체스 유형 16가지</p>
+<h1>나는 어떤<br />체스 플레이어일까?</h1>
+<p class="lead">아이디만 넣으면 최근 게임을 분석해서 당신의 4글자 체스 유형을 알려드려요. 공격형인지, 수비형인지, 남들과 얼마나 다른 수를 두는지까지.</p>
+${idForm()}
+<p class="hero-sub">기보로 분석하거나 예시를 보고 싶다면 <a href="/app">분석 도구 열기</a></p>
+</div>
+<div class="hero-art" aria-hidden="true">
+${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<img class="art-${i}" src="/img/types/${c}-square.png" alt="" width="600" height="600" />`).join('')}
+</div>
+</section>
+<section class="facts">
+<div><b>${calib.players || 479}명</b><span>실제 Lichess 플레이어로 기준 보정</span></div>
+<div><b>같은 레이팅끼리</b><span>초보든 고수든 16유형이 모두 나와요</span></div>
+<div><b>Stockfish + Maia3</b><span>엔진 정확도에 사람 기준 판단까지</span></div>
+<div><b>무료 · 설치 없음</b><span>분석은 내 브라우저 안에서만</span></div>
+</section>
+<section class="block">
+<h2>16가지 체스 유형</h2>
+<p class="section-lead">네 글자는 각각 무엇을 노리는지, 위험을 어떻게 대하는지, 누가 판을 끌고 가는지, 얼마나 남다른 수를 두는지를 뜻해요. 유형을 눌러 자세히 보세요.</p>
+${typeGrid()}
+</section>
+<section class="block">
+<h2>네 가지 축</h2>
+${axesCards}
+</section>
+<section class="block">
+<h2>이렇게 분석해요</h2>
+<ol class="steps">
+<li><b>아이디 입력</b><span>Chess.com이나 Lichess 아이디로 최근 게임을 불러와요. 기보를 붙여넣어도 돼요.</span></li>
+<li><b>수마다 분석</b><span>Stockfish가 19가지 스타일 점수를 매기고, Maia3가 같은 레이팅의 사람이 그 수를 둘 확률을 계산해요.</span></li>
+<li><b>유형과 해설</b><span>여러 판을 모아 4글자 유형, 닮은 유명 선수, 함정수·도박수, 놓친 기회를 보여줘요.</span></li>
+</ol>
+</section>
+<section class="block">
+<h2>자주 묻는 질문</h2>
+<div class="faq">
+<details><summary>몇 판을 분석해야 정확한가요?</summary><p>한 판만으로도 결과가 나오지만, 5판 이상부터 안정되고 10판이면 충분히 믿을 만해요. 화면에 확신도가 함께 표시돼요.</p></details>
+<details><summary>초보도 할 수 있나요?</summary><p>네. 같은 레이팅의 플레이어들과 비교하기 때문에 실력과 상관없이 16가지 유형이 모두 나와요. 유형은 실력이 아니라 경향이에요.</p></details>
+<details><summary>내 게임 기록이 서버로 가나요?</summary><p>아니요. 분석은 모두 방문자의 브라우저 안에서 이뤄져요. 자세한 내용은 <a href="/privacy">개인정보처리방침</a>을 보세요.</p></details>
+<details><summary>얼마나 걸리나요?</summary><p>한 판에 30초에서 몇 분, 여러 판 종합 분석은 판 수에 따라 몇 분 정도 걸려요. 처음 한 번은 사람 수 예측 모델(약 45MB)을 내려받아요.</p></details>
+</div>
+</section>
+<section class="cta-band">
+<h2>내 유형을 알아볼 시간이에요</h2>
+${idForm('분석 시작')}
+</section>
+<script>
+// 예전 공유 링크(/#g=…)는 분석 앱으로 넘긴다
+if (location.hash.length > 1) location.replace('/app' + location.hash);
+</script>`,
+}));
 
 // ── 유형 목록 ──
-const groupSection = (g) => {
-  const info = data.groups[g];
-  const tiles = data.types.filter((t) => t.code.startsWith(g)).map((t) =>
-    `<a class="type-tile g-${g}" href="/types/${t.code}"><span class="code">${t.code}</span><span class="nm">${esc(t.name)}</span><p>${esc(t.tagline)}</p></a>`).join('');
-  return `<h2 class="g-${g}" style="color:var(--group)">${esc(info.name)} <span class="muted">${esc(info.en)} · ${g[0]}${g[1]}</span></h2><p>${esc(info.desc)}</p><div class="grid">${tiles}</div>`;
-};
 write('/types/', page({
   path: '/types/', active: 'types',
   title: '체스 유형 16가지 — 나는 어떤 체스 플레이어일까? | Stylish',
   description: '실제 게임 분석으로 알아보는 4글자 체스 유형 16가지. 공격/포지션, 난전/안전, 선공/대응, 독창/정석 네 가지 축으로 나의 체스 스타일을 알아보세요.',
-  body: `<h1>체스 유형 16가지</h1>
+  wide: true,
+  body: `<section class="page-head">
+<p class="eyebrow">체스 유형</p>
+<h1>체스 유형 16가지</h1>
 <p class="lead">당신의 게임에는 습관이 남아 있습니다. 무엇을 노리고, 위험을 어떻게 대하고, 누가 판을 끌고 가고, 얼마나 남다른 수를 두는지. 그 네 가지를 4글자로 요약한 것이 체스 유형입니다.</p>
-<div class="card cta-box"><p>내 최근 게임으로 바로 알아보기</p><a class="btn" href="/">내 체스 유형 분석하기</a></div>
-<h2>네 가지 축</h2>${axesTable}
-<h2>어떻게 측정하나요</h2>${howMeasured}
-${['AW', 'AS', 'PW', 'PS'].map(groupSection).join('\n')}
+${idForm()}
+</section>
+<section class="block">${typeGrid()}</section>
+<section class="block"><h2>네 가지 축</h2>${axesCards}</section>
+<section class="block prose"><h2>어떻게 측정하나요</h2>${howMeasured}
 <h2>유형은 실력이 아닙니다</h2>
 <p>어느 유형이 더 강하거나 약한 것은 아닙니다. 세계 챔피언들도 서로 전혀 다른 유형이었습니다. 유형은 "어떻게 이기고, 어떻게 지는가"의 경향이고, 내 유형을 알면 강점은 살리고 약점은 의식적으로 보완할 수 있습니다.
-같은 사람도 시간 제한이나 상대에 따라 다른 유형이 나올 수 있으니, 여러 판을 모아 분석할수록 결과가 정확해집니다.</p>`,
+같은 사람도 시간 제한이나 상대에 따라 다른 유형이 나올 수 있으니, 여러 판을 모아 분석할수록 결과가 정확해집니다.</p></section>`,
 }));
 
 // ── 유형별 페이지 ──
@@ -98,19 +194,18 @@ for (const t of data.types) {
   const siblings = data.types.filter((x) => x.code.startsWith(g) && x.code !== t.code);
   const letters = data.axes.map((a, i) => {
     const which = t.code[i] === a.letters[0] ? 0 : 1;
-    return `<div class="letter"><b>${t.code[i]}</b><strong>${esc(a.names[which])}</strong><br><span>${esc(a.desc[which])}</span></div>`;
+    return `<div class="letter"><b>${t.code[i]}</b><strong>${esc(a.names[which])}</strong><span>${esc(a.desc[which])}</span></div>`;
   }).join('');
   write(`/types/${t.code}`, page({
-    path: `/types/${t.code}`, active: 'types',
+    path: `/types/${t.code}`, active: 'types', image: `/img/types/${t.code}.png`,
     title: `${t.code} ${t.name}(${t.en}) — ${t.tagline} | 체스 유형 | Stylish`,
     description: `${t.code} ${t.name}: ${t.tagline}. ${t.summary.slice(0, 90)}…`,
-    body: `<div class="hero g-${g}">
-<span class="chip">${esc(group.name)} · ${esc(group.en)}</span>
-<div class="code">${t.code}</div>
-<div class="name">${esc(t.name)}<span class="en">${esc(t.en)}</span></div>
+    body: `<article class="type-page g-${g}">
+<p class="crumbs"><a href="/types/">체스 유형</a> › ${esc(group.name)}</p>
+<img class="type-hero" src="/img/types/${t.code}.png" alt="${t.code} ${esc(t.name)}: ${esc(t.tagline)}" width="1200" height="630" />
+<h1><span class="code">${t.code}</span> ${esc(t.name)} <small>${esc(t.en)}</small></h1>
 <p class="tagline">${esc(t.tagline)}</p>
-</div>
-<div class="g-${g}"><div class="letters">${letters}</div></div>
+<div class="letters">${letters}</div>
 <h2>${esc(t.name)}는 이런 플레이어입니다</h2>
 <p class="lead">${esc(t.summary)}</p>
 <h3>게임에서 보이는 특징</h3>${list(t.traits)}
@@ -120,12 +215,13 @@ for (const t of data.types) {
 </div>
 <h2>실력을 올리는 방법</h2>${list(t.tips)}
 <h2>정반대 유형</h2>
-<p><a href="/types/${opp.code}"><b>${opp.code} ${esc(opp.name)}</b></a>: ${esc(opp.tagline)}. 모든 글자가 반대인 유형이라, 이 유형을 상대할 때는 내 방식이 가장 잘 통하거나 가장 안 통할 수 있습니다.</p>
+<a class="opp-card g-${opp.code.slice(0, 2)}" href="/types/${opp.code}"><img src="/img/types/${opp.code}-square.png" alt="" width="600" height="600" loading="lazy" /><span><b>${opp.code} ${esc(opp.name)}</b>${esc(opp.tagline)}. 모든 글자가 반대인 유형이라, 이 유형을 상대할 때는 내 방식이 가장 잘 통하거나 가장 안 통할 수 있습니다.</span></a>
 <h2>같은 ${esc(group.name)} 유형</h2>
 <p>${esc(group.desc)}</p>
-<div class="grid">${siblings.map((x) => `<a class="type-tile g-${g}" href="/types/${x.code}"><span class="code">${x.code}</span><span class="nm">${esc(x.name)}</span><p>${esc(x.tagline)}</p></a>`).join('')}</div>
-<div class="card cta-box"><p>나는 정말 ${esc(t.name)}일까요? 최근 게임으로 확인해 보세요.</p><a class="btn" href="/">내 체스 유형 분석하기</a></div>
-<p class="muted">유형은 실력의 높낮이가 아니라 경향입니다. <a href="/types/">16가지 유형 전체 보기</a></p>`,
+<div class="tiles">${siblings.map(tile).join('')}</div>
+<div class="cta-band small"><h2>나는 정말 ${esc(t.name)}일까요?</h2><p>최근 게임으로 확인해 보세요.</p>${idForm()}</div>
+<p class="muted">유형은 실력의 높낮이가 아니라 경향입니다. <a href="/types/">16가지 유형 전체 보기</a></p>
+</article>`,
   }));
 }
 
@@ -134,7 +230,7 @@ write('/about', page({
   path: '/about', active: 'about',
   title: 'Stylish 소개 — 체스 수의 스타일을 분석하는 무료 도구',
   description: 'Stylish는 체스 기보의 각 수가 공격적인지, 포지셔널인지, 함정수인지 분석하고 플레이어의 체스 유형을 알려주는 무료 오픈소스 웹사이트입니다.',
-  body: `<h1>Stylish 소개</h1>
+  body: `<div class="prose"><h1>Stylish 소개</h1>
 <p class="lead">Stylish는 "이 수가 좋은 수인가"를 넘어 "이 수는 어떤 수인가"를 알려주는 체스 분석 도구입니다.</p>
 <h2>무엇을 하나요</h2>
 <ul>
@@ -151,7 +247,7 @@ ${howMeasured}
 <p>Stylish는 GPLv3 오픈소스입니다. 소스 코드는 <a href="${REPO}" rel="noopener">GitHub</a>에서 볼 수 있습니다.
 사용한 오픈소스: Stockfish 19(GPLv3), stockfish.js(GPLv3), Maia3(CSSLab, GPLv3), chessground(GPLv3), chess.js(BSD), onnxruntime-web(MIT), Lichess 오프닝 목록(CC0).</p>
 <h2>문의</h2>
-<p>버그 제보, 제안, 그 밖의 문의는 <a href="/contact">문의 페이지</a>를 이용해 주세요.</p>`,
+<p>버그 제보, 제안, 그 밖의 문의는 <a href="/contact">문의 페이지</a>를 이용해 주세요.</p></div>`,
 }));
 
 // ── 문의 ──
@@ -159,7 +255,7 @@ write('/contact', page({
   path: '/contact', active: 'contact',
   title: '문의 | Stylish',
   description: 'Stylish 체스 스타일 분석 사이트에 대한 버그 제보, 제안, 개인정보, 광고 관련 문의 방법.',
-  body: `<h1>문의</h1>
+  body: `<div class="prose"><h1>문의</h1>
 <p class="lead">버그, 제안, 개인정보, 광고 등 어떤 내용이든 편하게 남겨 주세요.</p>
 <div class="card">
 <h3>문의 양식</h3>
@@ -170,7 +266,7 @@ write('/contact', page({
 <h3>버그 제보와 기능 제안 (GitHub)</h3>
 <p>GitHub 계정이 있다면 <a href="${REPO}/issues" rel="noopener">GitHub Issues</a>에 남겨 주셔도 됩니다. 어떤 기보에서 문제가 생겼는지 함께 적어 주시면 빠르게 확인할 수 있습니다.</p>
 </div>
-<p class="muted">개인정보 관련 요청은 문의 양식에서 '개인정보' 유형을 골라 주세요.</p>`,
+<p class="muted">개인정보 관련 요청은 문의 양식에서 '개인정보' 유형을 골라 주세요.</p></div>`,
 }));
 
 // ── 개인정보처리방침 ──
@@ -178,7 +274,7 @@ write('/privacy', page({
   path: '/privacy',
   title: '개인정보처리방침 | Stylish',
   description: 'Stylish 체스 스타일 분석 사이트의 개인정보처리방침. 수집하는 정보, 쿠키와 광고, 브라우저 저장소, 문의 방법.',
-  body: `<h1>개인정보처리방침</h1>
+  body: `<div class="prose"><h1>개인정보처리방침</h1>
 <p class="muted">시행일: ${UPDATED}</p>
 <p>Stylish(이하 "사이트")는 방문자의 개인정보를 소중히 다루며, 필요한 최소한의 정보만 처리합니다. 사이트는 회원가입이 없고, 게임 분석은 방문자의 브라우저 안에서 이뤄집니다.</p>
 <h2>1. 사이트가 직접 수집하는 정보</h2>
@@ -210,15 +306,15 @@ write('/privacy', page({
 <h2>6. 방침의 변경</h2>
 <p>이 방침이 바뀌면 이 페이지에 변경 내용과 시행일을 게시합니다.</p>
 <h2>7. 문의</h2>
-<p>개인정보와 관련한 문의나 요청은 <a href="/contact">문의 페이지</a>의 문의 양식에서 '개인정보' 유형을 골라 보내 주세요.</p>`,
+<p>개인정보와 관련한 문의나 요청은 <a href="/contact">문의 페이지</a>의 문의 양식에서 '개인정보' 유형을 골라 보내 주세요.</p></div>`,
 }));
 
 // ── 사이트맵·robots ──
-const paths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/about', '/contact', '/privacy'];
+const paths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/app', '/about', '/contact', '/privacy'];
 writeFileSync(new URL('sitemap.xml', DIST), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${paths.map((p) => `  <url><loc>${SITE}${p}</loc><lastmod>${UPDATED}</lastmod></url>`).join('\n')}
 </urlset>
 `);
 writeFileSync(new URL('robots.txt', DIST), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
-console.log(`정적 페이지 ${paths.length - 1}개, sitemap.xml, robots.txt`);
+console.log(`정적 페이지 ${paths.length - 1}개, sitemap.xml(앱 포함 ${paths.length}개 주소), robots.txt`);

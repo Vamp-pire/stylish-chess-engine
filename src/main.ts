@@ -1144,7 +1144,30 @@ document.addEventListener('click', (e) => {
   if (b) shareType(b.dataset.shareType!, b);
 });
 
+/** 첫 화면(유형 소개)에서 넘어온 요청: /app?source=lichess&user=… 이면 바로 게임 목록, ?view=coach 등은 그 메뉴로 */
+function readEntryQuery() {
+  const q = new URLSearchParams(location.search);
+  const view = q.get('view');
+  if (view === 'coach' || view === 'guide' || view === 'about' || view === 'players') {
+    state.view = view;
+    document.querySelectorAll<HTMLButtonElement>('.nav button').forEach((b) => b.classList.toggle('active', b.dataset.nav === view));
+  }
+  const source = q.get('source'), user = q.get('user')?.trim();
+  if ((source === 'lichess' || source === 'chesscom') && user) {
+    state.tab = source === 'chesscom' ? 'chesscom' : 'lichessUser';
+    state.account = { source, user, games: [], next: null, loading: true, error: null, selected: new Set(), timeFilter: 'all' };
+  }
+  if (q.size) history.replaceState(null, '', location.pathname + location.hash);
+  return !!state.account;
+}
+
 // 엔진은 첫 화면에서 미리 띄워 둔다 (WASM 다운로드·초기화 시간 단축)
 getEngine().catch(() => {});
+const fromLanding = readEntryQuery();
 render();
+// 첫 화면에서 왔으면 최근 10판을 미리 골라 둔다 (버튼 한 번이면 종합 분석 → 체스 유형)
+if (fromLanding) loadMore().then(() => {
+  const a = state.account;
+  if (a && !a.selected.size && a.games.length) { a.selected = new Set(a.games.slice(0, 10).map((g) => g.id)); renderInput(); }
+});
 openShared();

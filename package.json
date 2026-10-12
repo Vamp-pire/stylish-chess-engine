@@ -18,6 +18,7 @@
     "onnxruntime-web": "^1.30.0"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^26.6.4",
     "stockfish": "^19.0.0",
     "tsx": "^4.23.15",

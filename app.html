@@ -3,8 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stylish — 체스 수 스타일 분석</title>
+    <title>분석하기 — Stylish 체스 스타일 분석</title>
     <meta name="description" content="체스 기보의 각 수가 어떤 스타일인지(공격적, 도박수, 포지셔널, 수비적 등)와 플레이어의 성향을 브라우저에서 분석합니다." />
+    <link rel="canonical" href="https://stylish-chess-engine.pages.dev/app" />
+    <meta property="og:title" content="Stylish — 내 체스 게임의 스타일 분석" />
+    <meta property="og:description" content="Chess.com·Lichess 아이디로 최근 게임을 불러와 수마다 스타일과 함정수·도박수를 분석하고, 4글자 체스 유형을 알려줍니다." />
+    <meta property="og:image" content="https://stylish-chess-engine.pages.dev/img/types/landing.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♞</text></svg>" />
     <!-- Google Search Console 소유권 확인 -->
     <meta name="google-site-verification" content="T4-fwXM8oe_n6an574Sidq3X6cvTdKS9b5MsTB0bvgw" />
@@ -13,8 +19,9 @@
   </head>
   <body>
     <header class="topbar">
-      <a class="brand" href="#" data-nav="analyze"><span class="brand-mark">♞</span><span class="brand-name">Stylish<em>.</em></span></a>
+      <a class="brand" href="/" title="체스 유형 소개로"><img class="brand-mark" src="/logo.png" alt="" width="26" height="26" /><span class="brand-name">Stylish<em>.</em></span></a>
       <nav class="nav">
+        <a class="nav-link" href="/types/">체스 유형</a>
         <button data-nav="analyze" class="active">분석</button>
         <button data-nav="coach">코치</button>
         <button data-nav="guide">스타일 사전</button>

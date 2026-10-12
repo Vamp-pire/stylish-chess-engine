@@ -27,11 +27,16 @@ export function typeSection(p: PlayerProfile): string {
     ? ''
     : `<p class="faint type-note">평가 대상 수가 ${t.counted}수로 아직 적어요. ${Math.ceil((MIN_COUNTED - t.counted) / 25)}판 정도 더 분석하면 결과가 정확해집니다.</p>`;
   return `<div class="type-card g-${g}">
-    <div class="type-head">
-      <span class="type-code">${t.code}</span>
-      <span class="type-name">${esc(t.info.name)}<small>${esc(t.info.en)} · ${esc(group.name)}</small></span>
+    <div class="type-top">
+      <a href="/types/${t.code}" target="_blank" rel="noopener"><img class="type-thumb" src="/img/types/${t.code}-square.png" alt="${t.code} ${esc(t.info.name)}" width="600" height="600" /></a>
+      <div>
+        <div class="type-head">
+          <span class="type-code">${t.code}</span>
+          <span class="type-name">${esc(t.info.name)}<small>${esc(t.info.en)} · ${esc(group.name)}</small></span>
+        </div>
+        <p class="type-tagline">${esc(t.info.tagline)}</p>
+      </div>
     </div>
-    <p class="type-tagline">${esc(t.info.tagline)}</p>
     <div class="type-axes">${bars}</div>
     <p class="faint type-note">${p.rating ? `레이팅 ${ratingOf(p)}` : '레이팅 정보가 없어 1500'} 전후 플레이어들과 비교한 결과예요.</p>
     ${note}

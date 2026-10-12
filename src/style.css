@@ -15,7 +15,7 @@
   --black-side: #2b2925;
   --shadow: 0 1px 2px rgba(30, 25, 15, .06), 0 4px 16px rgba(30, 25, 15, .05);
   --radius: 14px;
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
   --mono: ui-monospace, "SF Mono", Consolas, monospace;
   color-scheme: light;
 }
@@ -77,13 +77,15 @@ h1, h2, h3 { margin: 0; line-height: 1.25; }
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
 }
-.brand { display: flex; align-items: baseline; gap: 10px; text-decoration: none; color: inherit; }
-.brand-mark { font-size: 22px; }
+.brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
+.brand-mark { width: 26px; height: 26px; border-radius: 7px; align-self: center; }
 .brand-name { font-weight: 800; font-size: 18px; letter-spacing: -.02em; }
 .brand-name em { font-style: normal; color: var(--accent); }
 .nav { margin-left: auto; display: flex; gap: 4px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
 .nav::-webkit-scrollbar { display: none; }
-.nav button { white-space: nowrap; }
+.nav button, .nav .nav-link { white-space: nowrap; }
+.nav .nav-link { display: inline-flex; align-items: center; padding: 6px 12px; border-radius: 8px; color: var(--text-2); text-decoration: none; }
+.nav .nav-link:hover { background: var(--surface-2); color: var(--text); }
 .nav button, .ghost {
   background: none; border: 0; padding: 6px 12px; border-radius: 8px; cursor: pointer; color: var(--text-2);
 }
@@ -473,6 +475,9 @@ select.select { width: auto; min-width: 220px; padding: 8px 12px; }
 /* ── 4글자 체스 유형 카드 ── */
 .type-card { --g: var(--accent); border: 1px solid var(--border); border-top: 5px solid var(--g); border-radius: 12px; padding: 14px 16px; background: var(--surface); }
 .type-card.g-AW { --g: #d4453a; } .type-card.g-AS { --g: #c77d1e; } .type-card.g-PW { --g: #6e56cf; } .type-card.g-PS { --g: #2f8f6b; }
+.type-top { display: flex; gap: 14px; align-items: center; margin-bottom: 4px; }
+.type-thumb { width: 92px; height: 92px; border-radius: 14px; flex: none; box-shadow: var(--shadow); }
+@media (max-width: 520px) { .type-thumb { width: 72px; height: 72px; } .type-code { font-size: 26px; } }
 .type-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .type-code { font-size: 32px; font-weight: 800; letter-spacing: .05em; color: var(--g); line-height: 1.1; }
 .type-name { font-size: 20px; font-weight: 800; }
