@@ -8,7 +8,7 @@ const MIN_SHOW = 20;
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-export function typeSection(p: PlayerProfile): string {
+export function typeSection(p: PlayerProfile, name = ''): string {
   // 보정 데이터가 아직 없으면(임시 값) 보여주지 않는다
   if (!CALIB.players || p.counted < MIN_SHOW) return '';
   const t = chessTypeOf(p);
@@ -42,7 +42,8 @@ export function typeSection(p: PlayerProfile): string {
     ${note}
     <div class="type-actions">
       <a href="/types/${t.code}" target="_blank" rel="noopener">${esc(t.info.name)} 유형 자세히 보기</a>
-      <button type="button" data-share-type="${t.code}">결과 공유하기</button>
+      <button type="button" data-type-image="${esc(JSON.stringify({ code: t.code, name, pcts: t.axes.map((a) => a.pct) }))}">내 결과 이미지 만들기</button>
+      <button type="button" class="secondary" data-share-type="${t.code}">링크 공유</button>
     </div>
   </div>`;
 }

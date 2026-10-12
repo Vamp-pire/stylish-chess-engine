@@ -1,6 +1,6 @@
 // 체스 유형 이미지 만들기: 유형마다 공유 미리보기(1200×630)와 정사각형(600×600) PNG.
 // SVG로 그린 뒤 resvg로 PNG 변환. 글꼴 Pretendard(OFL), 기물은 chessground의 cburnett 세트(GPLv2+).
-// 사용: node scripts/build-type-images.mjs  → public/img/types/*.png (커밋해서 쓴다)
+// 사용: node scripts/build-type-images.mjs  → public/img/types/*.png, public/img/pieces/*.svg (커밋해서 쓴다)
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Resvg } from '@resvg/resvg-js';
@@ -151,6 +151,13 @@ const render = (svg, file) => {
   writeFileSync(new URL(file, OUT), png);
   return png.length;
 };
+
+// 브라우저에서 결과 이미지(프로필 사진 카드)를 그릴 때 쓰는 기물 SVG
+const PIECE_DIR = new URL('public/img/pieces/', ROOT);
+mkdirSync(PIECE_DIR, { recursive: true });
+for (const name of ['pawn', 'knight', 'bishop', 'rook', 'queen', 'king']) {
+  writeFileSync(new URL(`${name}.svg`, PIECE_DIR), piece(name).replace(/<svg[^>]*>/, '<svg xmlns="http://www.w3.org/2000/svg" width="450" height="450" viewBox="0 0 45 45">'));
+}
 
 let total = 0;
 for (const t of data.types) {

@@ -10,6 +10,7 @@ import { SAMPLES } from './samples';
 import { AnalysisRun, getEngine } from './ui/runner';
 import { humanStatus, onHumanStatus } from './human/browser';
 import { typeSection, shareType } from './ui/typeCard';
+import { openResultImage } from './ui/resultImage';
 import { evalGraph, radar } from './ui/charts';
 import { renderGuide, HOW } from './ui/guide';
 import type { GameAnalysis, MoveAnalysis } from './core/analyzer';
@@ -983,7 +984,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
   return `
     <div class="card profile ${o.focus ? 'focus' : ''}">
       <div class="profile-head">${c ? `<span class="side-dot ${c}"></span>` : ''}<span class="name">${esc(name)}</span><span class="faint">${esc(sub)}</span></div>
-      ${typeSection(p)}
+      ${typeSection(p, name)}
       <div class="archetype"><strong>${esc(p.archetype.name)}</strong><span>${esc(p.archetype.desc)}</span></div>
       ${o.extra ?? ''}
       <div class="stats">
@@ -1142,6 +1143,8 @@ window.addEventListener('hashchange', () => { openShared(); });
 document.addEventListener('click', (e) => {
   const b = (e.target as HTMLElement).closest<HTMLElement>('[data-share-type]');
   if (b) shareType(b.dataset.shareType!, b);
+  const img = (e.target as HTMLElement).closest<HTMLElement>('[data-type-image]');
+  if (img) openResultImage(JSON.parse(img.dataset.typeImage!));
 });
 
 /** 첫 화면(유형 소개)에서 넘어온 요청: /app?source=lichess&user=… 이면 바로 게임 목록, ?view=coach 등은 그 메뉴로 */
