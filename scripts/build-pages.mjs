@@ -1,4 +1,5 @@
 // 정적 페이지 만들기 (vite build 뒤에 실행): 첫 화면(유형 소개 + 아이디 입력), 체스 유형 16개 + 목록, 소개·문의·개인정보처리방침, 사이트맵.
+// 한국어(/)와 영어(/en/)를 같은 틀로 만든다. 영어 글은 src/data/chess-types.en.json
 // 분석 앱은 /app (app.html). 유형 이미지는 scripts/build-type-images.mjs로 만들어 public/img/types/에 커밋해 둔다.
 // 검색엔진과 광고 심사가 읽을 수 있도록 자바스크립트 없이 보이는 HTML로 만든다. 내용은 src/data/chess-types.json
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -17,6 +18,22 @@ const data = JSON.parse(readFileSync(new URL('../src/data/chess-types.json', imp
 const calib = JSON.parse(readFileSync(new URL('../src/data/type-calib.json', import.meta.url), 'utf8'));
 /** 유형별 실제 예시 수 (scripts/calib/pick-examples.mts) */
 const examples = JSON.parse(readFileSync(new URL('../src/data/type-examples.json', import.meta.url), 'utf8'));
+const EN = JSON.parse(readFileSync(new URL('../src/data/chess-types.en.json', import.meta.url), 'utf8'));
+/** 언어별 유형 정보 (영어는 이름을 영어 이름으로) */
+const typeIn = (t, lang) => (lang === 'en' ? { ...t, ...EN.types[t.code], name: t.en } : t);
+const groupIn = (g, lang) => (lang === 'en' ? { ...data.groups[g], ...EN.groups[g] } : data.groups[g]);
+const axesIn = (lang) => (lang === 'en' ? data.axes.map((a, i) => ({ ...a, ...EN.axes[i] })) : data.axes);
+/** 영어 페이지 주소: /types/AWIO → /en/types/AWIO */
+const P = (lang, path) => (lang === 'en' ? `/en${path === '/' ? '/' : path}` : path);
+const APP = (lang, q = '') => `/app${lang === 'en' ? `?lang=en${q ? `&${q}` : ''}` : q ? `?${q}` : ''}`;
+const IMG = (lang, file) => (lang === 'en' ? `/img/types/en/${file}` : `/img/types/${file}`);
+const STYLE_EN = {
+  aggressive: 'Aggressive', tactical: 'Tactical', initiative: 'Initiative', counterattack: 'Counterattack', positional: 'Positional',
+  prophylactic: 'Prophylactic', restriction: 'Restriction', active: 'Active', space: 'Space', tension: 'Tension', solid: 'Solid',
+  defensive: 'Defensive', simplifying: 'Simplifying', complicating: 'Complicating', quiet: 'Quiet', waiting: 'Waiting',
+  practical: 'Practical', kingActivity: 'King activity', passedPawn: 'Passed pawn',
+};
+const RISK_EN = { soundSacrifice: 'Sound sacrifice', speculative: 'Speculative sacrifice', trap: 'Trap', gamble: 'Gamble' };
 
 // ── 체스판 그림 (정적 SVG). 기물은 chessground의 cburnett 세트 ──
 const pieceCss = readFileSync(new URL('../node_modules/chessground/assets/chessground.cburnett.css', import.meta.url), 'utf8');
@@ -76,8 +93,35 @@ function boardSvg(fen, flip, arrows) {
   return `<svg class="board" viewBox="0 0 ${8 * S} ${8 * S}" role="img"><defs>${symbols}</defs>${squares}${coords}${pieces}${arr}</svg>`;
 }
 
+/** 실제 예시 카드 (영어) */
+function exampleCardEn(e, t) {
+  const flip = e.color === 'b';
+  const moveNo = `${e.moveNumber}${e.color === 'w' ? '.' : '...'}`;
+  const label = (x) => STYLE_EN[x.key] ?? x.label;
+  const chips = e.styles.map((x) => `<span class="chip">${esc(label(x))} ${x.score}</span>`).join('') + (e.risk ? `<span class="chip risk">${RISK_EN[e.risk]}</span>` : '');
+  const signature = e.kind === 'signature';
+  const arrows = [[e.uci.slice(0, 2), e.uci.slice(2, 4), signature ? 'good' : 'bad']];
+  if (!signature && e.bestUci) arrows.push([e.bestUci.slice(0, 2), e.bestUci.slice(2, 4), 'best']);
+  const styleText = e.styles.slice(0, 2).map(label).join(' and ').toLowerCase();
+  const rare = e.humanP <= 20;
+  const body = signature
+    ? `<p>${styleText ? `A move with high <b>${esc(styleText)}</b> scores. ` : ''}A human at the same rating would play it here <b>${e.humanP}%</b> of the time, ${rare ? 'so it is an unusual choice that is hard to find' : 'a natural choice that still shows the style clearly'}.${e.risk ? ` The engine labeled it a <b>${RISK_EN[e.risk].toLowerCase()}</b>.` : ''}</p>`
+    : `<p>This move dropped the expected score by <b>${e.lossPp} percentage points</b>.${e.best ? ` The better move was <b>${esc(e.best)}</b> (green arrow).` : ''} ${styleText ? `It leans strongly ${esc(styleText)}, the kind of mistake a ${esc(t.name)} makes when the habit goes too far.` : ''}</p>`;
+  return `<figure class="example ${signature ? 'ok' : 'ng'}">
+${boardSvg(e.fen, flip, arrows)}
+<figcaption>
+<span class="ex-kind">${signature ? 'Signature move' : 'Typical mistake'}</span>
+<h3>${moveNo} ${esc(e.san)}</h3>
+<p class="ex-meta">Rated ${e.elo} · ${e.color === 'w' ? 'White' : 'Black'}${signature ? '' : ` · ${e.quality === 'blunder' ? 'Blunder' : 'Mistake'}`}</p>
+<div class="chips">${chips}</div>
+${body}
+</figcaption>
+</figure>`;
+}
+
 /** 실제 예시 카드 */
-function exampleCard(e, t) {
+function exampleCard(e, t, lang = 'ko') {
+  if (lang === 'en') return exampleCardEn(e, t);
   const flip = e.color === 'b';
   const moveNo = `${e.moveNumber}${e.color === 'w' ? '.' : '...'}`;
   const chips = e.styles.map((x) => `<span class="chip">${esc(x.label)} ${x.score}</span>`).join('') + (e.risk ? `<span class="chip risk">${RISK_NAME[e.risk]}</span>` : '');
@@ -107,12 +151,15 @@ const list = (xs) => `<ul>${xs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
 const opposite = (code) => [...code].map((c, i) => { const l = data.axes[i].letters; return c === l[0] ? l[1] : l[0]; }).join('');
 const byCode = Object.fromEntries(data.types.map((t) => [t.code, t]));
 
-function page({ path, title, description, body, active = '', image = '/img/types/landing.png', wide = false }) {
-  const url = `${SITE}${path}`;
-  const nav = [['/types/', '체스 유형', 'types'], ['/app?view=coach', '코치와 두기', 'coach'], ['/about', '소개', 'about']]
-    .map(([href, label, key]) => `<a href="${href}"${key === active ? ' class="active"' : ''}>${label}</a>`).join('');
+function page({ path, title, description, body, active = '', image = null, wide = false, lang = 'ko' }) {
+  const en = lang === 'en';
+  const url = `${SITE}${P(lang, path)}`;
+  const img = image ?? IMG(lang, 'landing.png');
+  const nav = [['/types/', en ? 'Chess types' : '체스 유형', 'types'], ['__coach', en ? 'Play the coach' : '코치와 두기', 'coach'], ['/about', en ? 'About' : '소개', 'about']]
+    .map(([href, label, key]) => `<a href="${href === '__coach' ? APP(lang, 'view=coach') : P(lang, href)}"${key === active ? ' class="active"' : ''}>${label}</a>`).join('');
+  const other = en ? path : P('en', path);
   return `<!doctype html>
-<html lang="ko">
+<html lang="${en ? 'en' : 'ko'}">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -120,12 +167,16 @@ function page({ path, title, description, body, active = '', image = '/img/types
 <meta name="description" content="${esc(description)}" />
 <meta name="google-site-verification" content="${SEARCH_CONSOLE}" />
 <link rel="canonical" href="${url}" />
+<link rel="alternate" hreflang="ko" href="${SITE}${path}" />
+<link rel="alternate" hreflang="en" href="${SITE}${P('en', path)}" />
+<link rel="alternate" hreflang="x-default" href="${SITE}${path}" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Stylish" />
 <meta property="og:title" content="${esc(title)}" />
 <meta property="og:description" content="${esc(description)}" />
 <meta property="og:url" content="${url}" />
-<meta property="og:image" content="${SITE}${image}" />
+<meta property="og:image" content="${SITE}${img}" />
+<meta property="og:locale" content="${en ? 'en_US' : 'ko_KR'}" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
@@ -136,17 +187,25 @@ function page({ path, title, description, body, active = '', image = '/img/types
 </head>
 <body>
 <header class="topbar"><div class="topbar-in">
-<a class="brand" href="/"><img src="/logo.png" alt="" width="28" height="28" /><span>Stylish<em>.</em></span></a>
-<nav>${nav}<a class="cta" href="/app">분석하기</a></nav>
+<a class="brand" href="${P(lang, '/')}"><img src="/logo.png" alt="" width="28" height="28" /><span>Stylish<em>.</em></span></a>
+<nav>${nav}<a class="lang" href="${other}" hreflang="${en ? 'ko' : 'en'}" lang="${en ? 'ko' : 'en'}">${en ? '한국어' : 'English'}</a><a class="cta" href="${APP(lang)}">${en ? 'Analyze' : '분석하기'}</a></nav>
 </div></header>
+${en ? '' : `<script>
+// 브라우저 언어가 한국어가 아니면 영어판 안내 (자동 이동은 하지 않는다)
+try { if (!/^ko/i.test(navigator.language || '')) document.write('<div class="lang-banner">This page is in Korean. <a href="${P('en', path)}">View in English →</a></div>'); } catch (e) {}
+</script>`}
 <main class="${wide ? 'wide' : ''}">
 ${body}
 </main>
 <footer><div class="footer-in">
-<div class="footer-brand"><a class="brand" href="/"><img src="/logo.png" alt="" width="22" height="22" /><span>Stylish<em>.</em></span></a>
-<p>내 게임으로 알아보는 체스 스타일과 4글자 체스 유형.</p></div>
-<div class="footer-links"><a href="/types/">체스 유형</a><a href="/app">분석하기</a><a href="/about">소개</a><a href="/privacy">개인정보처리방침</a><a href="/contact">문의</a></div>
-<p class="footer-note">Stylish는 <a href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener">GPLv3</a> 오픈소스입니다. 분석 엔진 Stockfish 19, 사람 수 예측 Maia3(CSSLab), 보드·기물 chessground(cburnett). 모든 분석은 방문자의 브라우저 안에서 이뤄집니다.</p>
+<div class="footer-brand"><a class="brand" href="${P(lang, '/')}"><img src="/logo.png" alt="" width="22" height="22" /><span>Stylish<em>.</em></span></a>
+<p>${en ? 'Your chess style and 4-letter chess type, from your own games.' : '내 게임으로 알아보는 체스 스타일과 4글자 체스 유형.'}</p></div>
+<div class="footer-links">${en
+  ? `<a href="/en/types/">Chess types</a><a href="${APP(lang)}">Analyze</a><a href="/en/about">About</a><a href="/en/privacy">Privacy</a><a href="/en/contact">Contact</a><a href="${path}" lang="ko">한국어</a>`
+  : `<a href="/types/">체스 유형</a><a href="/app">분석하기</a><a href="/about">소개</a><a href="/privacy">개인정보처리방침</a><a href="/contact">문의</a><a href="${P('en', path)}" lang="en">English</a>`}</div>
+<p class="footer-note">${en
+  ? 'Stylish is <a href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener">GPLv3</a> open source. Engine: Stockfish 19. Human-move model: Maia3 (CSSLab). Board and pieces: chessground (cburnett). All analysis runs inside your browser.'
+  : 'Stylish는 <a href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener">GPLv3</a> 오픈소스입니다. 분석 엔진 Stockfish 19, 사람 수 예측 Maia3(CSSLab), 보드·기물 chessground(cburnett). 모든 분석은 방문자의 브라우저 안에서 이뤄집니다.'}</p>
 </div></footer>
 </body>
 </html>
@@ -154,24 +213,24 @@ ${body}
 }
 
 /** 유형 타일 (정사각형 이미지 + 이름) */
-const tile = (t) => `<a class="type-tile g-${t.code.slice(0, 2)}" href="/types/${t.code}">
-<img src="/img/types/${t.code}-square.png" alt="${t.code} ${esc(t.name)}" width="600" height="600" loading="lazy" />
+const tile = (t, lang = 'ko') => `<a class="type-tile g-${t.code.slice(0, 2)}" href="${P(lang, `/types/${t.code}`)}">
+<img src="${IMG(lang, `${t.code}-square.png`)}" alt="${t.code} ${esc(t.name)}" width="600" height="600" loading="lazy" />
 <span class="tile-text"><span class="code">${t.code}</span><span class="nm">${esc(t.name)}</span><span class="tg">${esc(t.tagline)}</span></span></a>`;
 
 /** 유형 그리드 (그룹별 줄) */
-const typeGrid = () => GROUP_ORDER.map((g) => {
-  const info = data.groups[g];
-  return `<section class="group g-${g}"><div class="group-head"><h3>${esc(info.name)} <span>${esc(info.en)} · ${g}</span></h3><p>${esc(info.desc)}</p></div>
-<div class="tiles">${data.types.filter((t) => t.code.startsWith(g)).map(tile).join('')}</div></section>`;
+const typeGrid = (lang = 'ko') => GROUP_ORDER.map((g) => {
+  const info = groupIn(g, lang);
+  return `<section class="group g-${g}"><div class="group-head"><h3>${esc(info.name)} <span>${lang === 'en' ? g : `${esc(info.en)} · ${g}`}</span></h3><p>${esc(info.desc)}</p></div>
+<div class="tiles">${data.types.filter((t) => t.code.startsWith(g)).map((t) => tile(typeIn(t, lang), lang)).join('')}</div></section>`;
 }).join('\n');
 
 /** 아이디로 바로 분석 (첫 화면·유형 목록) */
-const idForm = (label = '내 유형 알아보기') => `<form class="id-form" action="/app" method="get">
-<div class="seg" role="radiogroup" aria-label="사이트">
+const idForm = (label = '내 유형 알아보기', lang = 'ko') => `<form class="id-form" action="/app" method="get">${lang === 'en' ? '<input type="hidden" name="lang" value="en" />' : ''}
+<div class="seg" role="radiogroup" aria-label="${lang === 'en' ? 'Site' : '사이트'}">
 <label><input type="radio" name="source" value="lichess" checked /><span>Lichess</span></label>
 <label><input type="radio" name="source" value="chesscom" /><span>Chess.com</span></label>
 </div>
-<input name="user" required minlength="2" maxlength="40" placeholder="아이디 입력" autocomplete="username" aria-label="아이디" />
+<input name="user" required minlength="2" maxlength="40" placeholder="${lang === 'en' ? 'Your username' : '아이디 입력'}" autocomplete="username" aria-label="${lang === 'en' ? 'Username' : '아이디'}" />
 <button type="submit">${label}</button>
 </form>`;
 
@@ -188,10 +247,11 @@ const howMeasured = `
 그 분포의 가운데를 기준으로 삼았습니다. 또 스타일은 실력에 따라 달라지기 때문에(예: 레이팅이 낮을수록 체크·잡기 같은 전술적인 수가 많음) <b>같은 레이팅의 플레이어들과 비교</b>합니다.
 그래서 각 글자는 "비슷한 실력의 플레이어들 사이에서 어느 쪽에 가까운가"를 뜻하고, 초보든 고수든 16가지 유형이 모두 나옵니다. 정확한 판정을 위해 5판 이상, 가능하면 10판 이상을 분석하는 것을 권장합니다.</p>`;
 
-const axesCards = `<div class="axes">${data.axes.map((a) => `<div class="axis">
+const axesCardsIn = (lang) => `<div class="axes">${axesIn(lang).map((a) => `<div class="axis">
 <div class="axis-q">${esc(a.question)}</div>
 <div class="axis-pair"><span><b>${a.letters[0]}</b>${esc(a.names[0])}</span><i>vs</i><span><b>${a.letters[1]}</b>${esc(a.names[1])}</span></div>
 <p><b>${a.letters[0]}</b> ${esc(a.desc[0])}</p><p><b>${a.letters[1]}</b> ${esc(a.desc[1])}</p></div>`).join('')}</div>`;
+const axesCards = axesCardsIn('ko');
 
 // ── 첫 화면 ──
 write('/', page({
@@ -400,8 +460,214 @@ write('/privacy', page({
 <p>개인정보와 관련한 문의나 요청은 <a href="/contact">문의 페이지</a>의 문의 양식에서 '개인정보' 유형을 골라 보내 주세요.</p></div>`,
 }));
 
+// ═══════════════ 영어 페이지 (/en/) ═══════════════
+const howMeasuredEn = `
+<p>Stylish analyzes games you load from Chess.com or Lichess (or paste as PGN) right inside your browser. The chess engine <b>Stockfish 19</b> scores every move on 19 styles,
+and <b>Maia3</b>, a neural network trained on real human moves, estimates how likely a human at the same rating is to play each move. Your 4-letter type comes from four axes built from the 8 main styles plus Maia3 originality.</p>
+<p>The cutoffs weren't guessed. We analyzed real games from ${calib.players || 479} Lichess players chosen across rating bands, from beginners to masters, the same way, and used the middle of that distribution.
+Because style changes with strength (lower-rated players play more checks and captures, for example), <b>you are compared with players at your own rating</b>.
+So each letter means "which side you lean toward among players of similar strength", and beginners and masters alike get all 16 types. For an accurate result we recommend 5 or more games, ideally 10.</p>`;
+
+write('/en/', page({
+  path: '/', wide: true, lang: 'en',
+  title: 'What kind of chess player are you? 16 chess personality types | Stylish',
+  description: 'Enter your Chess.com or Lichess username and get your 4-letter chess type from your recent games. Stockfish plus the human-move AI Maia3 label every move\'s style, traps and gambles. Free, no sign-up.',
+  body: `<section class="landing-hero">
+<div class="hero-copy">
+<p class="eyebrow">16 chess types</p>
+<h1>What kind of<br />chess player are you?</h1>
+<p class="lead">Enter your username and we'll analyze your recent games and tell you your 4-letter chess type. Attacker or defender, and how different your moves are from everyone else's.</p>
+${idForm('Find my type', 'en')}
+<p class="hero-sub">Want to analyze a PGN or try an example? <a href="${APP('en')}">Open the analysis tool</a></p>
+</div>
+<div class="hero-art" aria-hidden="true">
+${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<img class="art-${i}" src="${IMG('en', `${c}-square.png`)}" alt="" width="600" height="600" />`).join('')}
+</div>
+</section>
+<section class="facts">
+<div><b>${calib.players || 479} players</b><span>Cutoffs calibrated on real Lichess players</span></div>
+<div><b>Same-rating comparison</b><span>All 16 types at every level</span></div>
+<div><b>Stockfish + Maia3</b><span>Engine accuracy plus human judgment</span></div>
+<div><b>Free, no install</b><span>Runs only in your browser</span></div>
+</section>
+<section class="block">
+<h2>The 16 chess types</h2>
+<p class="section-lead">The four letters describe what you aim for, how you treat risk, who drives the game, and how unusual your moves are. Tap a type to learn more.</p>
+${typeGrid('en')}
+</section>
+<section class="block">
+<h2>The four axes</h2>
+${axesCardsIn('en')}
+</section>
+<section class="block">
+<h2>How it works</h2>
+<ol class="steps">
+<li><b>Enter your username</b><span>Load your recent games from Chess.com or Lichess. You can also paste a PGN.</span></li>
+<li><b>Every move is analyzed</b><span>Stockfish scores 19 styles, and Maia3 estimates how likely a human at your rating is to play each move.</span></li>
+<li><b>Your type and insights</b><span>Across several games you get your 4-letter type, similar famous players, traps and gambles, and missed chances.</span></li>
+</ol>
+</section>
+<section class="block">
+<h2>FAQ</h2>
+<div class="faq">
+<details><summary>How many games do I need?</summary><p>One game gives a result, but it becomes stable from about 5 games, and 10 games is reliable. Each axis shows a confidence bar.</p></details>
+<details><summary>Does it work for beginners?</summary><p>Yes. You're compared with players at your own rating, so all 16 types appear at every level. A type describes tendencies, not strength.</p></details>
+<details><summary>Are my games uploaded anywhere?</summary><p>No. All analysis happens inside your browser. See the <a href="/en/privacy">privacy policy</a> for details.</p></details>
+<details><summary>How long does it take?</summary><p>From 30 seconds to a few minutes per game; a multi-game analysis takes a few minutes. The first time, the human-move model (about 45 MB) is downloaded once.</p></details>
+</div>
+</section>
+<section class="cta-band">
+<h2>Time to find your type</h2>
+${idForm('Start', 'en')}
+</section>`,
+}));
+
+write('/en/types/', page({
+  path: '/types/', active: 'types', wide: true, lang: 'en',
+  title: 'The 16 chess personality types | Stylish',
+  description: 'Sixteen 4-letter chess types based on real game analysis. Attack/Position, Wild/Safe, Initiative/Reactive, Original/Expected: find out your chess style.',
+  body: `<section class="page-head">
+<p class="eyebrow">Chess types</p>
+<h1>The 16 chess types</h1>
+<p class="lead">Your games carry your habits: what you aim for, how you treat risk, who drives the game, how unusual your moves are. A chess type sums up those four things in four letters.</p>
+${idForm('Find my type', 'en')}
+</section>
+<section class="block">${typeGrid('en')}</section>
+<section class="block"><h2>The four axes</h2>${axesCardsIn('en')}</section>
+<section class="block prose"><h2>How is it measured?</h2>${howMeasuredEn}
+<h2>A type is not a skill level</h2>
+<p>No type is stronger or weaker than another. World champions have had completely different types. A type describes how you tend to win and lose; knowing it lets you lean on your strengths and work on your weak spots deliberately.
+The same person can come out differently depending on time control or opponent, so the more games you analyze, the more accurate the result.</p></section>`,
+}));
+
+for (const base of data.types) {
+  const t = typeIn(base, 'en');
+  const g = t.code.slice(0, 2);
+  const group = groupIn(g, 'en');
+  const opp = typeIn(byCode[opposite(t.code)], 'en');
+  const siblings = data.types.filter((x) => x.code.startsWith(g) && x.code !== t.code).map((x) => typeIn(x, 'en'));
+  const letters = axesIn('en').map((a, i) => {
+    const which = t.code[i] === a.letters[0] ? 0 : 1;
+    return `<div class="letter"><b>${t.code[i]}</b><strong>${esc(a.names[which])}</strong><span>${esc(a.desc[which])}</span></div>`;
+  }).join('');
+  write(`/en/types/${t.code}`, page({
+    path: `/types/${t.code}`, active: 'types', image: IMG('en', `${t.code}.png`), lang: 'en',
+    title: `${t.code} The ${t.name}: ${t.tagline} | Chess types | Stylish`,
+    description: `${t.code} The ${t.name}: ${t.tagline}. ${t.summary.slice(0, 110)}…`,
+    body: `<article class="type-page g-${g}">
+<p class="crumbs"><a href="/en/types/">Chess types</a> › ${esc(group.name)}</p>
+<figure class="type-figure"><img class="type-hero" src="${IMG('en', `${t.code}.png`)}" alt="${t.code} The ${esc(t.name)}: ${esc(t.tagline)}. Picture: ${esc(t.scene)}" width="1200" height="630" />
+<figcaption><b>The picture</b> ${esc(t.scene)} <span>(white pieces are you, black pieces are the opponent)</span></figcaption></figure>
+<h1><span class="code">${t.code}</span> The ${esc(t.name)}</h1>
+<p class="tagline">${esc(t.tagline)}</p>
+<div class="letters">${letters}</div>
+<h2>What a ${esc(t.name)} is like</h2>
+<p class="lead">${esc(t.summary)}</p>
+<h3>What shows up in their games</h3>${list(t.traits)}
+<div class="cols">
+<div class="card"><h3>Strengths</h3>${list(t.strengths)}</div>
+<div class="card"><h3>Weaknesses</h3>${list(t.weaknesses)}</div>
+</div>
+${(examples[t.code] ?? []).length ? `<h2>Real moves by ${esc(t.name)} players</h2>
+<p>Picked from real games of Lichess players (names removed) that Stylish classified as <b>${t.code}</b> when building its cutoffs. Routine recaptures and moves everyone plays were skipped in favor of moves that show the style most clearly.</p>
+<div class="examples">${examples[t.code].map((e) => exampleCard(e, t, 'en')).join('')}</div>` : ''}
+<h2>How to improve</h2>${list(t.tips)}
+<h2>The opposite type</h2>
+<a class="opp-card g-${opp.code.slice(0, 2)}" href="/en/types/${opp.code}"><img src="${IMG('en', `${opp.code}-square.png`)}" alt="" width="600" height="600" loading="lazy" /><span><b>${opp.code} The ${esc(opp.name)}</b>${esc(opp.tagline)}. Every letter is reversed, so against this type your style either works best or not at all.</span></a>
+<h2>Other ${esc(group.name)}</h2>
+<p>${esc(group.desc)}</p>
+<div class="tiles">${siblings.map((x) => tile(x, 'en')).join('')}</div>
+<div class="cta-band small"><h2>Are you really a ${esc(t.name)}?</h2><p>Check with your recent games.</p>${idForm('Find my type', 'en')}</div>
+<p class="muted">A type describes tendencies, not skill level. <a href="/en/types/">See all 16 types</a></p>
+</article>`,
+  }));
+}
+
+write('/en/about', page({
+  path: '/about', active: 'about', lang: 'en',
+  title: 'About Stylish: a free tool that analyzes the style of chess moves',
+  description: 'Stylish analyzes whether each chess move is aggressive, positional, a trap or a gamble, and tells you your chess personality type. Free and open source.',
+  body: `<div class="prose"><h1>About Stylish</h1>
+<p class="lead">Stylish goes beyond "is this a good move?" and tells you "what kind of move is this?"</p>
+<h2>What it does</h2>
+<ul>
+<li><b>Style of every move</b>: 19 style scores such as aggressive, tactical, positional, prophylactic and defensive</li>
+<li><b>Risky choices</b>: traps, gambles, sound sacrifices and speculative sacrifices</li>
+<li><b>Human-based judgment</b>: the human-move model Maia3 estimates how likely a human at your rating is to play a move, so traps and gambles are judged by real human standards</li>
+<li><b>Player profile</b>: across several games you get your 4-letter <a href="/en/types/">chess type</a>, similar famous players and style by opening</li>
+<li><b>Play the coach</b>: play a bot and get feedback on every move</li>
+</ul>
+<h2>How it works</h2>
+${howMeasuredEn}
+<p>Everything runs inside your browser. Your games are never sent to a Stylish server. See the <a href="/en/privacy">privacy policy</a> for details.</p>
+<h2>Open source</h2>
+<p>Stylish is GPLv3 open source. The source code is on <a href="${REPO}" rel="noopener">GitHub</a>.
+Open source used: Stockfish 19 (GPLv3), stockfish.js (GPLv3), Maia3 (CSSLab, GPLv3), chessground (GPLv3), chess.js (BSD), onnxruntime-web (MIT), Lichess chess-openings (CC0).</p>
+<h2>Contact</h2>
+<p>For bug reports, suggestions or anything else, use the <a href="/en/contact">contact page</a>.</p></div>`,
+}));
+
+write('/en/contact', page({
+  path: '/contact', active: 'contact', lang: 'en',
+  title: 'Contact | Stylish',
+  description: 'How to report bugs, make suggestions, or ask about privacy or advertising on Stylish, the chess style analysis site.',
+  body: `<div class="prose"><h1>Contact</h1>
+<p class="lead">Bugs, suggestions, privacy, advertising: feel free to reach out about anything.</p>
+<div class="card">
+<h3>Contact form</h3>
+<p>No sign-in needed. If you'd like a reply, leave a way to reach you in the form.</p>
+<p><a class="btn" href="${CONTACT_FORM}" rel="noopener">Open the contact form</a></p>
+</div>
+<div class="card">
+<h3>Bug reports and feature requests (GitHub)</h3>
+<p>If you have a GitHub account, you can also open an issue on <a href="${REPO}/issues" rel="noopener">GitHub Issues</a>. Including the game where the problem happened helps a lot.</p>
+</div>
+<p class="muted">For privacy requests, choose "Privacy" as the type in the form.</p></div>`,
+}));
+
+write('/en/privacy', page({
+  path: '/privacy', lang: 'en',
+  title: 'Privacy policy | Stylish',
+  description: 'Privacy policy of Stylish, the chess style analysis site: what is collected, cookies and ads, browser storage, and how to contact us.',
+  body: `<div class="prose"><h1>Privacy policy</h1>
+<p class="muted">Effective: ${UPDATED}</p>
+<p>Stylish (the "site") takes your privacy seriously and processes only the minimum necessary. There are no accounts, and game analysis happens inside your browser.</p>
+<h2>1. Information the site collects directly</h2>
+<p>The site does not collect or store personal information such as names, email addresses or phone numbers. Pasted games and analysis results are not sent to a site server.</p>
+<h2>2. Information stored in your browser</h2>
+<p>To show results faster on your next visit, the following is stored <b>only in your browser</b>. The operator cannot access it, and it is deleted when you clear site data in your browser settings.</p>
+<ul>
+<li>Cached analysis results (IndexedDB)</li>
+<li>Player style summaries in the profile menu and the game you were typing (localStorage)</li>
+<li>The human-move model file (Cache Storage, about 45 MB)</li>
+</ul>
+<h2>3. Information sent to other services</h2>
+<ul>
+<li><b>Chess.com and Lichess</b>: when you load games by username, your browser sends that username directly to the site's public API. Their privacy policies apply.</li>
+<li><b>Cloudflare</b>: our hosting provider may process access logs (IP address, browser information, etc.) to provide the service and for security.</li>
+<li><b>Cloudflare Web Analytics</b>: used to see statistics such as visitor counts and popular pages. It does not use cookies and does not collect personally identifiable information.</li>
+<li><b>Google Forms</b>: if you use the contact form, what you enter is stored in Google Forms. Contact details are optional.</li>
+</ul>
+<h2>4. Ads and cookies (Google AdSense)</h2>
+<p>The site shows Google AdSense ads to cover running costs.</p>
+<ul>
+<li>Third-party vendors, including Google, use cookies to serve ads based on your prior visits to this website or other websites.</li>
+<li>Google's use of advertising cookies enables it and its partners to serve ads based on your visits to this site and/or other sites on the Internet.</li>
+<li>You can opt out of personalized advertising in <a href="https://www.google.com/settings/ads" rel="noopener">Google Ads Settings</a>, and opt out of other third-party vendors' cookies at <a href="https://www.aboutads.info/choices/" rel="noopener">aboutads.info</a>.</li>
+<li>See <a href="https://policies.google.com/technologies/partner-sites" rel="noopener">how Google uses data from partner sites</a>.</li>
+<li>Visitors from the European Economic Area, the UK and Switzerland are asked for consent through Google's consent management tool.</li>
+</ul>
+<h2>5. Children's privacy</h2>
+<p>The site does not knowingly collect personal information from children.</p>
+<h2>6. Changes to this policy</h2>
+<p>If this policy changes, the changes and the new effective date will be posted on this page.</p>
+<h2>7. Contact</h2>
+<p>For privacy questions or requests, use the form on the <a href="/en/contact">contact page</a> and choose "Privacy" as the type.</p></div>`,
+}));
+
 // ── 사이트맵·robots ──
-const paths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/app', '/about', '/contact', '/privacy'];
+const koPaths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/app', '/about', '/contact', '/privacy'];
+const paths = [...koPaths, ...koPaths.filter((p) => p !== '/app').map((p) => P('en', p))];
 writeFileSync(new URL('sitemap.xml', DIST), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${paths.map((p) => `  <url><loc>${SITE}${p}</loc><lastmod>${UPDATED}</lastmod></url>`).join('\n')}

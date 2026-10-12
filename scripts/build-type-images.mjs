@@ -38,6 +38,7 @@ const placed = (svg, x, y, size, opacity = 1) =>
   svg.replace(/<svg\b[^>]*>/, `<svg xmlns="http://www.w3.org/2000/svg" x="${x}" y="${y}" width="${size}" height="${size}" viewBox="0 0 45 45" opacity="${opacity}">`);
 
 const data = JSON.parse(readFileSync(new URL('src/data/chess-types.json', ROOT), 'utf8'));
+const EN = JSON.parse(readFileSync(new URL('src/data/chess-types.en.json', ROOT), 'utf8'));
 const GROUP_COLOR = {
   AW: ['#5c1712', '#c2382d', '#ff8a7a'],
   AS: ['#5a3008', '#c47a14', '#ffcf7a'],
@@ -240,7 +241,8 @@ function board(x0, y0, cell, n, color) {
   return s;
 }
 
-function cardSvg(t, w, h) {
+function cardSvg(t, w, h, lang = 'ko') {
+  const en = lang === 'en';
   const g = t.code.slice(0, 2);
   const [dark, mid, light] = GROUP_COLOR[g];
   const group = data.groups[g];
@@ -253,7 +255,8 @@ function cardSvg(t, w, h) {
   const bx = wide ? w - cell * 6 + 20 : w - cell * 5 - 26;
   const by = wide ? 10 : -26;
   const codeSize = wide ? 150 : 104;
-  const tagLines = wrap(t.tagline, wide ? 17 : 15);
+  const tagline = en ? EN.types[t.code].tagline : t.tagline;
+  const tagLines = wrap(tagline, wide ? 17 : 15);
   const codeY = wide ? 280 : 360;
   const nameY = codeY + (wide ? 82 : 64);
   const tagY = nameY + (wide ? 66 : 52);
@@ -282,18 +285,19 @@ function cardSvg(t, w, h) {
     </g>
     <g transform="translate(${pad}, ${wide ? 138 : 120})">
       <rect x="0" y="-30" rx="20" width="${wide ? 250 : 220}" height="42" fill="#ffffff" fill-opacity="0.16"/>
-      <text x="18" y="-1" font-size="${wide ? 22 : 20}" font-weight="700">${esc(group.name)} · ${esc(group.en)}</text>
+      <text x="18" y="-1" font-size="${wide ? 22 : 20}" font-weight="700">${en ? esc(EN.groups[g].name) : `${esc(group.name)} · ${esc(group.en)}`}</text>
     </g>
     <text x="${pad - 4}" y="${codeY}" font-size="${codeSize}" font-weight="800" letter-spacing="6">${t.code}</text>
-    <text x="${pad}" y="${nameY}" font-size="${wide ? 64 : 50}" font-weight="800">${esc(t.name)}<tspan dx="16" font-size="${wide ? 30 : 24}" font-weight="500" fill-opacity="0.75">${esc(t.en)}</tspan></text>
+    <text x="${pad}" y="${nameY}" font-size="${wide ? 64 : 50}" font-weight="800">${en ? `The ${esc(t.en)}` : `${esc(t.name)}<tspan dx="16" font-size="${wide ? 30 : 24}" font-weight="500" fill-opacity="0.75">${esc(t.en)}</tspan>`}</text>
     ${tagLines.map((l, i) => `<text x="${pad}" y="${tagY + i * tagSize * 1.35}" font-size="${tagSize}" font-weight="500" fill-opacity="0.9">${esc(l)}</text>`).join('')}
-    ${wide ? `<text x="${pad}" y="${h - 48}" font-size="22" font-weight="500" fill-opacity="0.7">나는 어떤 체스 플레이어일까? · 체스 유형 16가지</text>` : ''}
+    ${wide ? `<text x="${pad}" y="${h - 48}" font-size="22" font-weight="500" fill-opacity="0.7">${en ? 'What kind of chess player are you? · 16 chess types' : '나는 어떤 체스 플레이어일까? · 체스 유형 16가지'}</text>` : ''}
   </g>
 </svg>`;
 }
 
 /** 첫 화면 공유 미리보기: 16유형 코드 격자 */
-function landingSvg(w, h) {
+function landingSvg(w, h, lang = 'ko') {
+  const en = lang === 'en';
   const tiles = data.types.map((t, i) => {
     const g = t.code.slice(0, 2), [, mid] = GROUP_COLOR[g];
     const c = i % 4, r = Math.floor(i / 4);
@@ -307,10 +311,10 @@ function landingSvg(w, h) {
   <g font-family="Pretendard" fill="#1d1c1a">
     ${placed(piece('knight'), 72, 92, 52)}
     <text x="134" y="132" font-size="40" font-weight="800">Stylish<tspan fill="#b5562d">.</tspan></text>
-    <text x="72" y="268" font-size="64" font-weight="800">나는 어떤</text>
-    <text x="72" y="350" font-size="64" font-weight="800">체스 플레이어일까?</text>
-    <text x="72" y="430" font-size="28" font-weight="500" fill="#5f5b53">내 게임으로 알아보는 체스 유형 16가지</text>
-    <text x="72" y="474" font-size="24" font-weight="500" fill="#8f8a80">Stockfish + Maia3 · 무료 · 설치 없음</text>
+    <text x="72" y="268" font-size="${en ? 56 : 64}" font-weight="800">${en ? 'What kind of' : '나는 어떤'}</text>
+    <text x="72" y="350" font-size="${en ? 56 : 64}" font-weight="800">${en ? 'chess player are you?' : '체스 플레이어일까?'}</text>
+    <text x="72" y="430" font-size="28" font-weight="500" fill="#5f5b53">${en ? '16 chess types from your own games' : '내 게임으로 알아보는 체스 유형 16가지'}</text>
+    <text x="72" y="474" font-size="24" font-weight="500" fill="#8f8a80">${en ? 'Stockfish + Maia3 · Free · No install' : 'Stockfish + Maia3 · 무료 · 설치 없음'}</text>
   </g>
   <g font-family="Pretendard">${tiles}</g>
 </svg>`;
@@ -318,7 +322,9 @@ function landingSvg(w, h) {
 
 const render = (svg, file) => {
   const png = new Resvg(svg, { font: { fontFiles, loadSystemFonts: false, defaultFontFamily: 'Pretendard' } }).render().asPng();
-  writeFileSync(new URL(file, OUT), png);
+  const target = new URL(file, OUT);
+  mkdirSync(new URL('./', target), { recursive: true });
+  writeFileSync(target, png);
   return png.length;
 };
 
@@ -342,6 +348,8 @@ let total = 0;
 for (const t of data.types.filter((x) => !ONLY || ONLY.includes(x.code))) {
   total += render(cardSvg(t, 1200, 630), `${t.code}.png`);
   total += render(cardSvg(t, 600, 600), `${t.code}-square.png`);
+  total += render(cardSvg(t, 1200, 630, 'en'), `en/${t.code}.png`);
+  total += render(cardSvg(t, 600, 600, 'en'), `en/${t.code}-square.png`);
 }
-if (!ONLY) total += render(landingSvg(1200, 630), 'landing.png');
-console.log(`유형 이미지 ${data.types.length * 2 + 1}장, ${(total / 1048576).toFixed(1)}MB`);
+if (!ONLY) { total += render(landingSvg(1200, 630), 'landing.png'); total += render(landingSvg(1200, 630, 'en'), 'en/landing.png'); }
+console.log(`유형 이미지 한·영 ${(data.types.length * 2 + 1) * 2}장, ${(total / 1048576).toFixed(1)}MB`);

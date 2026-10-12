@@ -60,9 +60,12 @@ li { margin: 5px 0; }
 .topbar nav::-webkit-scrollbar { display: none; }
 .topbar nav a { white-space: nowrap; text-decoration: none; color: var(--text-2); padding: 7px 12px; border-radius: 10px; font-size: 15px; font-weight: 600; }
 .topbar nav a:hover, .topbar nav a.active { color: var(--text); background: var(--surface-2); }
+.topbar nav a.lang { border: 1px solid var(--border); font-size: 14px; }
 .topbar nav a.cta { background: var(--text); color: var(--bg); margin-left: 6px; }
 .topbar nav a.cta:hover { background: var(--accent); color: #fff; }
 
+.lang-banner { background: var(--text); color: var(--bg); text-align: center; padding: 9px 16px; font-size: 14px; }
+.lang-banner a { color: var(--bg); font-weight: 800; margin-left: 6px; }
 main { max-width: 820px; margin: 0 auto; padding: 24px 20px 64px; }
 main.wide { max-width: 1120px; }
 .prose { max-width: 760px; margin: 0 auto; }
