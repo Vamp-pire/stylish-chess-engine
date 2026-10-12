@@ -380,6 +380,7 @@ write('/privacy', page({
 <ul>
 <li><b>Chess.com·Lichess</b>: 아이디로 게임을 불러올 때, 방문자의 브라우저가 입력한 아이디로 해당 사이트의 공개 API에 직접 요청합니다. 각 사이트의 개인정보처리방침이 적용됩니다.</li>
 <li><b>Cloudflare</b>: 사이트 호스팅 업체로, 서비스 제공과 보안을 위해 접속 기록(IP 주소, 브라우저 정보 등)을 처리할 수 있습니다.</li>
+<li><b>Cloudflare Web Analytics</b>: 방문자 수와 많이 본 페이지 같은 통계를 보기 위해 사용합니다. 쿠키를 쓰지 않으며 개인을 식별할 수 있는 정보를 모으지 않습니다.</li>
 <li><b>Google Forms</b>: 문의 양식을 이용하면 입력한 내용이 Google Forms에 저장됩니다. 연락처는 선택 항목입니다.</li>
 </ul>
 <h2>4. 광고와 쿠키 (Google AdSense)</h2>
