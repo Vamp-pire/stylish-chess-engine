@@ -12,6 +12,9 @@ import { AnalysisRun, getEngine } from './ui/runner';
 import { humanStatus, onHumanStatus } from './human/browser';
 import { typeSection, shareType } from './ui/typeCard';
 import { openResultImage } from './ui/resultImage';
+import { chessTypeOf } from './core/chessType';
+import { addPractice, weeklySet, practiceStats, markPractice, asQuizMove, clearPractice, WEEKLY } from './ui/practice';
+import { typeChangeSection } from './ui/typeCard';
 import { decodeVs, saveVs, loadVs, clearVs, vsBanner, shareCompare } from './ui/compare';
 import { evalGraph, radar } from './ui/charts';
 import { renderGuide, HOW } from './ui/guide';
@@ -19,7 +22,7 @@ import type { GameAnalysis, MoveAnalysis } from './core/analyzer';
 import { buildProfile, riskTotal, type PlayerProfile } from './core/profile';
 import { fetchGames, userResult, SOURCE_LABEL, type OnlineGame, type Source } from './online/sources';
 import { cacheKey, getCached, putCached, gameHash } from './ui/cache';
-import { savePlayerGame, listPlayers, getPlayer, deletePlayer, deleteGame, clearPlayers, combinedProfile, gamesOf, isNamed, SOURCE_NAME, type PlayerSource } from './ui/players';
+import { savePlayerGame, playerKey, listPlayers, getPlayer, deletePlayer, deleteGame, clearPlayers, combinedProfile, gamesOf, isNamed, SOURCE_NAME, type PlayerSource, type SavedPlayer, type SavedGame } from './ui/players';
 import { timeSection, openingSection, trendSection, mastersSection, fmtSec, fmtClock, GROUP_AXES, groupScore } from './ui/insights';
 import { shareUrl, readSharedGame } from './ui/share';
 import { pickHighlights, drawCard, cardBlob } from './ui/highlights';
@@ -495,7 +498,7 @@ function updateBatch() {
       const opp = g.userColor === 'w' ? g.black : g.white;
       const res = userResult(g);
       const p = r?.profiles[g.userColor];
-      const status = r ? `<span class="faint">${esc(p!.archetype.name)} · ${tr('정확도', 'Accuracy')} ${p!.accuracy}%</span>` : i === b.current ? `<span class="faint">${tr('분석 중…', 'Analyzing…')}</span>` : `<span class="faint">${tr('대기', 'Waiting')}</span>`;
+      const status = r ? `<span class="faint">${tr('정확도', 'Accuracy')} ${p!.accuracy}%</span>` : i === b.current ? `<span class="faint">${tr('분석 중…', 'Analyzing…')}</span>` : `<span class="faint">${tr('대기', 'Waiting')}</span>`;
       return `<tr>
         <td class="faint">${fmtDate(g.date)}</td>
         <td><span class="side-dot ${g.userColor}"></span></td>
@@ -544,6 +547,8 @@ function saveProfiles(g: GameState, result: GameAnalysis) {
       opening: result.opening?.name ?? h.Opening ?? null, depth: result.depth, url: g.url, profile: result.profiles[c],
     });
     if (!ok) state.storageFull = true;
+    // 놓친 기회는 이 플레이어의 연습 과제로 모아 둔다
+    addPractice(playerKey(g.source, name), findMissed(result.moves, c), `vs ${opponent}${g.date ?? headerDate(h) ? ` · ${fmtDate((g.date ?? headerDate(h))!)}` : ''}`);
   }
 }
 
@@ -989,7 +994,6 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
     <div class="card profile ${o.focus ? 'focus' : ''}">
       <div class="profile-head">${c ? `<span class="side-dot ${c}"></span>` : ''}<span class="name">${esc(name)}</span><span class="faint">${esc(sub)}</span></div>
       ${typeSection(p, name)}
-      <div class="archetype"><strong>${esc(p.archetype.name)}</strong><span>${esc(p.archetype.desc)}</span></div>
       ${o.extra ?? ''}
       <div class="stats">
         <div class="stat"><b>${p.accuracy}%</b><span>${tr('정확도', 'Accuracy')}</span></div>
@@ -1030,7 +1034,7 @@ function renderPlayers() {
       return `<tr data-player="${esc(pl.key)}">
         <td><b>${esc(pl.name)}</b> <span class="faint">${SOURCE_NAME[pl.source]}</span></td>
         <td>${tr(`${games.length}판`, `${games.length} games`)}</td>
-        <td>${prof ? esc(prof.archetype.name) : '-'}</td>
+        <td>${prof && prof.counted >= 20 ? chessTypeOf(prof)?.code ?? '-' : '-'}</td>
         <td class="faint">${prof ? `${tr('정확도', 'Accuracy')} ${prof.accuracy}%` : ''}</td>
         <td class="faint">${fmtDate(pl.updatedAt)}</td>
       </tr>`;
@@ -1045,7 +1049,7 @@ function renderPlayers() {
         : `<p class="muted">${tr('아직 저장된 플레이어가 없습니다. 기보를 분석하거나 Chess.com·Lichess 아이디로 게임을 분석하면 여기에 쌓입니다.', 'No saved players yet. Analyze a game or load games by Chess.com or Lichess username and they will appear here.')}</p><button class="btn primary" id="go-analyze">${tr('분석하러 가기', 'Go analyze')}</button>`}
       </div>`;
     app.querySelectorAll<HTMLTableRowElement>('tr[data-player]').forEach((tr) => tr.onclick = () => { state.playerKey = tr.dataset.player!; renderPlayers(); window.scrollTo({ top: 0 }); });
-    $('#clear-players')?.addEventListener('click', () => { if (confirm(tr('저장된 모든 플레이어 기록을 지울까요?', 'Delete all saved player records?'))) { clearPlayers(); state.storageFull = false; renderPlayers(); } });
+    $('#clear-players')?.addEventListener('click', () => { if (confirm(tr('저장된 모든 플레이어 기록을 지울까요?', 'Delete all saved player records?'))) { clearPlayers(); clearPractice(); state.storageFull = false; renderPlayers(); } });
     $('#go-analyze')?.addEventListener('click', () => setView('analyze'));
     return;
   }
@@ -1069,7 +1073,7 @@ function renderPlayers() {
     <td>${esc(g.opponent)}</td>
     <td class="res-${g.result ?? 'none'}">${g.result ? RES_SHORT[g.result] : '-'}</td>
     <td class="opening-cell">${esc(g.opening ?? '')}</td>
-    <td class="faint">${esc(g.profile.archetype.name)} · ${g.profile.accuracy}%</td>
+    <td class="faint">${tr('정확도', 'Accuracy')} ${g.profile.accuracy}%</td>
     <td>${g.url ? `<a href="${esc(g.url)}" target="_blank" rel="noopener" class="faint">${tr('원본', 'Source')}</a>` : ''}</td>
     <td><button class="ghost small-x" data-del-game="${esc(g.gameId)}" title="${tr('이 판 기록 삭제', 'Delete this game')}">✕</button></td>
   </tr>`).join('');
@@ -1079,6 +1083,7 @@ function renderPlayers() {
       <div class="spacer"></div>
       <button class="ghost danger" id="del-player">${tr('이 플레이어 삭제', 'Delete this player')}</button>
     </div>
+    ${returnCard(p, games)}
     <div class="batch">
       <div>${profileCard(prof, null, {}, { name: p.name, sub: `${SOURCE_NAME[p.source]} · ${tr(`저장된 ${games.length}판 종합`, `${games.length} saved games combined`)}`, extra, tail, color: '#b5562d' })}</div>
       <div class="card card-pad">
@@ -1088,8 +1093,58 @@ function renderPlayers() {
       </div>
     </div>`;
   $('#players-back')!.onclick = () => { state.playerKey = null; renderPlayers(); };
-  $('#del-player')!.onclick = () => { if (confirm(tr(`${p.name}의 기록을 모두 지울까요?`, `Delete all records for ${p.name}?`))) { deletePlayer(p.key); state.playerKey = null; renderPlayers(); } };
+  $('#del-player')!.onclick = () => { if (confirm(tr(`${p.name}의 기록을 모두 지울까요?`, `Delete all records for ${p.name}?`))) { deletePlayer(p.key); clearPractice(p.key); state.playerKey = null; renderPlayers(); } };
   app.querySelectorAll<HTMLButtonElement>('[data-del-game]').forEach((b) => b.onclick = () => { deleteGame(p.key, b.dataset.delGame!); renderPlayers(); });
+  $('#practice-start')?.addEventListener('click', () => {
+    const set = weeklySet(p.key);
+    openQuiz(set.map((x) => ({ move: asQuizMove(x), game: x.game })), tr('이번 주 연습 과제', "This week's practice"), (i, ok) => { markPractice(p.key, set[i].id, ok); });
+  });
+  $('#update-games')?.addEventListener('click', () => updateGames(p));
+}
+
+/** 프로필 상세 위: 다시 와서 할 일 (유형 변화, 이번 주 연습, 새 게임 분석) */
+function returnCard(p: SavedPlayer, games: SavedGame[]) {
+  const st = practiceStats(p.key);
+  const set = weeklySet(p.key);
+  const change = typeChangeSection(games.map((g) => ({ date: g.date ?? g.savedAt, profile: g.profile })));
+  const online = p.source === 'lichess' || p.source === 'chesscom';
+  return `<div class="card card-pad return-card">
+    ${change}
+    <div class="return-row">
+      <div><b>${tr('이번 주 연습 과제', "This week's practice")}</b>
+        <span class="faint">${st.total ? tr(`내 게임에서 놓친 기회로 만든 문제 · 이번 주 ${Math.min(st.solvedThisWeek, WEEKLY)}/${WEEKLY} 완료 · 남은 문제 ${st.unsolved}개`, `Problems from chances you missed · ${Math.min(st.solvedThisWeek, WEEKLY)}/${WEEKLY} done this week · ${st.unsolved} unsolved`) : tr('게임을 분석하면 놓친 기회가 연습 문제로 쌓여요.', 'Analyze games and your missed chances become practice problems.')}</span></div>
+      ${set.length ? `<button class="btn primary" id="practice-start">🧩 ${tr(`연습하기 (${set.length}문제)`, `Practice (${set.length})`)}</button>` : ''}
+    </div>
+    ${online ? `<div class="return-row">
+      <div><b>${tr('새 게임 분석하기', 'Analyze new games')}</b><span class="faint">${tr(`${SOURCE_NAME[p.source]}에서 아직 분석하지 않은 최근 게임만 불러와 이어서 분석해요.`, `Loads only recent ${SOURCE_NAME[p.source]} games you haven't analyzed yet.`)}</span></div>
+      <button class="btn" id="update-games">${tr('새 게임 불러오기', 'Load new games')}</button>
+    </div>` : ''}
+    <p class="faint" id="update-msg"></p>
+  </div>`;
+}
+
+/** 저장된 아이디의 최근 게임 중 아직 분석하지 않은 것만 종합 분석 */
+async function updateGames(p: SavedPlayer) {
+  const btn = $<HTMLButtonElement>('#update-games'), msgEl = $('#update-msg');
+  if (btn) { btn.disabled = true; btn.textContent = tr('불러오는 중…', 'Loading…'); }
+  try {
+    const source = p.source as Source;
+    const page = await fetchGames(source, p.name, null);
+    const seen = new Set(Object.keys(p.games));
+    const fresh = page.games.filter((g) => !seen.has(gameHash(g.pgn))).slice(0, 10);
+    if (!fresh.length) {
+      if (msgEl) msgEl.textContent = tr('새로 분석할 게임이 없어요. 게임을 더 두고 다시 와 주세요!', 'No new games to analyze. Play some more and come back!');
+      if (btn) { btn.disabled = false; btn.textContent = tr('새 게임 불러오기', 'Load new games'); }
+      return;
+    }
+    state.account = { source, user: p.name, games: page.games, next: page.next, loading: false, error: null, selected: new Set(fresh.map((g) => g.id)), timeFilter: 'all' };
+    state.tab = source === 'chesscom' ? 'chesscom' : 'lichessUser';
+    setView('analyze');
+    startBatch(fresh);
+  } catch (err) {
+    if (msgEl) msgEl.textContent = err instanceof Error ? err.message : String(err);
+    if (btn) { btn.disabled = false; btn.textContent = tr('새 게임 불러오기', 'Load new games'); }
+  }
 }
 
 // ───────────── 소개 ─────────────

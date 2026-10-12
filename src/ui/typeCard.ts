@@ -1,7 +1,7 @@
 // 프로필 카드 맨 위의 4글자 체스 유형 + 축별 막대 + 공유 버튼
 import { tr, getLang } from '../i18n';
 import { chessTypeOf, groupOf, ratingOf, TYPE_DATA, MIN_COUNTED, type ChessType } from '../core/chessType';
-import type { PlayerProfile } from '../core/profile';
+import { mergeProfiles, type PlayerProfile } from '../core/profile';
 import CALIB from '../data/type-calib.json';
 import { loadVs, compareBlock } from './compare';
 
@@ -63,6 +63,32 @@ export async function shareType(code: string, button?: HTMLElement) {
     await navigator.clipboard.writeText(`${text}\n${url}`);
     if (button) { const old = button.textContent; button.textContent = tr('복사했어요!', 'Copied!'); setTimeout(() => { button.textContent = old; }, 1500); }
   } catch { /* 사용자가 공유 창을 닫은 경우 등 */ }
+}
+
+/** 예전 게임 절반 vs 최근 절반의 유형 비교 (둘 다 충분할 때만) */
+export function typeChangeSection(games: { date: number | null; profile: PlayerProfile }[]): string {
+  if (!CALIB.players || games.length < 4) return '';
+  const sorted = [...games].sort((a, b) => (a.date ?? 0) - (b.date ?? 0));
+  const half = Math.floor(sorted.length / 2);
+  const oldP = mergeProfiles(sorted.slice(0, half).map((g) => g.profile));
+  const newP = mergeProfiles(sorted.slice(half).map((g) => g.profile));
+  if (!oldP || !newP || oldP.counted < 40 || newP.counted < 40) return '';
+  const a = chessTypeOf(oldP), b = chessTypeOf(newP);
+  if (!a || !b) return '';
+  const shifts = b.axes.map((x, i) => {
+    const d = x.pct - a.axes[i].pct;
+    if (Math.abs(d) < 8) return '';
+    const ax = TYPE_DATA.axes[i];
+    return `<span class="chip">${esc(d > 0 ? ax.names[0] : ax.names[1])} +${Math.abs(d)}</span>`;
+  }).filter(Boolean).join('');
+  const same = a.code === b.code;
+  return `<div class="return-row">
+    <div><b>${tr('유형 변화', 'Type change')}</b>
+      <span class="faint">${tr(`예전 ${half}판 → 최근 ${sorted.length - half}판`, `Older ${half} games → recent ${sorted.length - half}`)}</span></div>
+    <div class="type-change"><span class="type-code small">${a.code}</span> → <span class="type-code small">${b.code}</span>
+      <span class="faint">${same ? tr('유형은 그대로예요', 'Same type') : esc(tr(`${b.info.name}(으)로 바뀌었어요`, `Now the ${b.info.name}`))}</span></div>
+    ${shifts ? `<div class="chips">${shifts}</div>` : ''}
+  </div>`;
 }
 
 export type { ChessType };

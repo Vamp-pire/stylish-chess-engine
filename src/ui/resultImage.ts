@@ -27,13 +27,21 @@ const SIZE: Record<Format, [number, number]> = { square: [1080, 1080], story: [1
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
+/** 같은 그림은 한 번만 불러온다 (다시 그릴 때 깜빡임·타이밍 차이 방지) */
+const imageCache = new Map<string, Promise<HTMLImageElement>>();
+function cachedImage(src: string) {
+  let p = imageCache.get(src);
+  if (!p) { p = loadImage(src); imageCache.set(src, p); p.catch(() => imageCache.delete(src)); }
+  return p;
+}
+
 function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error(tr('이미지를 불러오지 못했습니다', 'Could not load the image')));
     img.src = src;
-  });
+  }).then(async (img) => { await img.decode?.().catch(() => null); return img; });
 }
 
 /** 최대 너비에 맞춰 줄바꿈 (공백 기준) */
@@ -50,6 +58,12 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
 
 async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, format: Format, nick: string, photo: HTMLImageElement | null) {
   const [W, H] = SIZE[format];
+  await Promise.all([
+    document.fonts.ready,
+    ...['800', '700', '500'].map((w) => document.fonts.load(`${w} 40px ${FONT}`, '가A').catch(() => null)),
+    cachedImage('/img/pieces/knight.svg'),
+    photo ? cachedImage(`/img/pieces/${PIECE[input.code]}.svg`) : cachedImage(`/img/scenes/${input.code}.png`),
+  ]);
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d')!;
   const t = TYPE_DATA.types.find((x) => x.code === input.code)!;
@@ -57,7 +71,6 @@ async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, format: 
   const [dark, mid, light] = GROUP_COLOR[g];
   const group = groupOf(input.code);
   const story = format === 'story';
-  await Promise.all(['800', '700', '500'].map((w) => document.fonts.load(`${w} 40px ${FONT}`).catch(() => null)));
 
   // 배경: 그라데이션 + 체스판 무늬 + 빛
   const bg = ctx.createLinearGradient(0, 0, W, H);
@@ -88,17 +101,17 @@ async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, format: 
     const badge = story ? 120 : 92, bx = cx + radius * 0.62, by = cy + radius * 0.62;
     ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(bx, by, badge / 2, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = mid; ctx.beginPath(); ctx.arc(bx, by, badge / 2 - 6, 0, Math.PI * 2); ctx.fill();
-    const pc = await loadImage(`/img/pieces/${PIECE[input.code]}.svg`);
+    const pc = await cachedImage(`/img/pieces/${PIECE[input.code]}.svg`);
     ctx.drawImage(pc, bx - badge * 0.36, by - badge * 0.38, badge * 0.72, badge * 0.72);
   } else {
     // 사진이 없으면 유형 장면(기물과 화살표, 투명 PNG)
-    const sc = await loadImage(`/img/scenes/${input.code}.png`);
+    const sc = await cachedImage(`/img/scenes/${input.code}.png`);
     const ss = radius * 2.3;
     ctx.drawImage(sc, cx - ss / 2, cy - ss / 2, ss, ss);
   }
 
   // 로고
-  const knight = await loadImage('/img/pieces/knight.svg');
+  const knight = await cachedImage('/img/pieces/knight.svg');
   const lx = story ? W / 2 - 110 : 80, ly = story ? 110 : 96;
   ctx.drawImage(knight, lx, ly - 40, 52, 52);
   ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
@@ -229,9 +242,20 @@ export function openResultImage(input: ResultImageInput) {
   let photo: HTMLImageElement | null = null;
   let photoUrl: string | null = null;
   let seq = 0;
+  /** 지금 설정 그대로 새 캔버스에 끝까지 그린다 (미리보기와 내보내기가 같은 함수를 쓴다) */
+  const render = async () => {
+    const off = document.createElement('canvas');
+    await draw(off, input, format, nickInput.value.trim(), photo);
+    return off;
+  };
   const redraw = async () => {
     const my = ++seq;
-    try { await draw(canvas, input, format, nickInput.value.trim(), photo); } catch (e) { if (my === seq) msg.textContent = String(e instanceof Error ? e.message : e); }
+    try {
+      const off = await render();
+      if (my !== seq) return; // 더 최근 요청이 있으면 버린다
+      canvas.width = off.width; canvas.height = off.height;
+      canvas.getContext('2d')!.drawImage(off, 0, 0);
+    } catch (e) { if (my === seq) msg.textContent = String(e instanceof Error ? e.message : e); }
   };
   const say = (text: string) => { msg.textContent = text; };
   fileInput.onchange = async () => {
@@ -246,6 +270,7 @@ export function openResultImage(input: ResultImageInput) {
   clearBtn.onclick = () => { photo = null; clearBtn.hidden = true; fileInput.value = ''; redraw(); };
   let nickTimer = 0;
   nickInput.oninput = () => { clearTimeout(nickTimer); nickTimer = window.setTimeout(redraw, 200); };
+  const exportBlob = () => { clearTimeout(nickTimer); redraw(); return render().then(toBlob); };
   body.querySelectorAll<HTMLButtonElement>('[data-ri-format]').forEach((b) => b.onclick = () => {
     format = b.dataset.riFormat as Format;
     body.querySelectorAll('[data-ri-format]').forEach((x) => x.classList.toggle('on', x === b));
@@ -257,14 +282,14 @@ export function openResultImage(input: ResultImageInput) {
   body.querySelector<HTMLButtonElement>('[data-ri-copy]')!.onclick = async () => {
     try {
       // 사용자 동작 안에서 바로 호출해야 하므로 Blob은 Promise로 넘긴다 (Safari)
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': toBlob(canvas) })]);
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': exportBlob() })]);
       say(tr('복사했어요! 카톡·인스타·디스코드 등에 붙여넣기 하세요.', 'Copied! Paste it into Instagram, Discord, X and more.'));
     } catch {
       say(tr('이 브라우저에서는 이미지 복사가 안 돼요. 저장을 눌러 주세요.', "This browser can't copy images. Please use Save."));
     }
   };
   body.querySelector<HTMLButtonElement>('[data-ri-save]')!.onclick = async () => {
-    const url = URL.createObjectURL(await toBlob(canvas));
+    const url = URL.createObjectURL(await exportBlob());
     const a = document.createElement('a');
     a.href = url; a.download = fileName(); a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -275,7 +300,7 @@ export function openResultImage(input: ResultImageInput) {
   shareBtn.hidden = !(navigator.canShare && navigator.canShare({ files: [probe] }));
   shareBtn.onclick = async () => {
     try {
-      const file = new File([await toBlob(canvas)], fileName(), { type: 'image/png' });
+      const file = new File([await exportBlob()], fileName(), { type: 'image/png' });
       await navigator.share({ files: [file], title: tr('Stylish 체스 유형', 'Stylish chess type'), text: tr(`나의 체스 유형은 ${input.code} ${t.name}! https://${SITE}/types/${input.code}`, `My chess type is ${input.code}, the ${t.name}! https://${SITE}/en/types/${input.code}`) });
     } catch { /* 공유 창을 닫은 경우 */ }
   };

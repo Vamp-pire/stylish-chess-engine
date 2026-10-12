@@ -534,3 +534,12 @@ footer .footer-links a { color: inherit; }
 .vs-rel { margin: 8px 0; }
 .vs-rel strong { font-size: 18px; color: var(--g); }
 .vs-rel p { margin: 2px 0 0; font-size: 13px; color: var(--text-2); }
+
+/* ── 다시 와서 할 일 (유형 변화·연습 과제·새 게임) ── */
+.return-card { display: grid; gap: 14px; margin-bottom: 16px; }
+.return-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; padding-bottom: 14px; border-bottom: 1px solid var(--line, rgba(0,0,0,.08)); }
+.return-row:last-of-type { border-bottom: 0; padding-bottom: 0; }
+.return-row > div:first-child { display: grid; gap: 2px; min-width: 0; }
+.type-change { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.type-code.small { font-size: 20px; color: var(--accent, #b5562d); }
+#update-msg:empty { display: none; }

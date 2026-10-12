@@ -41,9 +41,12 @@ function dests(fen: string) {
   return map;
 }
 
-export function openQuiz(items: QuizItem[], title = tr('놓친 기회 퀴즈', 'Missed chances quiz')) {
+/** onResult: 문제마다 처음 결과(정답 보기 없이 맞혔는지)를 알려준다 (연습 과제 기록용) */
+export function openQuiz(items: QuizItem[], title = tr('놓친 기회 퀴즈', 'Missed chances quiz'), onResult?: (i: number, solved: boolean) => void) {
   if (!items.length) return;
   let i = 0, solved = 0, tried = new Set<number>();
+  const reported = new Set<number>(), revealed = new Set<number>();
+  const report = (k: number, ok: boolean) => { if (!reported.has(k)) { reported.add(k); onResult?.(k, ok); } };
   let cg: CgApi | null = null;
   const body = openModal(title, `
     <div class="quiz">
@@ -97,6 +100,7 @@ export function openQuiz(items: QuizItem[], title = tr('놓친 기회 퀴즈', '
     if (uci === best) {
       if (!tried.has(i)) solved++;
       tried.add(i);
+      report(i, !revealed.has(i));
       cg!.set({ fen: ch.fen(), movable: { color: undefined, dests: new Map() } });
       $('.quiz-count').textContent = `${i + 1} / ${items.length} · ${tr('맞힌 문제', 'Solved')} ${solved}`;
       msg(tr(`<b>정답!</b> Stockfish 수순: ${esc(m.bestPvSan.join(' '))}`, `<b>Correct!</b> Stockfish line: ${esc(m.bestPvSan.join(' '))}`), 'ok');
@@ -113,6 +117,8 @@ export function openQuiz(items: QuizItem[], title = tr('놓친 기회 퀴즈', '
     if (b.dataset.q === 'hint') msg(tr(`힌트: ${hintOf(m)}. 움직일 기물은 ${m.deep.bestMove!.slice(0, 2)} 칸에 있습니다.`, `Hint: ${hintOf(m)}. The piece to move is on ${m.deep.bestMove!.slice(0, 2)}.`));
     if (b.dataset.q === 'answer') {
       tried.add(i);
+      revealed.add(i);
+      report(i, false);
       const best = m.deep.bestMove!;
       cg!.set({ drawable: { autoShapes: [{ orig: best.slice(0, 2) as Key, dest: best.slice(2, 4) as Key, brush: 'green' }] } });
       msg(tr(`정답은 <b>${esc(m.bestSan)}</b> · 수순: ${esc(m.bestPvSan.join(' '))}`, `The answer is <b>${esc(m.bestSan)}</b> · line: ${esc(m.bestPvSan.join(' '))}`));
