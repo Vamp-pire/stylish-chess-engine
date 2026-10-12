@@ -12,6 +12,7 @@ import { AnalysisRun, getEngine } from './ui/runner';
 import { humanStatus, onHumanStatus } from './human/browser';
 import { typeSection, shareType } from './ui/typeCard';
 import { openResultImage } from './ui/resultImage';
+import { decodeVs, saveVs, loadVs, clearVs, vsBanner, shareCompare } from './ui/compare';
 import { evalGraph, radar } from './ui/charts';
 import { renderGuide, HOW } from './ui/guide';
 import type { GameAnalysis, MoveAnalysis } from './core/analyzer';
@@ -179,6 +180,7 @@ function renderInputInner() {
   }[state.tab];
 
   app.innerHTML = `
+      ${loadVs() ? vsBanner(loadVs()!) : ''}
     <section class="hero">
       <h1>${tr('이 수, 어떤 스타일일까?', 'What style is this move?')}</h1>
       <p>${tr('기보를 넣거나 Chess.com·Lichess 아이디를 입력하면 모든 수를 공격적·도박수·포지셔널·수비적 등 19가지 스타일로 평가하고, 플레이어의 성향을 분석합니다. 계산은 전부 브라우저 안에서 이뤄집니다.', 'Paste a game or enter a Chess.com or Lichess username, and every move is rated on 19 styles such as aggressive, gamble, positional and defensive, along with the player\'s tendencies. Everything is computed in your browser.')}</p>
@@ -1115,6 +1117,9 @@ window.addEventListener('hashchange', () => { openShared(); });
 document.addEventListener('click', (e) => {
   const b = (e.target as HTMLElement).closest<HTMLElement>('[data-share-type]');
   if (b) shareType(b.dataset.shareType!, b);
+  const cmp = (e.target as HTMLElement).closest<HTMLElement>('[data-compare-type]');
+  if (cmp) shareCompare(JSON.parse(cmp.dataset.compareType!), cmp);
+  if ((e.target as HTMLElement).closest('[data-vs-clear]')) { clearVs(); (e.target as HTMLElement).closest('.vs-banner')?.remove(); }
   const img = (e.target as HTMLElement).closest<HTMLElement>('[data-type-image]');
   if (img) openResultImage(JSON.parse(img.dataset.typeImage!));
 });
@@ -1127,6 +1132,9 @@ function readEntryQuery() {
     state.view = view;
     document.querySelectorAll<HTMLButtonElement>('.nav button').forEach((b) => b.classList.toggle('active', b.dataset.nav === view));
   }
+  // 친구가 보낸 비교 신청: 이 탭에서 기억해 두고, 내 결과가 나오면 나란히 보여준다
+  const vs = q.get('vs') ? decodeVs(q.get('vs')!) : null;
+  if (vs) { saveVs(vs); if (!q.get('source')) state.tab = 'lichessUser'; }
   const source = q.get('source'), user = q.get('user')?.trim();
   if ((source === 'lichess' || source === 'chesscom') && user) {
     state.tab = source === 'chesscom' ? 'chesscom' : 'lichessUser';

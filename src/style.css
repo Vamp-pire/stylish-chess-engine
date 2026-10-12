@@ -518,3 +518,19 @@ select.select { width: auto; min-width: 220px; padding: 8px 12px; }
 @media (max-width: 700px) { .ri { grid-template-columns: 1fr; } .ri-canvas.story { max-width: 220px; } }
 footer .footer-links { margin-top: 6px; }
 footer .footer-links a { color: inherit; }
+
+/* ── 친구와 유형 비교 ── */
+.vs-banner { display: grid; gap: 4px; position: relative; background: var(--accent-soft); border: 1px solid var(--border); border-radius: 12px; padding: 12px 40px 12px 16px; margin: 0 auto 14px; max-width: 900px; }
+.vs-banner span { color: var(--text-2); font-size: 14px; }
+.vs-banner [data-vs-clear] { position: absolute; top: 8px; right: 8px; font-size: 13px; }
+.vs-card { margin-top: 12px; padding: 12px 14px; border-radius: 10px; background: var(--surface-2); }
+.vs-head { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; }
+.vs-head b { color: var(--g); margin: 0 2px; }
+.vs-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.vs-dot.me, .vs-axis i.vs-me { background: var(--g); }
+.vs-dot.them, .vs-axis i.vs-them { background: #1f2937; }
+:root[data-theme="dark"] .vs-dot.them, :root[data-theme="dark"] .vs-axis i.vs-them { background: #e5e7eb; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .vs-dot.them, :root:not([data-theme="light"]) .vs-axis i.vs-them { background: #e5e7eb; } }
+.vs-rel { margin: 8px 0; }
+.vs-rel strong { font-size: 18px; color: var(--g); }
+.vs-rel p { margin: 2px 0 0; font-size: 13px; color: var(--text-2); }

@@ -3,6 +3,7 @@ import { tr, getLang } from '../i18n';
 import { chessTypeOf, groupOf, ratingOf, TYPE_DATA, MIN_COUNTED, type ChessType } from '../core/chessType';
 import type { PlayerProfile } from '../core/profile';
 import CALIB from '../data/type-calib.json';
+import { loadVs, compareBlock } from './compare';
 
 /** 이보다 적으면 유형을 보여주지 않는다 (한 판의 일부만으로는 의미가 없음) */
 const MIN_SHOW = 20;
@@ -41,9 +42,11 @@ export function typeSection(p: PlayerProfile, name = ''): string {
     <div class="type-axes">${bars}</div>
     <p class="faint type-note">${p.rating ? tr(`레이팅 ${ratingOf(p)} 전후 플레이어들과 비교한 결과예요.`, `Compared with players rated around ${ratingOf(p)}.`) : tr('레이팅 정보가 없어 1500 전후 플레이어들과 비교한 결과예요.', 'No rating found, so compared with players around 1500.')}</p>
     ${note}
+    ${(() => { const v = loadVs(); return v && !(v.name && v.name === name && v.code === t.code) ? compareBlock(t, name, v) : ''; })()}
     <div class="type-actions">
       <a href="${getLang() === 'en' ? '/en' : ''}/types/${t.code}" target="_blank" rel="noopener">${tr(`${esc(t.info.name)} 유형 자세히 보기`, `More about the ${esc(t.info.name)}`)}</a>
       <button type="button" data-type-image="${esc(JSON.stringify({ code: t.code, name, pcts: t.axes.map((a) => a.pct) }))}">${tr('내 결과 이미지 만들기', 'Make my result image')}</button>
+      <button type="button" class="secondary" data-compare-type="${esc(JSON.stringify({ code: t.code, name, pcts: t.axes.map((a) => a.pct) }))}">${tr('친구와 비교하기', 'Compare with a friend')}</button>
       <button type="button" class="secondary" data-share-type="${t.code}">${tr('링크 공유', 'Share link')}</button>
     </div>
   </div>`;
