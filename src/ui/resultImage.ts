@@ -90,9 +90,10 @@ async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, format: 
     const pc = await loadImage(`/img/pieces/${PIECE[input.code]}.svg`);
     ctx.drawImage(pc, bx - badge * 0.36, by - badge * 0.38, badge * 0.72, badge * 0.72);
   } else {
-    const pc = await loadImage(`/img/pieces/${PIECE[input.code]}.svg`);
-    const ps = radius * 2.05;
-    ctx.drawImage(pc, cx - ps / 2, cy - ps / 2, ps, ps);
+    // 사진이 없으면 유형 장면(기물과 화살표, 투명 PNG)
+    const sc = await loadImage(`/img/scenes/${input.code}.png`);
+    const ss = radius * 2.3;
+    ctx.drawImage(sc, cx - ss / 2, cy - ss / 2, ss, ss);
   }
 
   // 로고

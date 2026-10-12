@@ -202,7 +202,8 @@ for (const t of data.types) {
     description: `${t.code} ${t.name}: ${t.tagline}. ${t.summary.slice(0, 90)}…`,
     body: `<article class="type-page g-${g}">
 <p class="crumbs"><a href="/types/">체스 유형</a> › ${esc(group.name)}</p>
-<img class="type-hero" src="/img/types/${t.code}.png" alt="${t.code} ${esc(t.name)}: ${esc(t.tagline)}" width="1200" height="630" />
+<figure class="type-figure"><img class="type-hero" src="/img/types/${t.code}.png" alt="${t.code} ${esc(t.name)}: ${esc(t.tagline)}. 그림: ${esc(t.scene)}" width="1200" height="630" />
+<figcaption><b>그림 설명</b> ${esc(t.scene)} <span>(흰 기물이 나, 검은 기물이 상대)</span></figcaption></figure>
 <h1><span class="code">${t.code}</span> ${esc(t.name)} <small>${esc(t.en)}</small></h1>
 <p class="tagline">${esc(t.tagline)}</p>
 <div class="letters">${letters}</div>
