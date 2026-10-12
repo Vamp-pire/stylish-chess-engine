@@ -1,4 +1,5 @@
 // 분석 파이프라인: Stockfish 패스 → 수별 특징(정적 + PV 앞보기 + 소형 탐색) → 재확인 → 채점.
+import { tr } from '../i18n';
 import { Chess, type Move } from 'chess.js';
 import type { Engine, EngineLine } from '../engine/uci';
 import { MATE_CP, expectedScore } from '../engine/uci';
@@ -394,7 +395,7 @@ export async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
       }
       const refSan = uciToSanLine(A, [refutation], 1)[0] ?? refutation;
       const refP = humanAfter.find((h) => h.uci === refutation)?.p ?? 0;
-      const who = `레이팅 ${oppElo} 상대`;
+      const who = tr(`레이팅 ${oppElo} 상대`, `A ${oppElo}-rated opponent`);
       if (noLoss && !realSacrifice) {
         // 함정수: 손해 없는 수인데, 상대가 크게 틀릴 확률 × 이득의 기댓값이 충분하다
         // (드물어도 치명적이면 함정: 낚싯대 함정의 hxg4는 1500점 기준 14%지만 이득이 400cp가 넘는다)
@@ -410,8 +411,10 @@ export async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
           const to = e.uci.slice(2, 4);
           const baitValue = pieceValueAt(A, to);
           const baitNet = baitValue - (to === move.to ? f.capturedValue : 0);
-          riskWhy = (baitValue >= 3 && baitNet >= 1.5 ? `기물을 미끼로 내준 희생. ` : '') +
-            `${who}가 ${pct(e.p)} 확률로 ${e.san}를 두면 ${e.gainPp >= TRAP_GAIN_PP ? `기대 점수 +${Math.round(e.gainPp)}%p` : `${Math.round(e.gainCp)}cp 이득`}. 정답 ${refSan}을 둘 확률은 ${pct(refP)}`;
+          const gainText = e.gainPp >= TRAP_GAIN_PP ? tr(`기대 점수 +${Math.round(e.gainPp)}%p`, `+${Math.round(e.gainPp)} pp expected score`) : tr(`${Math.round(e.gainCp)}cp 이득`, `+${Math.round(e.gainCp)}cp`);
+          riskWhy = (baitValue >= 3 && baitNet >= 1.5 ? tr('기물을 미끼로 내준 희생. ', 'A piece offered as bait. ') : '') +
+            tr(`${who}가 ${pct(e.p)} 확률로 ${e.san}를 두면 ${gainText}. 정답 ${refSan}을 둘 확률은 ${pct(refP)}`,
+              `${who} plays ${e.san} ${pct(e.p)} of the time, which gives ${gainText}. The right reply ${refSan} is played ${pct(refP)} of the time`);
         }
       } else if (!noLoss && winDrop >= 5 && f.capturedValue < 3) {
         // 도박수: 객관적으로 손해지만, 상대의 실제 응수 확률로 따진 기대 점수가 최선 수 이상
@@ -423,7 +426,8 @@ export async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
           const l = lures[0];
           risk = 'gamble';
           trapLine = { replySan: l.san, replyUci: l.uci, line: l.pv, gainCp: Math.round(l.cp - best) };
-          riskWhy = `객관적으로 ${cpLoss}cp 손해지만, ${who}는 ${pct(l.p)} 확률로 ${l.san}를 둬서 최선 수보다 ${Math.round(l.cp - best)}cp 좋아짐. 사람 상대 기대 점수 ${pct(humanExp)} (최선 수 ${pct(expBefore)}). 정답 ${refSan}을 둘 확률은 ${pct(refP)}`;
+          riskWhy = tr(`객관적으로 ${cpLoss}cp 손해지만, ${who}는 ${pct(l.p)} 확률로 ${l.san}를 둬서 최선 수보다 ${Math.round(l.cp - best)}cp 좋아짐. 사람 상대 기대 점수 ${pct(humanExp)} (최선 수 ${pct(expBefore)}). 정답 ${refSan}을 둘 확률은 ${pct(refP)}`,
+            `Objectively ${cpLoss}cp worse, but ${who.toLowerCase()} plays ${l.san} ${pct(l.p)} of the time, ending up ${Math.round(l.cp - best)}cp better than the best move. Expected score against a human ${pct(humanExp)} (best move ${pct(expBefore)}). The right reply ${refSan} is played ${pct(refP)} of the time`);
         }
       }
     }
@@ -472,14 +476,16 @@ export async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
         const baitValue = pieceValueAt(A, w.to);
         const baitNet = baitValue - (w.to === move.to ? f.capturedValue : 0);
         trapLine = { replySan: w.san, replyUci: w.uci, line: w.pv, gainCp: Math.round(trapGainCp) };
-        riskWhy = (baitValue >= 3 && baitNet >= 1.5 ? `기물을 미끼로 내준 희생. ` : '') +
-          `상대가 자연스럽게 ${w.san}(${w.reason})를 두면 ${trapGain >= TRAP_GAIN_PP ? `기대 점수 +${Math.round(trapGain)}%p` : `${Math.round(trapGainCp)}cp 이득`}. 정답은 ${refSan}`;
+        const gainText = trapGain >= TRAP_GAIN_PP ? tr(`기대 점수 +${Math.round(trapGain)}%p`, `+${Math.round(trapGain)} pp expected score`) : tr(`${Math.round(trapGainCp)}cp 이득`, `+${Math.round(trapGainCp)}cp`);
+        riskWhy = (baitValue >= 3 && baitNet >= 1.5 ? tr('기물을 미끼로 내준 희생. ', 'A piece offered as bait. ') : '') +
+          tr(`상대가 자연스럽게 ${w.san}(${w.reason})를 두면 ${gainText}. 정답은 ${refSan}`, `If the opponent naturally plays ${w.san} (${w.reason}): ${gainText}. The right reply is ${refSan}`);
       } else if (!noLoss && winDrop >= 5 && (w.exp >= expBefore + 0.03 || w.cp >= best + 30) && f.capturedValue < 3) {
         // (큰 기물을 잡는 수는 위험을 감수한 수가 아니라 욕심이므로 도박수에서 뺀다)
         risk = 'gamble';
         trapLine = { replySan: w.san, replyUci: w.uci, line: w.pv, gainCp: Math.round(w.cp - best) };
-        const hard = refRank >= 1 ? '찾기 어려운' : '비교적 자연스러운';
-        riskWhy = `객관적으로 ${cpLoss}cp 손해지만, 상대가 솔깃한 ${w.san}(${w.reason})를 두면 최선 수보다 ${Math.round(w.cp - best)}cp 더 좋아짐. 정답은 ${hard} ${refSan}`;
+        const hard = refRank >= 1 ? tr('찾기 어려운', 'hard-to-find') : tr('비교적 자연스러운', 'fairly natural');
+        riskWhy = tr(`객관적으로 ${cpLoss}cp 손해지만, 상대가 솔깃한 ${w.san}(${w.reason})를 두면 최선 수보다 ${Math.round(w.cp - best)}cp 더 좋아짐. 정답은 ${hard} ${refSan}`,
+          `Objectively ${cpLoss}cp worse, but if the opponent plays the tempting ${w.san} (${w.reason}), it ends up ${Math.round(w.cp - best)}cp better than the best move. The right reply is the ${hard} ${refSan}`);
       }
     }
   }
@@ -487,11 +493,11 @@ export async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
     const amount = Math.round(Math.max(pvLost, Math.min(rawLost, f.offered)) * 10) / 10;
     if (winDrop < LOSS_PP) {
       risk = 'soundSacrifice';
-      riskWhy = `물질 ${amount}점을 내주지만 엔진 평가는 유지됨`;
+      riskWhy = tr(`물질 ${amount}점을 내주지만 엔진 평가는 유지됨`, `Gives up ${amount} points of material, but the engine evaluation holds`);
     } else if (risk !== 'gamble' && winDrop < 40 && f.capturedValue < 3) {
       // 엔진상 손해지만 블런더는 아닌 희생: 실전에서 통할 수 있는 공격적 선택 (탈·안데르센식). 큰 기물을 잡는 욕심수는 제외
       risk = 'speculative';
-      riskWhy = `물질 ${amount}점을 내주는 희생. 엔진 기준 기대 점수 −${Math.round(winDrop)}%p로 정확한 수비에는 불리하지만 실전에서 통할 수 있음`;
+      riskWhy = tr(`물질 ${amount}점을 내주는 희생. 엔진 기준 기대 점수 −${Math.round(winDrop)}%p로 정확한 수비에는 불리하지만 실전에서 통할 수 있음`, `A sacrifice of ${amount} points. The engine's expected score drops ${Math.round(winDrop)} pp, so it loses against precise defense but can work in practice`);
     }
   }
 

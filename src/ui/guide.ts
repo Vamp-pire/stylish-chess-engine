@@ -1,54 +1,55 @@
 // 스타일 사전: 각 스타일이 무엇이고 어떻게 측정하는지
+import { tr } from '../i18n';
 import { STYLES, STYLE_KEYS, RISK_LABEL, QUALITY_LABEL, type StyleKey, type RiskKind, type QualityKey } from '../core/styles';
 
 export const HOW: Record<StyleKey, string> = {
-  aggressive: '상대 킹 주변을 공격하는 내 기물 수의 증가, 체크, 킹 쪽 폰 돌격, 이후 주요 변화에서 이어지는 체크와 킹 압박',
-  tactical: '포크·핀·스큐어·디스커버드 어택 생성, 강제 수순으로 얻는 물질, 기물 희생 후 회수(콤비네이션)',
-  initiative: '체크나 새 위협으로 상대의 응수를 강제하고, 그 사이 기물을 개선하는 수',
-  counterattack: '상대가 무언가를 노리는 상황에서 막지 않고 같거나 더 큰 위협으로 맞받는 수',
-  positional: '폰 구조 개선, 상대 폰 구조 약화, 아웃포스트, 고립 폰 공략, 열린 파일·7랭크의 룩',
-  prophylactic: '내가 한 수 쉬면 상대가 얻을 이득(null move 탐색)이 이 수로 사라짐. 직접적인 기물 구출은 제외',
-  restriction: '상대 기물들이 갈 수 있는 칸 수를 크게 줄임',
-  active: '기물 전개, 중앙화, 기동성 증가, 폰 브레이크로 라인 개방',
-  space: '상대 진영 쪽으로 폰이 통제하는 칸 증가, 중앙 폰 전진',
-  tension: '서로 잡을 수 있는 폰·기물 대치를 교환으로 풀지 않고 유지하거나 새로 만듦',
-  solid: '상대의 여러 응수에 대해 평가가 크게 흔들리지 않고, 내 기물이 모두 안전한 수',
-  defensive: '체크 대응, 위협받던 기물 구출, 내 킹 주변 위협 감소, 후퇴',
-  simplifying: '기물 교환. 앞서 있을 때 더 가중',
-  complicating: '상대에게 좋은 수가 거의 하나뿐이거나 응수에 따라 결과가 크게 갈리는 국면으로 만듦',
-  quiet: '체크·잡기·직접 위협 없이, 다른 후보보다 확실히 좋은 최선 수',
-  waiting: '국면을 거의 바꾸지 않는 수인데 상대가 주그츠방(차라리 쉬고 싶은 상태)에 빠짐',
-  practical: '최선은 아니지만(손실이 작음) 교환이나 위협 제거로 국면을 쉽게 만듦',
-  kingActivity: '엔드게임에서 킹을 중앙이나 상대 진영으로 전진',
-  passedPawn: '패스폰을 전진시키거나 새로 만듦',
+  get aggressive() { return tr('상대 킹 주변을 공격하는 내 기물 수의 증가, 체크, 킹 쪽 폰 돌격, 이후 주요 변화에서 이어지는 체크와 킹 압박', 'More of my pieces attacking the enemy king zone, checks, pawn storms toward the king, and checks and king pressure continuing in the main line'); },
+  get tactical() { return tr('포크·핀·스큐어·디스커버드 어택 생성, 강제 수순으로 얻는 물질, 기물 희생 후 회수(콤비네이션)', 'Creating forks, pins, skewers and discovered attacks, winning material by force, sacrificing and winning it back (combinations)'); },
+  get initiative() { return tr('체크나 새 위협으로 상대의 응수를 강제하고, 그 사이 기물을 개선하는 수', 'Forcing the opponent\'s reply with a check or a new threat while improving pieces'); },
+  get counterattack() { return tr('상대가 무언가를 노리는 상황에서 막지 않고 같거나 더 큰 위협으로 맞받는 수', 'When the opponent is threatening something, answering with an equal or bigger threat instead of defending'); },
+  get positional() { return tr('폰 구조 개선, 상대 폰 구조 약화, 아웃포스트, 고립 폰 공략, 열린 파일·7랭크의 룩', 'Improving own pawn structure, weakening the opponent\'s, outposts, attacking isolated pawns, rooks on open files and the 7th rank'); },
+  get prophylactic() { return tr('내가 한 수 쉬면 상대가 얻을 이득(null move 탐색)이 이 수로 사라짐. 직접적인 기물 구출은 제외', 'Removes what the opponent would gain if I passed (null-move search). Direct piece rescues are excluded'); },
+  get restriction() { return tr('상대 기물들이 갈 수 있는 칸 수를 크게 줄임', 'Greatly reduces the number of squares the opponent\'s pieces can reach'); },
+  get active() { return tr('기물 전개, 중앙화, 기동성 증가, 폰 브레이크로 라인 개방', 'Development, centralization, more mobility, pawn breaks that open lines'); },
+  get space() { return tr('상대 진영 쪽으로 폰이 통제하는 칸 증가, 중앙 폰 전진', 'More squares controlled by pawns toward the enemy side, central pawn advances'); },
+  get tension() { return tr('서로 잡을 수 있는 폰·기물 대치를 교환으로 풀지 않고 유지하거나 새로 만듦', 'Keeping or creating pawn and piece standoffs instead of resolving them with trades'); },
+  get solid() { return tr('상대의 여러 응수에 대해 평가가 크게 흔들리지 않고, 내 기물이 모두 안전한 수', 'The evaluation hardly changes across the opponent\'s replies and all my pieces are safe'); },
+  get defensive() { return tr('체크 대응, 위협받던 기물 구출, 내 킹 주변 위협 감소, 후퇴', 'Answering checks, rescuing attacked pieces, fewer threats around my king, retreats'); },
+  get simplifying() { return tr('기물 교환. 앞서 있을 때 더 가중', 'Trading pieces, weighted more when ahead'); },
+  get complicating() { return tr('상대에게 좋은 수가 거의 하나뿐이거나 응수에 따라 결과가 크게 갈리는 국면으로 만듦', 'Creates positions where the opponent has almost one good move, or the outcome swings by reply'); },
+  get quiet() { return tr('체크·잡기·직접 위협 없이, 다른 후보보다 확실히 좋은 최선 수', 'The clearly best move, without checks, captures or direct threats'); },
+  get waiting() { return tr('국면을 거의 바꾸지 않는 수인데 상대가 주그츠방(차라리 쉬고 싶은 상태)에 빠짐', 'A move that barely changes the position but leaves the opponent in zugzwang'); },
+  get practical() { return tr('최선은 아니지만(손실이 작음) 교환이나 위협 제거로 국면을 쉽게 만듦', 'Not the best (small loss), but makes the position easier with trades or by removing threats'); },
+  get kingActivity() { return tr('엔드게임에서 킹을 중앙이나 상대 진영으로 전진', 'Advancing the king toward the center or the enemy camp in the endgame'); },
+  get passedPawn() { return tr('패스폰을 전진시키거나 새로 만듦', 'Pushing or creating a passed pawn'); },
 };
 
 const RISK_DESC: Record<RiskKind, string> = {
-  soundSacrifice: '물질을 내주고(교환 희생, 공격받던 기물을 그냥 두는 것 포함) Stockfish 주요 변화를 따라가도 회수되지 않지만, 평가는 유지되는 수.',
-  speculative: '물질을 내주는 희생인데 Stockfish 기준으로는 손해(기대 점수 10%p 이상 하락)인 수. 블런더 수준은 아니며, 정확한 수비가 어려워 실전에서 통할 수 있다.',
-  trap: 'Stockfish 기준 손해가 없는데, 상대가 솔깃하게 미끼를 물면(자연스러운 잡기·체크) 기대 점수가 20%p 이상 오르는 수. 기물을 그냥 내주는 미끼면 "미끼 희생"이라고 함께 적는다.',
-  gamble: 'Stockfish 기준 손해인데, 상대가 솔깃한 응수를 두면 최선 수보다 더 좋아지는 수. 상대가 틀리길 노리는 수.',
+  get soundSacrifice() { return tr('물질을 내주고(교환 희생, 공격받던 기물을 그냥 두는 것 포함) Stockfish 주요 변화를 따라가도 회수되지 않지만, 평가는 유지되는 수.', 'Gives up material (including exchange sacrifices or leaving an attacked piece) that is not won back along Stockfish\'s main line, yet the evaluation holds.'); },
+  get speculative() { return tr('물질을 내주는 희생인데 Stockfish 기준으로는 손해(기대 점수 10%p 이상 하락)인 수. 블런더 수준은 아니며, 정확한 수비가 어려워 실전에서 통할 수 있다.', 'A material sacrifice that loses by Stockfish\'s measure (expected score drops 10 pp or more). Not a blunder, and precise defense is hard, so it can work in practice.'); },
+  get trap() { return tr('Stockfish 기준 손해가 없는데, 상대가 솔깃하게 미끼를 물면(자연스러운 잡기·체크) 기대 점수가 20%p 이상 오르는 수. 기물을 그냥 내주는 미끼면 "미끼 희생"이라고 함께 적는다.', 'No loss by Stockfish\'s measure, but if the opponent takes the tempting bait (a natural capture or check), the expected score rises 20 pp or more. If the bait is a free piece, it is also marked "bait sacrifice".'); },
+  get gamble() { return tr('Stockfish 기준 손해인데, 상대가 솔깃한 응수를 두면 최선 수보다 더 좋아지는 수. 상대가 틀리길 노리는 수.', 'A loss by Stockfish\'s measure, but if the opponent plays the tempting reply, it ends up better than the best move. A move that hopes the opponent goes wrong.'); },
 };
 
 const QUALITY_DESC: Record<QualityKey, string> = {
-  best: 'Stockfish 최선 수이거나 손실 10cp 이하',
-  good: 'Stockfish 승/무/패 확률로 본 기대 점수 하락 12%p 미만',
-  inaccuracy: '기대 점수 하락 12~25%p (평형 국면에서 대략 0.5폰)',
-  mistake: '기대 점수 하락 25%p 이상 (대략 1폰)이면서 블런더가 아닌 수',
-  blunder: '기대 점수 하락 50%p 이상, 또는 30%p 이상 잃으며 사실상 진 국면이 된 수, 또는 40%p 이상 잃고 2폰 이상 손해인 수',
+  get best() { return tr('Stockfish 최선 수이거나 손실 10cp 이하', 'Stockfish\'s best move or a loss of 10cp or less'); },
+  get good() { return tr('Stockfish 승/무/패 확률로 본 기대 점수 하락 12%p 미만', 'Expected score (from Stockfish win/draw/loss) drops less than 12 pp'); },
+  get inaccuracy() { return tr('기대 점수 하락 12~25%p (평형 국면에서 대략 0.5폰)', 'Expected score drops 12–25 pp (about half a pawn in a level position)'); },
+  get mistake() { return tr('기대 점수 하락 25%p 이상 (대략 1폰)이면서 블런더가 아닌 수', 'Expected score drops 25 pp or more (about a pawn), but not a blunder'); },
+  get blunder() { return tr('기대 점수 하락 50%p 이상, 또는 30%p 이상 잃으며 사실상 진 국면이 된 수, 또는 40%p 이상 잃고 2폰 이상 손해인 수', 'Expected score drops 50 pp or more; or loses 30+ pp and the position is effectively lost; or loses 40+ pp and two or more pawns'); },
 };
 
 export function renderGuide(): string {
   const groups = [...new Set(STYLE_KEYS.map((k) => STYLES[k].group))];
   const styleSections = groups.map((g) => `
     <section class="guide-group">
-      <h2>${g} 계열</h2>
+      <h2>${tr(`${g} 계열`, `${g} styles`)}</h2>
       <div class="guide-list">
         ${STYLE_KEYS.filter((k) => STYLES[k].group === g).map((k) => `
           <div class="card guide-item">
             <h3><span class="dot" style="background:${STYLES[k].color}"></span>${STYLES[k].label}</h3>
             <p>${STYLES[k].desc}</p>
-            <div class="how">측정: ${HOW[k]}</div>
+            <div class="how">${tr('측정', 'Measured by')}: ${HOW[k]}</div>
           </div>`).join('')}
       </div>
     </section>`).join('');
@@ -58,17 +59,17 @@ export function renderGuide(): string {
     <div class="card guide-item"><h3><span class="pill q-${k}">${QUALITY_LABEL[k]}</span></h3><p>${QUALITY_DESC[k]}</p></div>`).join('');
   return `
     <div class="guide">
-      <div class="hero"><h1>스타일 사전</h1><p>한 수는 여러 스타일을 동시에 가질 수 있고(각 0~100점), 위험 판정과 품질은 별도로 매깁니다.</p></div>
+      <div class="hero"><h1>${tr('스타일 사전', 'Style guide')}</h1><p>${tr('한 수는 여러 스타일을 동시에 가질 수 있고(각 0~100점), 위험 판정과 품질은 별도로 매깁니다.', 'One move can have several styles at once (each 0–100); risk labels and quality are rated separately.')}</p></div>
       ${styleSections}
-      <section class="guide-group"><h2>위험 판정 (해당될 때 하나만)</h2><div class="guide-list">${risk}</div></section>
-      <section class="guide-group"><h2>수의 품질</h2><div class="guide-list">${quality}</div></section>
+      <section class="guide-group"><h2>${tr('위험 판정 (해당될 때 하나만)', 'Risk labels (at most one)')}</h2><div class="guide-list">${risk}</div></section>
+      <section class="guide-group"><h2>${tr('수의 품질', 'Move quality')}</h2><div class="guide-list">${quality}</div></section>
       <section class="guide-group card card-pad">
-        <h2>오프닝 이론 수</h2>
-        <p class="muted">Lichess가 공개한 오프닝 목록(약 3,300개 변화)에 있는 국면까지는 이론 수로 봅니다. 수순이 바뀌어 같은 국면에 와도 인식합니다. 누구나 두는 수라 스타일 점수는 참고용으로 흐리게 보여주고 플레이어 평가에서는 뺍니다. 처음 이론을 벗어난 수는 ↳로 표시합니다.</p>
+        <h2>${tr('오프닝 이론 수', 'Opening theory moves')}</h2>
+        <p class="muted">${tr('Lichess가 공개한 오프닝 목록(약 3,300개 변화)에 있는 국면까지는 이론 수로 봅니다. 수순이 바뀌어 같은 국면에 와도 인식합니다. 누구나 두는 수라 스타일 점수는 참고용으로 흐리게 보여주고 플레이어 평가에서는 뺍니다. 처음 이론을 벗어난 수는 ↳로 표시합니다.', 'Positions found in Lichess\'s public opening list (about 3,300 lines) count as theory, even when reached by a different move order. Since everyone plays them, their style scores are dimmed for reference and excluded from player stats. The first move out of theory is marked ↳.')}</p>
       </section>
       <section class="guide-group card card-pad">
-        <h2>강제된 수</h2>
-        <p class="muted">합법 수가 하나뿐이거나, 체크를 피하는 수가 거의 없거나, 당연한 되잡기처럼 누구나 먼저 떠올릴 유일한 최선 수는 플레이어의 선택이 아니므로 플레이어 평가 집계에서 제외합니다. 찾기 어려운 유일한 수(희생 등)는 포함합니다.</p>
+        <h2>${tr('강제된 수', 'Forced moves')}</h2>
+        <p class="muted">${tr('합법 수가 하나뿐이거나, 체크를 피하는 수가 거의 없거나, 당연한 되잡기처럼 누구나 먼저 떠올릴 유일한 최선 수는 플레이어의 선택이 아니므로 플레이어 평가 집계에서 제외합니다. 찾기 어려운 유일한 수(희생 등)는 포함합니다.', 'When there is only one legal move, almost no way out of check, or a single obvious best move like a recapture, it is not really a choice, so it is excluded from player stats. Hard-to-find only moves (like sacrifices) are included.')}</p>
       </section>
     </div>`;
 }

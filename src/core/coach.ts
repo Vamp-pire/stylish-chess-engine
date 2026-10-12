@@ -1,5 +1,6 @@
 // 코치와 두기: 수 하나씩 바로 평가하고, 봇이 레벨·스타일에 맞춰 수를 고른다.
 // 엔진 종류(브라우저 풀 / Node 프로세스)와 무관하게 동작한다.
+import { tr } from '../i18n';
 import { Chess, type Move } from 'chess.js';
 import type { Engine, EngineLine } from '../engine/uci';
 import { analyzeMove, evalLines, isForcedPosition, markBook, flipSide, uciToSanLine, URGENT, type MoveAnalysis } from './analyzer';
@@ -7,6 +8,7 @@ import { extractFeatures } from './features';
 import { scoreMove, STYLE_KEYS, type StyleKey } from './styles';
 import { Searcher } from '../search/search';
 import { MASTERS } from './masters';
+import { masterDesc } from './masters';
 import type { OpeningBook } from './openings';
 
 // ───────────── 봇 ─────────────
@@ -23,21 +25,21 @@ export interface BotLevel {
 
 // 강도 이름은 상대적인 단계일 뿐, 레이팅과 맞춘 값이 아니다
 export const BOT_LEVELS: BotLevel[] = [
-  { name: '입문', depth: 2, multipv: 5, temperature: 220, styleTolerance: 120 },
-  { name: '초급', depth: 4, multipv: 5, temperature: 110, styleTolerance: 90 },
-  { name: '중급', depth: 7, multipv: 4, temperature: 50, styleTolerance: 60 },
-  { name: '고급', depth: 11, multipv: 4, temperature: 18, styleTolerance: 40 },
-  { name: '최강', depth: 16, multipv: 3, temperature: 0, styleTolerance: 15 },
+  { get name() { return tr('입문', 'Beginner'); }, depth: 2, multipv: 5, temperature: 220, styleTolerance: 120 },
+  { get name() { return tr('초급', 'Novice'); }, depth: 4, multipv: 5, temperature: 110, styleTolerance: 90 },
+  { get name() { return tr('중급', 'Intermediate'); }, depth: 7, multipv: 4, temperature: 50, styleTolerance: 60 },
+  { get name() { return tr('고급', 'Advanced'); }, depth: 11, multipv: 4, temperature: 18, styleTolerance: 40 },
+  { get name() { return tr('최강', 'Maximum'); }, depth: 16, multipv: 3, temperature: 0, styleTolerance: 15 },
 ];
 
 export interface BotStyle { id: string; label: string; desc: string; weights: Partial<Record<StyleKey, number>> }
 
 const PRESETS: BotStyle[] = [
-  { id: 'balanced', label: '균형형', desc: '스타일 없이 엔진이 좋다고 보는 수를 둡니다.', weights: {} },
-  { id: 'attack', label: '공격형', desc: '킹 공격·전술·주도권을 노리는 수를 좋아합니다.', weights: { aggressive: 0.4, tactical: 0.3, initiative: 0.3 } },
-  { id: 'squeeze', label: '조이기형', desc: '상대 계획을 막고 숨통을 조이는 수를 좋아합니다.', weights: { prophylactic: 0.35, restriction: 0.35, positional: 0.3 } },
-  { id: 'solid', label: '안정형', desc: '교환과 안전한 수로 위험을 줄입니다.', weights: { solid: 0.4, simplifying: 0.35, defensive: 0.25 } },
-  { id: 'chaos', label: '혼돈형', desc: '국면을 날카롭게 만들어 실수를 유도합니다.', weights: { complicating: 0.5, counterattack: 0.25, tension: 0.25 } },
+  { id: 'balanced', get label() { return tr('균형형', 'Balanced'); }, get desc() { return tr('스타일 없이 엔진이 좋다고 보는 수를 둡니다.', 'Plays what the engine likes, without a style.'); }, weights: {} },
+  { id: 'attack', get label() { return tr('공격형', 'Attacker'); }, get desc() { return tr('킹 공격·전술·주도권을 노리는 수를 좋아합니다.', 'Likes moves that go for king attacks, tactics and the initiative.'); }, weights: { aggressive: 0.4, tactical: 0.3, initiative: 0.3 } },
+  { id: 'squeeze', get label() { return tr('조이기형', 'Squeezer'); }, get desc() { return tr('상대 계획을 막고 숨통을 조이는 수를 좋아합니다.', 'Likes stopping your plans and slowly squeezing.'); }, weights: { prophylactic: 0.35, restriction: 0.35, positional: 0.3 } },
+  { id: 'solid', get label() { return tr('안정형', 'Solid'); }, get desc() { return tr('교환과 안전한 수로 위험을 줄입니다.', 'Reduces risk with trades and safe moves.'); }, weights: { solid: 0.4, simplifying: 0.35, defensive: 0.25 } },
+  { id: 'chaos', get label() { return tr('혼돈형', 'Chaos'); }, get desc() { return tr('국면을 날카롭게 만들어 실수를 유도합니다.', 'Sharpens the position to provoke mistakes.'); }, weights: { complicating: 0.5, counterattack: 0.25, tension: 0.25 } },
 ];
 
 /**
@@ -48,7 +50,7 @@ const MASTER_MEAN = Object.fromEntries(STYLE_KEYS.map((k) => [k, MASTERS.reduce(
 const MASTER_STYLES: BotStyle[] = MASTERS.map((m) => {
   const dev = STYLE_KEYS.map((k) => [k, Math.max(0, m.avg[k] - MASTER_MEAN[k])] as const).filter(([, v]) => v > 0);
   const sum = dev.reduce((s, [, v]) => s + v, 0) || 1;
-  return { id: `master:${m.id}`, label: `${m.ko} 스타일`, desc: m.desc, weights: Object.fromEntries(dev.map(([k, v]) => [k, v / sum])) };
+  return { id: `master:${m.id}`, get label() { return tr(`${m.ko} 스타일`, `${m.name} style`); }, get desc() { return masterDesc(m); }, weights: Object.fromEntries(dev.map(([k, v]) => [k, v / sum])) };
 });
 
 export const BOT_STYLES: BotStyle[] = [...PRESETS, ...MASTER_STYLES];

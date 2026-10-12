@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 // 아이디로 최근 게임 불러오기: Chess.com 공개 API, Lichess API (둘 다 브라우저에서 바로 호출 가능)
 
 export type Source = 'chesscom' | 'lichess';
@@ -31,9 +32,9 @@ interface ChesscomCursor { archives: string[]; index: number }
 
 async function chesscomJson(url: string) {
   const res = await fetch(url);
-  if (res.status === 404) throw new SourceError('Chess.com에서 이 아이디를 찾을 수 없습니다.');
-  if (res.status === 429) throw new SourceError('Chess.com 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.');
-  if (!res.ok) throw new SourceError(`Chess.com 응답 오류 (${res.status})`);
+  if (res.status === 404) throw new SourceError(tr('Chess.com에서 이 아이디를 찾을 수 없습니다.', 'This username was not found on Chess.com.'));
+  if (res.status === 429) throw new SourceError(tr('Chess.com 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', 'Too many requests to Chess.com. Please try again shortly.'));
+  if (!res.ok) throw new SourceError(tr(`Chess.com 응답 오류 (${res.status})`, `Chess.com error (${res.status})`));
   return res.json();
 }
 
@@ -72,9 +73,9 @@ async function lichessPage(user: string, until: number | null, want = 20): Promi
   });
   if (until) params.set('until', String(until));
   const res = await fetch(`https://lichess.org/api/games/user/${encodeURIComponent(u)}?${params}`, { headers: { Accept: 'application/x-ndjson' } });
-  if (res.status === 404) throw new SourceError('Lichess에서 이 아이디를 찾을 수 없습니다.');
-  if (res.status === 429) throw new SourceError('Lichess 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.');
-  if (!res.ok) throw new SourceError(`Lichess 응답 오류 (${res.status})`);
+  if (res.status === 404) throw new SourceError(tr('Lichess에서 이 아이디를 찾을 수 없습니다.', 'This username was not found on Lichess.'));
+  if (res.status === 429) throw new SourceError(tr('Lichess 요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', 'Too many requests to Lichess. Please try again shortly.'));
+  if (!res.ok) throw new SourceError(tr(`Lichess 응답 오류 (${res.status})`, `Lichess error (${res.status})`));
   const rows = (await res.text()).trim().split('\n').filter(Boolean).map((l) => JSON.parse(l));
   const games: OnlineGame[] = rows.filter((g) => g.variant === 'standard' && g.pgn).map((g) => {
     const wn = g.players.white.user?.name ?? 'Anonymous', bn = g.players.black.user?.name ?? 'Anonymous';
@@ -91,7 +92,7 @@ async function lichessPage(user: string, until: number | null, want = 20): Promi
 }
 
 export function fetchGames(source: Source, user: string, next: unknown | null): Promise<GamePage> {
-  if (!user.trim()) return Promise.reject(new SourceError('아이디를 입력해 주세요.'));
+  if (!user.trim()) return Promise.reject(new SourceError(tr('아이디를 입력해 주세요.', 'Please enter a username.')));
   return source === 'chesscom' ? chesscomPage(user, next as ChesscomCursor | null) : lichessPage(user, next as number | null);
 }
 

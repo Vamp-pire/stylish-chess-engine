@@ -1,4 +1,5 @@
 // 플레이어 평가: 강제된 수와 오프닝 이론 수를 뺀 수들로 스타일 성향을 집계한다.
+import { tr } from '../i18n';
 import type { MoveAnalysis } from './analyzer';
 import { STYLE_KEYS, RISK_KINDS, type StyleKey, type RiskKind, type QualityKey } from './styles';
 
@@ -142,29 +143,29 @@ function archetype(avg: Record<StyleKey, number>, riskRate: number): PlayerProfi
   const order = Object.entries(g).sort((a, b) => b[1] - a[1]);
   const [first, second] = order;
   const spread = first[1] - order[order.length - 1][1];
-  if (spread < 4) return { name: '만능형', desc: '어느 한쪽에 치우치지 않고 국면에 맞춰 스타일을 바꾼다 (칼슨 스타일)' };
+  if (spread < 4) return { get name() { return tr('만능형', 'All-rounder'); }, get desc() { return tr('어느 한쪽에 치우치지 않고 국면에 맞춰 스타일을 바꾼다 (칼슨 스타일)', 'Adapts the style to the position without leaning to one side (Carlsen style)'); } };
   switch (first[0]) {
     case 'attack':
       return riskRate >= 0.04 || dev('complicating') >= 5
-        ? { name: '로맨틱 공격수', desc: '희생과 위험을 감수하며 상대 킹을 몰아친다 (탈 스타일)' }
-        : { name: '역동적 공격형', desc: '활동성과 주도권으로 정확하게 공격을 밀어붙인다 (카스파로프 스타일)' };
+        ? { get name() { return tr('로맨틱 공격수', 'Romantic attacker'); }, get desc() { return tr('희생과 위험을 감수하며 상대 킹을 몰아친다 (탈 스타일)', 'Hunts the enemy king, accepting sacrifices and risk (Tal style)'); } }
+        : { get name() { return tr('역동적 공격형', 'Dynamic attacker'); }, get desc() { return tr('활동성과 주도권으로 정확하게 공격을 밀어붙인다 (카스파로프 스타일)', 'Drives the attack precisely with activity and initiative (Kasparov style)'); } };
     case 'position':
       return dev('prophylactic') + dev('restriction') + dev('tension') >= dev('active') + dev('space')
-        ? { name: '조이기의 달인', desc: '상대의 계획을 미리 막고 숨통을 조인다 (페트로시안 스타일)' }
-        : { name: '포지셔널 전략가', desc: '공간과 기물 활동으로 천천히 우위를 쌓는다' };
+        ? { get name() { return tr('조이기의 달인', 'Master of restriction'); }, get desc() { return tr('상대의 계획을 미리 막고 숨통을 조인다 (페트로시안 스타일)', 'Stops the opponent\'s plans in advance and squeezes (Petrosian style)'); } }
+        : { get name() { return tr('포지셔널 전략가', 'Positional strategist'); }, get desc() { return tr('공간과 기물 활동으로 천천히 우위를 쌓는다', 'Slowly builds an edge with space and piece activity'); } };
     case 'safety': {
       // 안전 계열 안에서 무엇이 두드러졌는지로 나눈다: 견고함 / 실제 수비 / 단순화
       const lead = (['solid', 'defensive', 'simplifying'] as StyleKey[]).sort((a, b) => dev(b) - dev(a))[0];
-      if (lead === 'defensive') return { name: '철벽 수비형', desc: '위협을 먼저 없애고 끈질기게 버틴다' };
-      if (lead === 'simplifying') return { name: '안정 추구형', desc: '교환과 단순화로 위험 없는 국면을 선호한다' };
+      if (lead === 'defensive') return { get name() { return tr('철벽 수비형', 'Iron defender'); }, get desc() { return tr('위협을 먼저 없애고 끈질기게 버틴다', 'Removes threats first and holds on stubbornly'); } };
+      if (lead === 'simplifying') return { get name() { return tr('안정 추구형', 'Safety seeker'); }, get desc() { return tr('교환과 단순화로 위험 없는 국면을 선호한다', 'Prefers risk-free positions through trades and simplification'); } };
       return second[0] === 'position' || second[0] === 'practical'
-        ? { name: '견고한 전략가', desc: '위험을 만들지 않고 긴장을 유지하며 천천히 우위를 쌓는다 (카르포프 스타일)' }
-        : { name: '안정 추구형', desc: '위험 요소를 최소화하는 견고한 수를 선호한다' };
+        ? { get name() { return tr('견고한 전략가', 'Solid strategist'); }, get desc() { return tr('위험을 만들지 않고 긴장을 유지하며 천천히 우위를 쌓는다 (카르포프 스타일)', 'Avoids risk, keeps the tension and slowly builds an edge (Karpov style)'); } }
+        : { get name() { return tr('안정 추구형', 'Safety seeker'); }, get desc() { return tr('위험 요소를 최소화하는 견고한 수를 선호한다', 'Prefers solid moves that minimize risk'); } };
     }
     default:
       return dev('complicating') >= dev('practical')
-        ? { name: '혼돈의 마술사', desc: '국면을 일부러 복잡하게 만들어 상대의 실수를 유도한다' }
-        : { name: '실전형 승부사', desc: '최선보다 이기기 쉬운 길을 고른다' };
+        ? { get name() { return tr('혼돈의 마술사', 'Chaos magician'); }, get desc() { return tr('국면을 일부러 복잡하게 만들어 상대의 실수를 유도한다', 'Complicates the position on purpose to provoke mistakes'); } }
+        : { get name() { return tr('실전형 승부사', 'Practical competitor'); }, get desc() { return tr('최선보다 이기기 쉬운 길을 고른다', 'Chooses the easier path to win over the objectively best one'); } };
   }
 }
 

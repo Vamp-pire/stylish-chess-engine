@@ -1,3 +1,4 @@
+import { tr } from '../i18n';
 // 간단한 대화 상자: 배경을 누르거나 Esc로 닫는다.
 
 export function openModal(title: string, body: string, onClose?: () => void): HTMLElement {
@@ -5,7 +6,7 @@ export function openModal(title: string, body: string, onClose?: () => void): HT
   wrap.className = 'modal-backdrop';
   wrap.innerHTML = `
     <div class="modal" role="dialog" aria-modal="true" aria-label="${title.replace(/"/g, '&quot;')}">
-      <div class="modal-head"><h2>${title}</h2><button class="ghost modal-close" aria-label="닫기">✕</button></div>
+      <div class="modal-head"><h2>${title}</h2><button class="ghost modal-close" aria-label="${tr('닫기', 'Close')}">✕</button></div>
       <div class="modal-body">${body}</div>
     </div>`;
   const close = () => {

@@ -1,10 +1,11 @@
+import { tr } from './i18n';
 // 예시 기보 (모두 퍼블릭 도메인인 고전 기보)
 export interface Sample { id: string; title: string; pgn: string }
 
 export const SAMPLES: Sample[] = [
   {
     id: 'opera',
-    title: '오페라 게임 — 모피 vs 브런즈윅·이수아르 (1858)',
+    get title() { return tr('오페라 게임 — 모피 vs 브런즈윅·이수아르 (1858)', 'The Opera Game — Morphy vs Brunswick & Isouard (1858)'); },
     pgn: `[Event "Paris Opera"]
 [Site "Paris"]
 [Date "1858.11.02"]
@@ -18,7 +19,7 @@ export const SAMPLES: Sample[] = [
   },
   {
     id: 'immortal',
-    title: '불멸의 게임 — 안데르센 vs 키제리츠키 (1851)',
+    get title() { return tr('불멸의 게임 — 안데르센 vs 키제리츠키 (1851)', 'The Immortal Game — Anderssen vs Kieseritzky (1851)'); },
     pgn: `[Event "London casual game"]
 [Site "London"]
 [Date "1851.06.21"]
@@ -33,7 +34,7 @@ export const SAMPLES: Sample[] = [
   },
   {
     id: 'evergreen',
-    title: '상록수 게임 — 안데르센 vs 뒤프렌 (1852)',
+    get title() { return tr('상록수 게임 — 안데르센 vs 뒤프렌 (1852)', 'The Evergreen Game — Anderssen vs Dufresne (1852)'); },
     pgn: `[Event "Berlin casual game"]
 [Site "Berlin"]
 [Date "1852"]

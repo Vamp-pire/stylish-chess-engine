@@ -1,5 +1,6 @@
 // 분석 결과를 이 브라우저(IndexedDB)에 저장해 같은 기보를 다시 열면 즉시 보여준다.
 // 저장 실패(사생활 보호 모드 등)는 조용히 무시한다.
+import { getLang } from '../i18n';
 import type { GameAnalysis } from '../core/analyzer';
 
 const DB = 'stylish', STORE = 'analyses', VERSION = 1;
@@ -27,9 +28,10 @@ export function gameHash(pgn: string) {
   return `${(h >>> 0).toString(36)}:${moves.length}`;
 }
 
-/** 분석 캐시 키: 판정 규칙 버전 + 깊이 + 게임 */
+/** 분석 캐시 키: 판정 규칙 버전 + 언어 + 깊이 + 게임 */
 export function cacheKey(pgn: string, depth: number) {
-  return `v${RULES_VERSION}:d${depth}:${gameHash(pgn)}`;
+  // 판단 근거 문장이 언어별로 다르므로 언어도 키에 넣는다
+  return `v${RULES_VERSION}:${getLang()}:d${depth}:${gameHash(pgn)}`;
 }
 
 export async function getCached(key: string): Promise<GameAnalysis | null> {

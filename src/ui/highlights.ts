@@ -1,4 +1,5 @@
 // 이 판의 명수: 희생·함정·조용한 수 등 인상적인 수를 골라 보드 그림 카드(PNG)로 만든다.
+import { tr } from '../i18n';
 import pieceCss from 'chessground/assets/chessground.cburnett.css?raw';
 import type { MoveAnalysis } from '../core/analyzer';
 import { STYLES, RISK_LABEL, QUALITY_LABEL, type RiskKind } from '../core/styles';
@@ -14,9 +15,9 @@ export function pickHighlights(moves: MoveAnalysis[], color?: 'w' | 'b', n = 3):
       const styleMax = Math.max(...Object.values(m.scores));
       let rank = 0, title = '', why = '';
       if (m.risk) { rank = RISK_RANK[m.risk]; title = RISK_LABEL[m.risk]; why = m.riskWhy ?? ''; }
-      else if (m.scores.quiet >= 60) { rank = 55; title = '조용한 결정타'; why = m.reasons.quiet[0]?.why ?? ''; }
-      else if (m.deep.isBest && m.deep.bestGap >= 150) { rank = 50; title = '유일한 수'; why = `다른 후보보다 ${Math.round(m.deep.bestGap)}cp 좋은 수를 찾음`; }
-      else if (m.features.isMate) { rank = 45; title = '체크메이트'; why = ''; }
+      else if (m.scores.quiet >= 60) { rank = 55; title = tr('조용한 결정타', 'Quiet killer'); why = m.reasons.quiet[0]?.why ?? ''; }
+      else if (m.deep.isBest && m.deep.bestGap >= 150) { rank = 50; title = tr('유일한 수', 'Only move'); why = tr(`다른 후보보다 ${Math.round(m.deep.bestGap)}cp 좋은 수를 찾음`, `Found a move ${Math.round(m.deep.bestGap)}cp better than the alternatives`); }
+      else if (m.features.isMate) { rank = 45; title = tr('체크메이트', 'Checkmate'); why = ''; }
       return { m, rank: rank + styleMax / 100, title, why };
     })
     .filter((x) => x.title)
@@ -129,4 +130,4 @@ export async function drawCard(h: Highlight, info: CardInfo): Promise<HTMLCanvas
   return cv;
 }
 
-export const cardBlob = (cv: HTMLCanvasElement) => new Promise<Blob>((resolve, reject) => cv.toBlob((b) => (b ? resolve(b) : reject(new Error('이미지를 만들지 못했습니다'))), 'image/png'));
+export const cardBlob = (cv: HTMLCanvasElement) => new Promise<Blob>((resolve, reject) => cv.toBlob((b) => (b ? resolve(b) : reject(new Error(tr('이미지를 만들지 못했습니다', 'Could not create the image')))), 'image/png'));

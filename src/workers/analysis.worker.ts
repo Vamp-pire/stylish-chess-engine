@@ -1,5 +1,6 @@
 // 분석 Worker: 특징 추출·소형 탐색·채점을 화면과 분리된 스레드에서 돌린다.
 // Stockfish는 메인 스레드가 띄운 엔진 Worker에 요청을 중계받아 쓴다 (Worker 중첩을 피하기 위해).
+import { setLang } from '../i18n';
 import { analyzeGame } from '../core/analyzer';
 import { loadOpeningBook } from '../core/openings';
 import type { Engine, EngineLine } from '../engine/uci';
@@ -47,6 +48,7 @@ self.onmessage = async (e: MessageEvent<ToWorker>) => {
     signal.aborted = true;
   } else if (msg.type === 'analyze') {
     signal.aborted = false;
+    setLang(msg.lang); // 판단 근거·위험 판정 설명을 화면 언어로
     try {
       // 오프닝 데이터를 못 받아도 분석은 계속한다 (이론 판별만 빠짐)
       const book = msg.bookUrl ? await loadOpeningBook(msg.bookUrl).catch(() => null) : null;

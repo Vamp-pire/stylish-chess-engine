@@ -393,6 +393,13 @@ write('/about', page({
 <h2>어떻게 동작하나요</h2>
 ${howMeasured}
 <p>모든 계산은 방문자의 브라우저 안에서 이뤄집니다. 게임 기록이 Stylish 서버로 전송되지 않습니다. 자세한 내용은 <a href="/privacy">개인정보처리방침</a>을 참고하세요.</p>
+<h2>한계</h2>
+<ul>
+<li>함정수·도박수 판정은 사람 수 예측 모델(Maia3)의 확률에 기대므로, 모델의 예측이 실제 사람과 다르면 판정도 달라질 수 있습니다.</li>
+<li>브라우저용 경량 엔진과 제한된 깊이를 쓰므로, 아주 깊은 수순이 필요한 수는 평가가 달라질 수 있습니다.</li>
+<li>스타일 가중치는 대표 국면과 고전 기보로 맞췄으며 계속 다듬고 있습니다.</li>
+<li>"닮은 선수"는 유명 선수 10명의 기보를 선수당 24판씩 같은 방법(깊이 10)으로 분석한 평균과 비교한 것입니다. 표본이 작아 재미로 보는 참고 지표입니다. (기보 출처: GitHub의 antlr/grammars-v4 예제, CRAN bigchess 예제. 사이트에는 집계 숫자만 들어 있습니다.)</li>
+</ul>
 <h2>오픈소스</h2>
 <p>Stylish는 GPLv3 오픈소스입니다. 소스 코드는 <a href="${REPO}" rel="noopener">GitHub</a>에서 볼 수 있습니다.
 사용한 오픈소스: Stockfish 19(GPLv3), stockfish.js(GPLv3), Maia3(CSSLab, GPLv3), chessground(GPLv3), chess.js(BSD), onnxruntime-web(MIT), Lichess 오프닝 목록(CC0).</p>
@@ -600,6 +607,13 @@ write('/en/about', page({
 <h2>How it works</h2>
 ${howMeasuredEn}
 <p>Everything runs inside your browser. Your games are never sent to a Stylish server. See the <a href="/en/privacy">privacy policy</a> for details.</p>
+<h2>Limitations</h2>
+<ul>
+<li>Trap and gamble labels rely on the human-move model (Maia3). If its predictions differ from real people, the labels can be off.</li>
+<li>A lightweight browser engine and limited depth are used, so moves that need very deep lines may be evaluated differently.</li>
+<li>Style weights were tuned on representative positions and classic games, and are still being refined.</li>
+<li>"Similar players" compares you with averages from 24 games each of 10 famous players, analyzed the same way (depth 10). The sample is small, so treat it as a fun reference. (Game sources: antlr/grammars-v4 examples on GitHub and CRAN bigchess examples. Only aggregate numbers are included in the site.)</li>
+</ul>
 <h2>Open source</h2>
 <p>Stylish is GPLv3 open source. The source code is on <a href="${REPO}" rel="noopener">GitHub</a>.
 Open source used: Stockfish 19 (GPLv3), stockfish.js (GPLv3), Maia3 (CSSLab, GPLv3), chessground (GPLv3), chess.js (BSD), onnxruntime-web (MIT), Lichess chess-openings (CC0).</p>

@@ -2,6 +2,7 @@
 // 사진은 이 브라우저 안에서만 쓰이고 서버로 보내지 않는다.
 import { openModal } from './modal';
 import { TYPE_DATA, groupOf } from '../core/chessType';
+import { tr, getLang } from '../i18n';
 
 export interface ResultImageInput { code: string; name: string; pcts: number[] }
 
@@ -30,7 +31,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('이미지를 불러오지 못했습니다'));
+    img.onerror = () => reject(new Error(tr('이미지를 불러오지 못했습니다', 'Could not load the image')));
     img.src = src;
   });
 }
@@ -113,11 +114,12 @@ async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, format: 
   ctx.textAlign = align;
   if (nick) {
     ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = `700 ${story ? 44 : 38}px ${FONT}`;
-    ctx.fillText(`${nick}의 체스 유형`, x, y);
+    ctx.fillText(tr(`${nick}의 체스 유형`, `${nick}'s chess type`), x, y);
   }
   // 그룹 이름표
   ctx.font = `700 ${story ? 32 : 28}px ${FONT}`;
-  const pill = `${group.name} · ${group.en}`;
+  const en = getLang() === 'en';
+  const pill = en ? group.name : `${group.name} · ${group.en}`;
   const pw = ctx.measureText(pill).width + 40;
   const pillY = story ? y + 50 : y + 46;
   const pillX = story ? x - pw / 2 : x;
@@ -137,13 +139,13 @@ async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, format: 
   ctx.font = `800 ${story ? 96 : 80}px ${FONT}`;
   const nameW = ctx.measureText(t.name).width;
   ctx.font = `500 ${story ? 44 : 38}px ${FONT}`;
-  const enW = ctx.measureText(t.en).width;
-  const nameX = story ? x - (nameW + 20 + enW) / 2 : x;
+  const enW = en ? 0 : ctx.measureText(t.en).width;
+  const nameX = story ? x - (nameW + (en ? 0 : 20) + enW) / 2 : x;
   ctx.textAlign = 'left';
   ctx.font = `800 ${story ? 96 : 80}px ${FONT}`; ctx.fillStyle = '#ffffff';
   ctx.fillText(t.name, nameX, y);
   ctx.font = `500 ${story ? 44 : 38}px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.75)';
-  ctx.fillText(t.en, nameX + nameW + 20, y);
+  if (!en) ctx.fillText(t.en, nameX + nameW + 20, y);
   ctx.textAlign = align;
 
   ctx.font = `500 ${story ? 46 : 40}px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.92)';
@@ -179,7 +181,7 @@ async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, format: 
   // 아래 주소
   ctx.textAlign = align;
   ctx.font = `500 ${story ? 34 : 28}px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.72)';
-  ctx.fillText(`나의 체스 유형은? ${SITE}`, story ? W / 2 : 80, H - (story ? 90 : 46));
+  ctx.fillText(`${tr('나의 체스 유형은?', "What's your chess type?")} ${SITE}`, story ? W / 2 : 80, H - (story ? 90 : 46));
 }
 
 function hexA(hex: string, a: number) {
@@ -188,32 +190,32 @@ function hexA(hex: string, a: number) {
 }
 
 const toBlob = (canvas: HTMLCanvasElement) =>
-  new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('이미지를 만들지 못했습니다'))), 'image/png'));
+  new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error(tr('이미지를 만들지 못했습니다', 'Could not create the image')))), 'image/png'));
 
 export function openResultImage(input: ResultImageInput) {
   const t = TYPE_DATA.types.find((x) => x.code === input.code);
   if (!t) return;
-  const body = openModal('내 결과 이미지 만들기', `
+  const body = openModal(tr('내 결과 이미지 만들기', 'Make my result image'), `
     <div class="ri">
-      <div class="ri-preview"><canvas class="ri-canvas" aria-label="결과 이미지 미리보기"></canvas></div>
+      <div class="ri-preview"><canvas class="ri-canvas" aria-label="${tr('결과 이미지 미리보기', 'Result image preview')}"></canvas></div>
       <div class="ri-side">
         <div class="ri-field">
-          <span class="ri-label">프로필 사진 (선택)</span>
+          <span class="ri-label">${tr('프로필 사진 (선택)', 'Profile photo (optional)')}</span>
           <div class="ri-row">
-            <label class="ri-file">사진 고르기<input type="file" accept="image/*" hidden /></label>
-            <button type="button" class="ghost" data-ri-clear hidden>사진 빼기</button>
+            <label class="ri-file">${tr('사진 고르기', 'Choose photo')}<input type="file" accept="image/*" hidden /></label>
+            <button type="button" class="ghost" data-ri-clear hidden>${tr('사진 빼기', 'Remove photo')}</button>
           </div>
-          <span class="faint">사진은 이 기기 안에서만 쓰이고 어디에도 올라가지 않아요. 사진이 없으면 유형 기물이 들어가요.</span>
+          <span class="faint">${tr('사진은 이 기기 안에서만 쓰이고 어디에도 올라가지 않아요. 사진이 없으면 유형 장면이 들어가요.', 'Your photo stays on this device and is never uploaded. Without a photo, the type scene is used.')}</span>
         </div>
-        <label class="ri-field"><span class="ri-label">닉네임 (선택)</span>
-          <input class="ri-nick" maxlength="20" value="${esc(input.name)}" placeholder="이미지에 넣을 이름" /></label>
-        <div class="ri-field"><span class="ri-label">모양</span>
-          <div class="ri-seg"><button type="button" data-ri-format="square" class="on">정사각형 (피드)</button><button type="button" data-ri-format="story">세로 (스토리)</button></div>
+        <label class="ri-field"><span class="ri-label">${tr('닉네임 (선택)', 'Nickname (optional)')}</span>
+          <input class="ri-nick" maxlength="20" value="${esc(input.name)}" placeholder="${tr('이미지에 넣을 이름', 'Name to show on the image')}" /></label>
+        <div class="ri-field"><span class="ri-label">${tr('모양', 'Format')}</span>
+          <div class="ri-seg"><button type="button" data-ri-format="square" class="on">${tr('정사각형 (피드)', 'Square (feed)')}</button><button type="button" data-ri-format="story">${tr('세로 (스토리)', 'Vertical (story)')}</button></div>
         </div>
         <div class="ri-actions">
-          <button type="button" class="ri-primary" data-ri-copy>이미지 복사</button>
-          <button type="button" data-ri-save>저장</button>
-          <button type="button" data-ri-share hidden>공유</button>
+          <button type="button" class="ri-primary" data-ri-copy>${tr('이미지 복사', 'Copy image')}</button>
+          <button type="button" data-ri-save>${tr('저장', 'Save')}</button>
+          <button type="button" data-ri-share hidden>${tr('공유', 'Share')}</button>
         </div>
         <p class="ri-msg faint" aria-live="polite"></p>
       </div>
@@ -238,7 +240,7 @@ export function openResultImage(input: ResultImageInput) {
     if (photoUrl) URL.revokeObjectURL(photoUrl);
     photoUrl = URL.createObjectURL(f);
     try { photo = await loadImage(photoUrl); clearBtn.hidden = false; say(''); }
-    catch { photo = null; say('이 사진 형식은 열 수 없어요. JPG나 PNG로 다시 골라 주세요.'); }
+    catch { photo = null; say(tr('이 사진 형식은 열 수 없어요. JPG나 PNG로 다시 골라 주세요.', 'This photo format cannot be opened. Please choose a JPG or PNG.')); }
     redraw();
   };
   clearBtn.onclick = () => { photo = null; clearBtn.hidden = true; fileInput.value = ''; redraw(); };
@@ -256,9 +258,9 @@ export function openResultImage(input: ResultImageInput) {
     try {
       // 사용자 동작 안에서 바로 호출해야 하므로 Blob은 Promise로 넘긴다 (Safari)
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': toBlob(canvas) })]);
-      say('복사했어요! 카톡·인스타·디스코드 등에 붙여넣기 하세요.');
+      say(tr('복사했어요! 카톡·인스타·디스코드 등에 붙여넣기 하세요.', 'Copied! Paste it into Instagram, Discord, X and more.'));
     } catch {
-      say('이 브라우저에서는 이미지 복사가 안 돼요. 저장을 눌러 주세요.');
+      say(tr('이 브라우저에서는 이미지 복사가 안 돼요. 저장을 눌러 주세요.', "This browser can't copy images. Please use Save."));
     }
   };
   body.querySelector<HTMLButtonElement>('[data-ri-save]')!.onclick = async () => {
@@ -266,7 +268,7 @@ export function openResultImage(input: ResultImageInput) {
     const a = document.createElement('a');
     a.href = url; a.download = fileName(); a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    say('저장했어요.');
+    say(tr('저장했어요.', 'Saved.'));
   };
   const shareBtn = body.querySelector<HTMLButtonElement>('[data-ri-share]')!;
   const probe = new File([new Blob()], 'x.png', { type: 'image/png' });
@@ -274,7 +276,7 @@ export function openResultImage(input: ResultImageInput) {
   shareBtn.onclick = async () => {
     try {
       const file = new File([await toBlob(canvas)], fileName(), { type: 'image/png' });
-      await navigator.share({ files: [file], title: 'Stylish 체스 유형', text: `나의 체스 유형은 ${input.code} ${t.name}! https://${SITE}/types/${input.code}` });
+      await navigator.share({ files: [file], title: tr('Stylish 체스 유형', 'Stylish chess type'), text: tr(`나의 체스 유형은 ${input.code} ${t.name}! https://${SITE}/types/${input.code}`, `My chess type is ${input.code}, the ${t.name}! https://${SITE}/en/types/${input.code}`) });
     } catch { /* 공유 창을 닫은 경우 */ }
   };
   redraw();

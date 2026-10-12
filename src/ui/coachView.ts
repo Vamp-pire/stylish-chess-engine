@@ -1,4 +1,5 @@
 // 코치와 두기 화면: 봇과 두거나 혼자 두면서 매 수마다 바로 평가·코멘트를 받는다.
+import { tr } from '../i18n';
 import { Chess, SQUARES, type Square } from 'chess.js';
 import { Chessground } from 'chessground';
 import type { Api as CgApi } from 'chessground/api';
@@ -13,7 +14,7 @@ import { choosePromotion, isPromotion } from './promotion';
 
 const esc = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 const COACH_DEPTH = 12;
-const PIECE_KO: Record<string, string> = { p: '폰', n: '나이트', b: '비숍', r: '룩', q: '퀸', k: '킹' };
+const PIECE_KO: Record<string, string> = { get p() { return tr('폰', 'pawn'); }, get n() { return tr('나이트', 'knight'); }, get b() { return tr('비숍', 'bishop'); }, get r() { return tr('룩', 'rook'); }, get q() { return tr('퀸', 'queen'); }, get k() { return tr('킹', 'king'); } };
 
 interface Settings { mode: 'bot' | 'solo'; color: 'w' | 'b' | 'random'; level: number; style: string; showEval: boolean }
 interface Ply { san: string; uci: string; color: 'w' | 'b'; fenBefore: string; fenAfter: string; from: string; to: string }
@@ -68,22 +69,22 @@ function renderSetup() {
   const styleOpts = (group: 'preset' | 'master') => BOT_STYLES.filter((x) => (x.id.startsWith('master:') ? 'master' : 'preset') === group)
     .map((x) => `<option value="${esc(x.id)}" ${s.style === x.id ? 'selected' : ''}>${esc(x.label)}</option>`).join('');
   root!.innerHTML = `
-    <section class="hero"><h1>코치와 두기</h1><p>봇과 두거나 혼자 두면서, 매 수마다 품질·스타일·위험 판정과 코치의 한마디를 바로 받아 보세요. 끝나면 전체 리뷰로 이어집니다.</p></section>
+    <section class="hero"><h1>${tr('코치와 두기', 'Play the coach')}</h1><p>${tr('봇과 두거나 혼자 두면서, 매 수마다 품질·스타일·위험 판정과 코치의 한마디를 바로 받아 보세요. 끝나면 전체 리뷰로 이어집니다.', 'Play a bot or both sides yourself and get quality, style, risk labels and a coach comment on every move. A full review follows at the end.')}</p></section>
     <div class="card card-pad coach-setup">
-      <div class="setup-row"><span class="muted">상대</span>
-        <div class="seg">${[['bot', '봇과 대국'], ['solo', '혼자 두기 (양쪽)']].map(([v, l]) => `<button data-mode="${v}" class="${s.mode === v ? 'active' : ''}">${l}</button>`).join('')}</div></div>
+      <div class="setup-row"><span class="muted">${tr('상대', 'Opponent')}</span>
+        <div class="seg">${[['bot', tr('봇과 대국', 'Play a bot')], ['solo', tr('혼자 두기 (양쪽)', 'Solo (both sides)')]].map(([v, l]) => `<button data-mode="${v}" class="${s.mode === v ? 'active' : ''}">${l}</button>`).join('')}</div></div>
       <div class="setup-bot" ${s.mode === 'solo' ? 'hidden' : ''}>
-        <div class="setup-row"><span class="muted">내 색</span>
-          <div class="seg">${[['w', '백'], ['b', '흑'], ['random', '무작위']].map(([v, l]) => `<button data-color="${v}" class="${s.color === v ? 'active' : ''}">${l}</button>`).join('')}</div></div>
-        <div class="setup-row"><span class="muted">봇 강도</span>
+        <div class="setup-row"><span class="muted">${tr('내 색', 'My color')}</span>
+          <div class="seg">${[['w', tr('백', 'White')], ['b', tr('흑', 'Black')], ['random', tr('무작위', 'Random')]].map(([v, l]) => `<button data-color="${v}" class="${s.color === v ? 'active' : ''}">${l}</button>`).join('')}</div></div>
+        <div class="setup-row"><span class="muted">${tr('봇 강도', 'Bot level')}</span>
           <div class="seg">${BOT_LEVELS.map((l, i) => `<button data-level="${i}" class="${s.level === i ? 'active' : ''}">${l.name}</button>`).join('')}</div></div>
-        <div class="setup-row"><span class="muted">봇 스타일</span>
-          <select id="bot-style" class="text select"><optgroup label="성향">${styleOpts('preset')}</optgroup><optgroup label="유명 선수 스타일 (성향만 흉내)">${styleOpts('master')}</optgroup></select></div>
+        <div class="setup-row"><span class="muted">${tr('봇 스타일', 'Bot style')}</span>
+          <select id="bot-style" class="text select"><optgroup label="${tr('성향', 'Tendencies')}">${styleOpts('preset')}</optgroup><optgroup label="${tr('유명 선수 스타일 (성향만 흉내)', 'Famous player styles (tendencies only)')}">${styleOpts('master')}</optgroup></select></div>
         <p class="faint" id="style-desc">${esc(BOT_STYLES.find((x) => x.id === s.style)?.desc ?? '')}</p>
       </div>
-      <label class="setup-row check"><input type="checkbox" id="show-eval" ${s.showEval ? 'checked' : ''} /> 평가 막대 보이기 <span class="faint">(끄면 형세를 스스로 판단하며 둘 수 있어요)</span></label>
-      <div class="setup-foot"><button class="btn primary" id="coach-start">대국 시작</button></div>
-      <p class="faint">강도 이름은 상대적인 단계이며 실제 레이팅과 맞춘 값이 아닙니다. 계산은 모두 이 브라우저 안에서 이뤄집니다.</p>
+      <label class="setup-row check"><input type="checkbox" id="show-eval" ${s.showEval ? 'checked' : ''} /> ${tr('평가 막대 보이기', 'Show eval bar')} <span class="faint">${tr('(끄면 형세를 스스로 판단하며 둘 수 있어요)', '(turn it off to judge the position yourself)')}</span></label>
+      <div class="setup-foot"><button class="btn primary" id="coach-start">${tr('대국 시작', 'Start game')}</button></div>
+      <p class="faint">${tr('강도 이름은 상대적인 단계이며 실제 레이팅과 맞춘 값이 아닙니다. 계산은 모두 이 브라우저 안에서 이뤄집니다.', 'Level names are relative steps, not matched to real ratings. Everything runs in your browser.')}</p>
     </div>`;
   const set = (patch: Partial<Settings>) => { Object.assign(s, patch); saveSettings(s); renderSetup(); };
   root!.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => b.onclick = () => set({ mode: b.dataset.mode as Settings['mode'] }));
@@ -125,27 +126,27 @@ function legalDests(fen: string) {
 function renderPlay() {
   const g = game!;
   const lv = BOT_LEVELS[g.settings.level], st = BOT_STYLES.find((x) => x.id === g.settings.style) ?? BOT_STYLES[0];
-  const opponent = g.settings.mode === 'solo' ? '혼자 두기' : `봇 · ${lv.name} · ${st.label}`;
+  const opponent = g.settings.mode === 'solo' ? tr('혼자 두기', 'Solo') : `${tr('봇', 'Bot')} · ${lv.name} · ${st.label}`;
   root!.innerHTML = `
     <div class="game-head">
-      <div class="players"><span class="side-dot ${g.user}"></span>나 <span class="faint">vs</span> ${esc(opponent)}</div>
+      <div class="players"><span class="side-dot ${g.user}"></span>${tr('나', 'Me')} <span class="faint">vs</span> ${esc(opponent)}</div>
       <div class="head-actions">
-        <button class="btn" id="c-resign">기권</button>
-        <button class="btn" id="c-new">새 대국</button>
+        <button class="btn" id="c-resign">${tr('기권', 'Resign')}</button>
+        <button class="btn" id="c-new">${tr('새 대국', 'New game')}</button>
       </div>
     </div>
     <div class="coach">
       <div class="coach-board-col">
         <div class="coach-board-row">
-          <div class="eval-bar ${g.settings.showEval ? '' : 'off'}" id="eval-bar" title="평가 막대 (백 기대 점수)"><i></i><span></span></div>
+          <div class="eval-bar ${g.settings.showEval ? '' : 'off'}" id="eval-bar" title="${tr('평가 막대 (백 기대 점수)', 'Eval bar (White\'s expected score)')}"><i></i><span></span></div>
           <div class="board-wrap"><div class="cg" id="c-board"></div></div>
         </div>
         <div class="board-controls">
-          <button class="btn" id="c-hint" title="단계별 힌트">💡 힌트</button>
-          <button class="btn" id="c-threat" title="상대가 노리는 수">⚠ 위협</button>
-          <button class="btn" id="c-undo" title="무르기">↶ 무르기</button>
-          <button class="btn" id="c-flip" aria-label="보드 뒤집기">⇅</button>
-          <button class="btn" id="c-eval" title="평가 막대 켜기/끄기">${g.settings.showEval ? '막대 끄기' : '막대 켜기'}</button>
+          <button class="btn" id="c-hint" title="${tr('단계별 힌트', 'Step-by-step hint')}">💡 ${tr('힌트', 'Hint')}</button>
+          <button class="btn" id="c-threat" title="${tr('상대가 노리는 수', 'The opponent\'s threat')}">⚠ ${tr('위협', 'Threat')}</button>
+          <button class="btn" id="c-undo" title="${tr('무르기', 'Undo')}">↶ ${tr('무르기', 'Undo')}</button>
+          <button class="btn" id="c-flip" aria-label="${tr('보드 뒤집기', 'Flip board')}">⇅</button>
+          <button class="btn" id="c-eval" title="${tr('평가 막대 켜기/끄기', 'Toggle eval bar')}">${g.settings.showEval ? tr('막대 끄기', 'Hide bar') : tr('막대 켜기', 'Show bar')}</button>
         </div>
       </div>
       <div class="coach-side">
@@ -161,14 +162,14 @@ function renderPlay() {
     animation: { enabled: true, duration: 180 },
   });
   $('#c-new')!.onclick = () => { game?.client.close(); game = null; cg?.destroy(); cg = null; renderSetup(); };
-  $('#c-resign')!.onclick = () => { if (game && !game.over && game.plies.length && confirm('기권할까요?')) resignCoach(); };
+  $('#c-resign')!.onclick = () => { if (game && !game.over && game.plies.length && confirm(tr('기권할까요?', 'Resign?'))) resignCoach(); };
   $('#c-hint')!.onclick = onHint;
   $('#c-threat')!.onclick = onThreat;
   $('#c-undo')!.onclick = onUndo;
   $('#c-flip')!.onclick = () => cg?.toggleOrientation();
   $('#c-eval')!.onclick = () => {
     g.settings.showEval = !g.settings.showEval; saveSettings({ ...loadSettings(), showEval: g.settings.showEval });
-    $('#c-eval')!.textContent = g.settings.showEval ? '막대 끄기' : '막대 켜기';
+    $('#c-eval')!.textContent = g.settings.showEval ? tr('막대 끄기', 'Hide bar') : tr('막대 켜기', 'Show bar');
     $('#eval-bar')!.classList.toggle('off', !g.settings.showEval);
   };
   syncBoard(); updatePanel(); updateMoves(); updateEvalBar();
@@ -230,8 +231,8 @@ function checkOver(g: CoachGame) {
   const ch = new Chess(current(g));
   if (!ch.isGameOver()) return;
   const loser = turnOf(current(g));
-  if (ch.isCheckmate()) g.over = { result: loser === 'w' ? '0-1' : '1-0', text: `체크메이트 — ${loser === 'w' ? '흑' : '백'} 승` };
-  else g.over = { result: '1/2-1/2', text: ch.isStalemate() ? '스테일메이트 — 무승부' : ch.isThreefoldRepetition() ? '3회 반복 — 무승부' : ch.isInsufficientMaterial() ? '기물 부족 — 무승부' : '50수 규칙 — 무승부' };
+  if (ch.isCheckmate()) g.over = { result: loser === 'w' ? '0-1' : '1-0', text: tr(`체크메이트 — ${loser === 'w' ? '흑' : '백'} 승`, `Checkmate — ${loser === 'w' ? 'Black' : 'White'} wins`) };
+  else g.over = { result: '1/2-1/2', text: ch.isStalemate() ? tr('스테일메이트 — 무승부', 'Stalemate — draw') : ch.isThreefoldRepetition() ? tr('3회 반복 — 무승부', 'Threefold repetition — draw') : ch.isInsufficientMaterial() ? tr('기물 부족 — 무승부', 'Insufficient material — draw') : tr('50수 규칙 — 무승부', '50-move rule — draw') };
 }
 
 /** 수를 둔 뒤 공통 처리: 끝났는지 보고, 봇 차례면 봇이 두고, 내 차례면 다음 국면을 미리 분석한다 */
@@ -283,23 +284,23 @@ async function onHint() {
   const fen = current(g);
   if (!g.hint) {
     const gen = g.gen, plies = g.plies.length;
-    $('#c-hint')!.textContent = '💡 생각 중…';
+    $('#c-hint')!.textContent = `💡 ${tr('생각 중…', 'Thinking…')}`;
     const best = await g.client.best(fen).catch(() => null);
-    if (game !== g || g.gen !== gen || g.plies.length !== plies || !best) { if ($('#c-hint')) $('#c-hint')!.textContent = '💡 힌트'; return; }
+    if (game !== g || g.gen !== gen || g.plies.length !== plies || !best) { if ($('#c-hint')) $('#c-hint')!.textContent = `💡 ${tr('힌트', 'Hint')}`; return; }
     const ch = new Chess(fen);
     const mv = ch.move({ from: best.uci.slice(0, 2), to: best.uci.slice(2, 4), promotion: best.uci[4] });
     g.hint = { step: 1, uci: best.uci, san: mv.san };
   } else g.hint.step = Math.min(3, g.hint.step + 1);
-  $('#c-hint')!.textContent = g.hint.step < 3 ? '💡 더 보기' : '💡 힌트';
+  $('#c-hint')!.textContent = g.hint.step < 3 ? `💡 ${tr('더 보기', 'More')}` : `💡 ${tr('힌트', 'Hint')}`;
   syncBoard(); updatePanel();
 }
 
 async function onThreat() {
   const g = game; if (!g || g.over) return;
   const gen = g.gen, plies = g.plies.length;
-  $('#c-threat')!.textContent = '⚠ 확인 중…';
+  $('#c-threat')!.textContent = `⚠ ${tr('확인 중…', 'Checking…')}`;
   const t = await g.client.threat(current(g)).catch(() => null);
-  if ($('#c-threat')) $('#c-threat')!.textContent = '⚠ 위협';
+  if ($('#c-threat')) $('#c-threat')!.textContent = `⚠ ${tr('위협', 'Threat')}`;
   if (game !== g || g.gen !== gen || g.plies.length !== plies) return;
   g.threat = t && t.gainCp >= 60 ? t : 'none';
   syncBoard(); updatePanel();
@@ -333,9 +334,9 @@ function updatePanel() {
   const last = g.plies.at(-1);
   const lastRes = last ? g.results[g.plies.length - 1] : undefined;
   const parts: string[] = [];
-  if (g.over) parts.push(`<div class="over-banner"><strong>${esc(g.over.text)}</strong><button class="btn primary" id="c-review">전체 리뷰 보기</button></div>`);
-  else if (g.thinking) parts.push('<div class="status faint"><span class="spinner"></span> 봇이 생각 중…</div>');
-  else if (userToMove(g)) parts.push(`<div class="status">${g.settings.mode === 'solo' ? `${turnOf(current(g)) === 'w' ? '백' : '흑'} 차례` : '내 차례'}${last && !lastRes ? ' <span class="faint">· 직전 수 평가 중…</span>' : ''}</div>`);
+  if (g.over) parts.push(`<div class="over-banner"><strong>${esc(g.over.text)}</strong><button class="btn primary" id="c-review">${tr('전체 리뷰 보기', 'Full review')}</button></div>`);
+  else if (g.thinking) parts.push(`<div class="status faint"><span class="spinner"></span> ${tr('봇이 생각 중…', 'The bot is thinking…')}</div>`);
+  else if (userToMove(g)) parts.push(`<div class="status">${g.settings.mode === 'solo' ? tr(`${turnOf(current(g)) === 'w' ? '백' : '흑'} 차례`, `${turnOf(current(g)) === 'w' ? 'White' : 'Black'} to move`) : tr('내 차례', 'Your move')}${last && !lastRes ? ` <span class="faint">· ${tr('직전 수 평가 중…', 'rating the last move…')}</span>` : ''}</div>`);
 
   const mineFresh = g.mine && g.mine.ply >= g.plies.length - 2;
   const oppFresh = g.opp && g.opp.ply === g.plies.length - 1;
@@ -345,18 +346,19 @@ function updatePanel() {
     const tags = [m.quality ? `<span class="pill q-${m.quality}">${QUALITY_LABEL[m.quality]}</span>` : '', m.risk ? `<span class="pill risk-pill">${RISK_LABEL[m.risk]}</span>` : '',
       ...m.top.slice(0, 3).map((k) => `<span class="chip"><span class="dot" style="background:${STYLES[k].color}"></span>${STYLES[k].label}</span>`)].join('');
     parts.push(`<div class="mine-move"><span class="mc-san">${p.color === 'w' ? `${Math.floor(g.mine!.ply / 2) + 1}.` : `${Math.floor(g.mine!.ply / 2) + 1}...`} ${esc(p.san)}</span><div class="chips">${tags}</div></div>`);
-    parts.push(bubble(g.mine!, '🎓 코치'));
+    parts.push(bubble(g.mine!, `🎓 ${tr('코치', 'Coach')}`));
     if (!m.deep.isBest && m.bestSan && !m.book && (m.quality === 'inaccuracy' || m.quality === 'mistake' || m.quality === 'blunder'))
-      parts.push(`<div class="coach-actions"><button class="btn small" id="c-retry">↶ 다시 두기</button></div>`);
+      parts.push(`<div class="coach-actions"><button class="btn small" id="c-retry">↶ ${tr('다시 두기', 'Try again')}</button></div>`);
   }
-  if (oppFresh) parts.push(bubble(g.opp!, '🎓 코치 (상대 수)'));
+  if (oppFresh) parts.push(bubble(g.opp!, `🎓 ${tr('코치 (상대 수)', 'Coach (opponent move)')}`));
   if (g.hint) {
     const piece = new Chess(current(g)).get(g.hint.uci.slice(0, 2) as Square);
-    const text = g.hint.step === 1 ? `${piece ? PIECE_KO[piece.type] : '기물'}을(를) 움직여 보세요.` : g.hint.step === 2 ? `${g.hint.uci.slice(0, 2)} 칸의 ${piece ? PIECE_KO[piece.type] : '기물'}이에요.` : `정답은 ${g.hint.san}예요.`;
-    parts.push(`<div class="bubble tone-info"><div class="bubble-who">💡 힌트 ${g.hint.step}/3</div><p>${esc(text)}</p></div>`);
+    const pn = piece ? PIECE_KO[piece.type] : tr('기물', 'piece');
+    const text = g.hint.step === 1 ? tr(`${pn}을(를) 움직여 보세요.`, `Move your ${pn}.`) : g.hint.step === 2 ? tr(`${g.hint.uci.slice(0, 2)} 칸의 ${pn}이에요.`, `It's the ${pn} on ${g.hint.uci.slice(0, 2)}.`) : tr(`정답은 ${g.hint.san}예요.`, `The answer is ${g.hint.san}.`);
+    parts.push(`<div class="bubble tone-info"><div class="bubble-who">💡 ${tr('힌트', 'Hint')} ${g.hint.step}/3</div><p>${esc(text)}</p></div>`);
   }
-  if (g.threat) parts.push(`<div class="bubble tone-warn"><div class="bubble-who">⚠ 위협</div><p>${g.threat === 'none' ? '지금 상대가 노리는 특별한 수는 없어요.' : `상대는 ${esc(g.threat.san)}를 노리고 있어요 (약 ${Math.round(g.threat.gainCp / 100 * 10) / 10}폰 이득).`}</p></div>`);
-  if (!g.plies.length && !g.thinking) parts.push(`<p class="muted">${g.settings.mode === 'solo' ? '양쪽 수를 직접 두세요. 둘 때마다 코치가 평가합니다.' : '첫 수를 두세요. 둘 때마다 코치가 평가합니다.'}</p>`);
+  if (g.threat) parts.push(`<div class="bubble tone-warn"><div class="bubble-who">⚠ ${tr('위협', 'Threat')}</div><p>${g.threat === 'none' ? tr('지금 상대가 노리는 특별한 수는 없어요.', 'The opponent has no special threat right now.') : tr(`상대는 ${esc(g.threat.san)}를 노리고 있어요 (약 ${Math.round(g.threat.gainCp / 100 * 10) / 10}폰 이득).`, `The opponent is threatening ${esc(g.threat.san)} (about ${Math.round(g.threat.gainCp / 100 * 10) / 10} pawns).`)}</p></div>`);
+  if (!g.plies.length && !g.thinking) parts.push(`<p class="muted">${g.settings.mode === 'solo' ? tr('양쪽 수를 직접 두세요. 둘 때마다 코치가 평가합니다.', 'Play both sides. The coach rates every move.') : tr('첫 수를 두세요. 둘 때마다 코치가 평가합니다.', 'Make your first move. The coach rates every move.')}</p>`);
   el.innerHTML = parts.join('');
   $('#c-review')?.addEventListener('click', openReview);
   $('#c-retry')?.addEventListener('click', onUndo);
@@ -364,11 +366,11 @@ function updatePanel() {
 
 function updateMoves() {
   const g = game, el = $('#c-moves'); if (!g || !el) return;
-  if (!g.plies.length) { el.innerHTML = '<span class="faint">수 기록</span>'; return; }
+  if (!g.plies.length) { el.innerHTML = `<span class="faint">${tr('수 기록', 'Moves')}</span>`; return; }
   const cells = g.plies.map((p, i) => {
     const m = g.results[i];
     const q = m?.quality && !m.book ? ` q-dot-${m.quality}` : '';
-    return `${p.color === 'w' ? `<span class="no">${i / 2 + 1}.</span>` : ''}<span class="cm${q}" title="${m?.quality ? QUALITY_LABEL[m.quality] : '평가 중'}">${esc(p.san)}</span>`;
+    return `${p.color === 'w' ? `<span class="no">${i / 2 + 1}.</span>` : ''}<span class="cm${q}" title="${m?.quality ? QUALITY_LABEL[m.quality] : tr('평가 중', 'Rating…')}">${esc(p.san)}</span>`;
   });
   el.innerHTML = `<div class="coach-move-flow">${cells.join(' ')}</div>`;
   el.scrollTop = el.scrollHeight;
@@ -397,15 +399,15 @@ function updateEvalBar() {
 async function openReview() {
   const g = game; if (!g) return;
   const btn = $<HTMLButtonElement>('#c-review');
-  if (btn) { btn.disabled = true; btn.textContent = '평가 마무리 중…'; }
+  if (btn) { btn.disabled = true; btn.textContent = tr('평가 마무리 중…', 'Finishing…'); }
   const results = await Promise.all(g.plies.map((_, i) => g.results[i] ? Promise.resolve(g.results[i]!) : g.evals[i] ?? Promise.resolve(null)));
-  if (results.some((r) => !r)) { if (btn) { btn.disabled = false; btn.textContent = '전체 리뷰 보기'; } return; }
+  if (results.some((r) => !r)) { if (btn) { btn.disabled = false; btn.textContent = tr('전체 리뷰 보기', 'Full review'); } return; }
   const lv = BOT_LEVELS[g.settings.level], st = BOT_STYLES.find((x) => x.id === g.settings.style) ?? BOT_STYLES[0];
-  const bot = g.settings.mode === 'solo' ? '나' : `Stylish 봇 (${lv.name}·${st.label})`;
+  const bot = g.settings.mode === 'solo' ? tr('나', 'Me') : tr(`Stylish 봇 (${lv.name}·${st.label})`, `Stylish bot (${lv.name}, ${st.label})`);
   const d = new Date();
   const headers: Record<string, string> = {
-    Event: 'Stylish 코치 대국', Date: `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`,
-    White: g.user === 'w' || g.settings.mode === 'solo' ? '나' : bot, Black: g.user === 'b' || g.settings.mode === 'solo' ? '나' : bot,
+    Event: tr('Stylish 코치 대국', 'Stylish coach game'), Date: `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`,
+    White: g.user === 'w' || g.settings.mode === 'solo' ? tr('나', 'Me') : bot, Black: g.user === 'b' || g.settings.mode === 'solo' ? tr('나', 'Me') : bot,
     Result: g.over?.result ?? '*',
   };
   const ch = new Chess();
@@ -418,6 +420,6 @@ async function openReview() {
 /** 기권 (헤더 버튼에서 부른다) */
 export function resignCoach() {
   const g = game; if (!g || g.over || !g.plies.length) return;
-  g.over = { result: g.user === 'w' ? '0-1' : '1-0', text: '기권' };
+  g.over = { result: g.user === 'w' ? '0-1' : '1-0', text: tr('기권', 'Resigned') };
   updatePanel(); syncBoard();
 }

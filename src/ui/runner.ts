@@ -1,4 +1,5 @@
 // 메인 스레드: Stockfish Worker와 분석 Worker를 띄우고 둘 사이 요청을 중계한다.
+import { getLang } from '../i18n';
 import { createBrowserEngine } from '../engine/browser';
 import type { EnginePool } from '../engine/pool';
 import type { GameAnalysis, MoveAnalysis } from '../core/analyzer';
@@ -55,7 +56,7 @@ export class AnalysisRun {
         }
       };
       this.worker.onerror = (e) => reject(new Error(e.message));
-      send({ type: 'analyze', pgn, depth, bookUrl: new URL(import.meta.env.BASE_URL + 'openings.json', location.href).href, human: true });
+      send({ type: 'analyze', pgn, depth, bookUrl: new URL(import.meta.env.BASE_URL + 'openings.json', location.href).href, human: true, lang: getLang() });
     });
   }
 

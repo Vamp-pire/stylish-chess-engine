@@ -1,4 +1,5 @@
 // 메인 스레드 쪽 코치 연결: 코치 Worker를 띄우고 엔진 요청을 엔진 풀로 중계한다.
+import { getLang } from '../i18n';
 import type { MoveAnalysis, GameAnalysis } from '../core/analyzer';
 import type { EvalRequest } from '../core/coach';
 import type { CoachCall, CoachFromWorker, CoachToWorker } from '../workers/coach.worker';
@@ -35,7 +36,7 @@ export class CoachClient {
   private call(call: CoachCall): Promise<unknown> {
     if (this.closed) return Promise.reject(new Error('closed'));
     const id = ++this.seq;
-    return new Promise((resolve, reject) => { this.calls.set(id, { resolve, reject }); this.send({ type: 'call', id, call }); });
+    return new Promise((resolve, reject) => { this.calls.set(id, { resolve, reject }); this.send({ type: 'call', id, call, lang: getLang() }); });
   }
 
   prepare(fen: string) { return this.call({ method: 'prepare', fen }); }

@@ -33,7 +33,7 @@ async function fetchModel(manifestUrl: string): Promise<Uint8Array> {
   let loaded = 0, lastPct = -1;
   for (const part of manifest.parts) {
     const res = await fetch(new URL(part, manifestUrl));
-    if (!res.ok || !res.body) throw new Error(`모델을 받지 못했습니다 (${res.status})`);
+    if (!res.ok || !res.body) throw new Error(`model download failed (${res.status})`);
     const reader = res.body.getReader();
     for (;;) {
       const { done, value } = await reader.read();
@@ -44,7 +44,7 @@ async function fetchModel(manifestUrl: string): Promise<Uint8Array> {
       if (pct !== lastPct) { lastPct = pct; post({ type: 'progress', loaded, total: manifest.size }); }
     }
   }
-  if (loaded !== manifest.size) throw new Error('모델 크기가 맞지 않습니다');
+  if (loaded !== manifest.size) throw new Error('model size mismatch');
   // 예전 버전 모델은 지우고 새 모델만 남긴다 (저장 실패는 무시: 다음에 다시 받으면 됨)
   if (cache) {
     for (const k of await cache.keys()) if (k.url !== key) await cache.delete(k);

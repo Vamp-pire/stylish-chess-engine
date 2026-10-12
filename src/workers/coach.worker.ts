@@ -1,5 +1,6 @@
 // 코치 Worker: 수 평가·위협·봇 수 선택을 화면과 분리된 스레드에서 한다.
 // Stockfish 요청은 분석 Worker와 같은 방식으로 메인 스레드의 엔진 풀에 중계한다.
+import { tr, setLang, type Lang } from '../i18n';
 import { CoachSession, chooseBotMove, BOT_STYLES } from '../core/coach';
 import { finalizeGame, type MoveAnalysis } from '../core/analyzer';
 import { loadOpeningBook } from '../core/openings';
@@ -14,7 +15,7 @@ export type CoachCall =
   | { method: 'bot'; fen: string; level: number; style: string }
   | { method: 'finalize'; moves: MoveAnalysis[]; headers: Record<string, string>; startFen: string };
 
-export type CoachToWorker = { type: 'call'; id: number; call: CoachCall } | { type: 'engineResult'; id: number; lines: EngineLine[] | null };
+export type CoachToWorker = { type: 'call'; id: number; call: CoachCall; lang?: Lang } | { type: 'engineResult'; id: number; lines: EngineLine[] | null };
 export type CoachFromWorker =
   | { type: 'result'; id: number; value: unknown }
   | { type: 'error'; id: number; message: string }
@@ -46,7 +47,7 @@ async function run(call: CoachCall): Promise<unknown> {
     return true;
   }
   if (initializing) await initializing;
-  if (!session) throw new Error('코치가 아직 준비되지 않았습니다');
+  if (!session) throw new Error(tr('코치가 아직 준비되지 않았습니다', 'The coach is not ready yet'));
   switch (call.method) {
     case 'prepare': await session.lines(call.fen, 1); return true;
     case 'best': { const l = (await session.lines(call.fen, 10))[0]; return l?.uci ? { uci: l.uci, cp: l.cp, mate: l.mate, pv: l.pv } : null; }
@@ -64,6 +65,7 @@ self.onmessage = async (e: MessageEvent<CoachToWorker>) => {
     if (msg.lines) p?.resolve(msg.lines); else p?.reject(new Error('cancelled'));
     return;
   }
+  if (msg.lang) setLang(msg.lang); // 코치 문구·판정 근거를 화면 언어로
   try { post({ type: 'result', id: msg.id, value: await run(msg.call) }); }
   catch (err) { post({ type: 'error', id: msg.id, message: err instanceof Error ? err.message : String(err) }); }
 };

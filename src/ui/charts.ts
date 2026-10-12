@@ -1,4 +1,5 @@
 // SVG 차트: 평가 그래프, 레이더 차트
+import { tr } from '../i18n';
 import type { MoveAnalysis } from '../core/analyzer';
 
 const W = 600, H = 110;
@@ -19,7 +20,7 @@ export function evalGraph(moves: MoveAnalysis[], total: number, current: number)
     return '';
   }).join('');
   const cx = x(current + 1);
-  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="평가 그래프">
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="${tr('평가 그래프', 'Evaluation graph')}">
     <rect width="${W}" height="${H}" fill="var(--black-side)" opacity=".9" />
     <path d="${area}" fill="var(--white-side)" />
     <line x1="0" x2="${W}" y1="${H / 2}" y2="${H / 2}" stroke="var(--text-3)" stroke-dasharray="3 4" stroke-width="1" opacity=".6" />
@@ -44,7 +45,7 @@ export function radar(axes: { label: string; value: number }[], color: string, s
     const [px, py] = pt(i, 1.24);
     return `<text x="${px}" y="${py}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="var(--text-2)">${a.label}</text>`;
   }).join('');
-  return `<svg viewBox="0 0 ${size} ${size}" role="img" aria-label="스타일 레이더">
+  return `<svg viewBox="0 0 ${size} ${size}" role="img" aria-label="${tr('스타일 레이더', 'Style radar')}">
     ${rings}${spokes}
     <polygon points="${shape}" fill="${color}" fill-opacity=".25" stroke="${color}" stroke-width="2" />
     ${labels}
@@ -66,5 +67,5 @@ export function lineChart(labels: string[], series: { label: string; color: stri
     const dots = s.values.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="${s.color}"><title>${s.label} ${labels[i]}: ${v}</title></circle>`).join('');
     return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"${s.dashed ? ' stroke-dasharray="4 4"' : ''} />${dots}`;
   }).join('');
-  return `<svg class="line-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="추이 그래프">${grid}${xl}${lines}</svg>`;
+  return `<svg class="line-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="${tr('추이 그래프', 'Trend chart')}">${grid}${xl}${lines}</svg>`;
 }

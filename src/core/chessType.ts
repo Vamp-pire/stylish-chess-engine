@@ -5,6 +5,8 @@
 import type { PlayerProfile } from './profile';
 import { RISK_KINDS } from './styles';
 import TYPES from '../data/chess-types.json';
+import TYPES_EN from '../data/chess-types.en.json';
+import { getLang } from '../i18n';
 import CALIB from '../data/type-calib.json';
 
 export type AxisKey = 'AP' | 'WS' | 'IR' | 'OE';
@@ -40,7 +42,19 @@ export interface TypeInfo {
 export interface AxisInfo { key: AxisKey; letters: [string, string]; names: [string, string]; en: [string, string]; question: string; desc: [string, string] }
 export interface GroupInfo { name: string; en: string; desc: string }
 
-export const TYPE_DATA = TYPES as unknown as { axes: AxisInfo[]; groups: Record<string, GroupInfo>; types: TypeInfo[] };
+type TypeData = { axes: AxisInfo[]; groups: Record<string, GroupInfo>; types: TypeInfo[] };
+/** 화면 언어의 유형 글 (앱은 언어를 바꾸면 새로 불러오므로 한 번만 만든다). 영어에서는 name이 영어 이름 */
+function localize(): TypeData {
+  const raw = TYPES as unknown as TypeData;
+  if (getLang() !== 'en') return raw;
+  const en = TYPES_EN as unknown as { axes: Partial<AxisInfo>[]; groups: Record<string, { name: string; desc: string }>; types: Record<string, Partial<TypeInfo>> };
+  return {
+    axes: raw.axes.map((a, i) => ({ ...a, ...en.axes[i], letters: a.letters, key: a.key }) as AxisInfo),
+    groups: Object.fromEntries(Object.entries(raw.groups).map(([g, v]) => [g, { ...v, name: en.groups[g].name, desc: en.groups[g].desc }])),
+    types: raw.types.map((t) => ({ ...t, ...en.types[t.code], name: t.en })),
+  };
+}
+export const TYPE_DATA = localize();
 export const typeInfo = (code: string) => TYPE_DATA.types.find((t) => t.code === code) ?? null;
 export const groupOf = (code: string) => TYPE_DATA.groups[code.slice(0, 2)];
 /** 모든 글자를 뒤집은 정반대 유형 */

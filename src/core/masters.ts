@@ -1,5 +1,6 @@
 // 닮은 선수 찾기: 스타일 평균의 '기준값 대비 편차' 방향이 얼마나 비슷한지(코사인 유사도)로 비교한다.
 // 기준값(BASELINE)에서 벗어난 방향이 곧 그 사람의 개성이므로, 점수 수준이 아니라 방향을 본다.
+import { tr } from '../i18n';
 import masters from '../data/masters.json';
 import { STYLE_KEYS, type StyleKey } from './styles';
 import { BASELINE, type PlayerProfile } from './profile';
@@ -43,3 +44,20 @@ export function similarMasters(p: PlayerProfile, n = 3): { master: Master; score
   return MASTERS.map((m) => ({ master: m, score: Math.round(((cosine(v, vector(m.avg, m.riskRate)) + 1) / 2) * 100) }))
     .sort((a, b) => b.score - a.score).slice(0, n);
 }
+
+/** 화면 언어에 맞춘 선수 이름·시대·설명 */
+const MASTER_EN: Record<string, [string, string, string]> = {
+  Kasparov: ['Garry Kasparov', '1980s–2000s', '13th World Champion. Famous for dynamic initiative and sharp attacking preparation.'],
+  Adams: ['Michael Adams', '1990s–2010s', 'England\'s strongest player. Clean, solid play without frills.'],
+  Carlsen: ['Magnus Carlsen', '2000s–2020s', '16th World Champion. An all-rounder who squeezes small edges all the way into the endgame.'],
+  Ivanchuk: ['Vassily Ivanchuk', '1990s–2010s', 'A creative player who plays almost every opening. Sharp calculation and surprising moves.'],
+  Topalov: ['Veselin Topalov', '1990s–2010s', 'FIDE World Champion (2005). An aggressive style that loves exchange sacrifices.'],
+  Anand: ['Viswanathan Anand', '1990s–2010s', '15th World Champion. An all-rounder who adapts to any position with fast, precise calculation.'],
+  Karpov: ['Anatoly Karpov', '1970s–90s', '12th World Champion. Master of positional play who prevents counterplay and slowly squeezes.'],
+  Morozevich: ['Alexander Morozevich', '1990s–2010s', 'Makes positions unpredictable with original, non-standard moves.'],
+  Alekhine: ['Alexander Alekhine', '1920s–40s', '4th World Champion. Drove attacks with deep combinations in complicated positions.'],
+  Shirov: ['Alexei Shirov', '1990s–2010s', 'An attacker famous for spectacular sacrifices and tactics. His book is titled "Fire on Board".'],
+};
+export const masterName = (m: Master) => tr(m.ko, MASTER_EN[m.id]?.[0] ?? m.name);
+export const masterEra = (m: Master) => tr(m.era, MASTER_EN[m.id]?.[1] ?? m.era);
+export const masterDesc = (m: Master) => tr(m.desc, MASTER_EN[m.id]?.[2] ?? m.desc);
