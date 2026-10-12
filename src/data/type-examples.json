@@ -1,0 +1,1540 @@
+{
+ "AWIO": [
+  {
+   "kind": "signature",
+   "fen": "1rqb4/5kp1/p1npppb1/1pp5/2P1P2N/1QBP2P1/PP3PB1/2K4R b - - 1 24",
+   "san": "bxc4",
+   "uci": "b5c4",
+   "color": "b",
+   "moveNumber": 24,
+   "elo": 2464,
+   "styles": [
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 73
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 72
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 66
+    }
+   ],
+   "humanP": 11,
+   "risk": "trap",
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "r3k2r/ppqn1ppp/8/1PbpP3/3QnN2/8/1P3PPP/RNB2RK1 w kq - 3 14",
+   "san": "Nxd5",
+   "uci": "f4d5",
+   "color": "w",
+   "moveNumber": 14,
+   "elo": 1125,
+   "styles": [
+    {
+     "key": "counterattack",
+     "label": "반격",
+     "score": 89
+    },
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 83
+    },
+    {
+     "key": "complicating",
+     "label": "복잡화",
+     "score": 77
+    }
+   ],
+   "humanP": 11,
+   "risk": "trap",
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "rn1qk1nr/pbp1bpp1/1p2p2p/3pP1N1/7P/3P4/PPP2PP1/RNBQKB1R w KQkq - 0 7",
+   "san": "Nxf7",
+   "uci": "g5f7",
+   "color": "w",
+   "moveNumber": 7,
+   "elo": 1539,
+   "styles": [
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 83
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 80
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 73
+    }
+   ],
+   "humanP": 47,
+   "risk": "speculative",
+   "quality": "blunder",
+   "lossPp": 38,
+   "best": "Nf3",
+   "bestUci": "g5f3"
+  }
+ ],
+ "AWIE": [
+  {
+   "kind": "signature",
+   "fen": "1r3rk1/RBb2ppp/1q3n2/QPp1p3/2PP2b1/3P4/1B3P1P/1N2K1NR b K - 0 15",
+   "san": "Qxa5+",
+   "uci": "b6a5",
+   "color": "b",
+   "moveNumber": 15,
+   "elo": 1052,
+   "styles": [
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 93
+    },
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 80
+    },
+    {
+     "key": "simplifying",
+     "label": "단순화",
+     "score": 75
+    }
+   ],
+   "humanP": 50,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "r3k1nr/2q2p1p/p3p3/2b1n3/PpBp1B2/1PpP2N1/2P2KPP/R2Q3R b kq - 1 18",
+   "san": "Nxd3+",
+   "uci": "e5d3",
+   "color": "b",
+   "moveNumber": 18,
+   "elo": 2245,
+   "styles": [
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 95
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 80
+    },
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 67
+    }
+   ],
+   "humanP": 58,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "8/7p/p2Qb2k/1p6/1P4P1/5r1P/P3r3/3R3K w - - 3 43",
+   "san": "Qf8+",
+   "uci": "d6f8",
+   "color": "w",
+   "moveNumber": 43,
+   "elo": 1010,
+   "styles": [
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 80
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 80
+    },
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 67
+    }
+   ],
+   "humanP": 19,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 100,
+   "best": "Kg1",
+   "bestUci": "h1g1"
+  }
+ ],
+ "AWRO": [
+  {
+   "kind": "signature",
+   "fen": "8/1p6/1kp1R3/5r2/pr4Np/7P/5nP1/5RK1 b - - 1 37",
+   "san": "Nxh3+",
+   "uci": "f2h3",
+   "color": "b",
+   "moveNumber": 37,
+   "elo": 2345,
+   "styles": [
+    {
+     "key": "counterattack",
+     "label": "반격",
+     "score": 89
+    },
+    {
+     "key": "complicating",
+     "label": "복잡화",
+     "score": 83
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 78
+    }
+   ],
+   "humanP": 44,
+   "risk": "soundSacrifice",
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "kn6/3NQK2/2p5/3pP3/1P1r3q/1P6/2P2P2/8 b - - 3 50",
+   "san": "Qxe7+",
+   "uci": "h4e7",
+   "color": "b",
+   "moveNumber": 50,
+   "elo": 1557,
+   "styles": [
+    {
+     "key": "counterattack",
+     "label": "반격",
+     "score": 89
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 80
+    },
+    {
+     "key": "simplifying",
+     "label": "단순화",
+     "score": 80
+    }
+   ],
+   "humanP": 28,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "8/3k1N2/3p4/p5p1/2p2pn1/2P5/PP3P2/2KR4 w - - 0 34",
+   "san": "Ne5+",
+   "uci": "f7e5",
+   "color": "w",
+   "moveNumber": 34,
+   "elo": 856,
+   "styles": [
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 78
+    },
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 67
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 63
+    }
+   ],
+   "humanP": 1,
+   "risk": "speculative",
+   "quality": "mistake",
+   "lossPp": 39,
+   "best": "Nxg5",
+   "bestUci": "f7g5"
+  }
+ ],
+ "AWRE": [
+  {
+   "kind": "signature",
+   "fen": "8/6KP/8/8/8/8/4k2r/8 b - - 2 68",
+   "san": "Rxh7+",
+   "uci": "h2h7",
+   "color": "b",
+   "moveNumber": 68,
+   "elo": 2163,
+   "styles": [
+    {
+     "key": "counterattack",
+     "label": "반격",
+     "score": 89
+    },
+    {
+     "key": "complicating",
+     "label": "복잡화",
+     "score": 86
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 71
+    }
+   ],
+   "humanP": 31,
+   "risk": "soundSacrifice",
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "Q2rk1r1/2p1bpq1/7p/3R4/8/3P2P1/PPP2P1P/R5K1 w - - 5 31",
+   "san": "Rxd8+",
+   "uci": "d5d8",
+   "color": "w",
+   "moveNumber": 31,
+   "elo": 751,
+   "styles": [
+    {
+     "key": "defensive",
+     "label": "수비적",
+     "score": 90
+    },
+    {
+     "key": "simplifying",
+     "label": "단순화",
+     "score": 80
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 77
+    }
+   ],
+   "humanP": 47,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "3k2rb/2R5/8/3K4/2P2P2/3P2P1/8/8 w - - 9 61",
+   "san": "Kd6",
+   "uci": "d5d6",
+   "color": "w",
+   "moveNumber": 61,
+   "elo": 751,
+   "styles": [
+    {
+     "key": "defensive",
+     "label": "수비적",
+     "score": 90
+    },
+    {
+     "key": "kingActivity",
+     "label": "킹 활성화",
+     "score": 78
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 57
+    }
+   ],
+   "humanP": 26,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 100,
+   "best": "Ra7",
+   "bestUci": "c7a7"
+  }
+ ],
+ "ASIO": [
+  {
+   "kind": "signature",
+   "fen": "r3k1r1/1p2q2p/3p4/2p5/p1P1n1bQ/P1N3N1/1P1P1PPP/R1B2RK1 w - - 0 24",
+   "san": "Qxe7+",
+   "uci": "h4e7",
+   "color": "w",
+   "moveNumber": 24,
+   "elo": 917,
+   "styles": [
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 93
+    },
+    {
+     "key": "counterattack",
+     "label": "반격",
+     "score": 89
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 86
+    }
+   ],
+   "humanP": 40,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "2kr2nr/1pp2ppp/p7/2b5/4PPbq/3BB1N1/PPP1NKPn/R2Q3R b - - 5 15",
+   "san": "Bxe2",
+   "uci": "g4e2",
+   "color": "b",
+   "moveNumber": 15,
+   "elo": 1983,
+   "styles": [
+    {
+     "key": "counterattack",
+     "label": "반격",
+     "score": 89
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 83
+    },
+    {
+     "key": "simplifying",
+     "label": "단순화",
+     "score": 75
+    }
+   ],
+   "humanP": 14,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "r3k2r/5p1p/p1pbqp2/2p1pQ2/3pP3/2PP3P/PP3PP1/RN3RK1 w kq - 0 15",
+   "san": "Qxe6+",
+   "uci": "f5e6",
+   "color": "w",
+   "moveNumber": 15,
+   "elo": 1558,
+   "styles": [
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 80
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 80
+    },
+    {
+     "key": "simplifying",
+     "label": "단순화",
+     "score": 75
+    }
+   ],
+   "humanP": 32,
+   "risk": null,
+   "quality": "mistake",
+   "lossPp": 43,
+   "best": "Qf3",
+   "bestUci": "f5f3"
+  }
+ ],
+ "ASIE": [
+  {
+   "kind": "signature",
+   "fen": "r3r1k1/1p1n1qbn/2p1R1QB/p7/8/2N2N1P/PP3PP1/R5K1 w - - 1 23",
+   "san": "Rxe8+",
+   "uci": "e6e8",
+   "color": "w",
+   "moveNumber": 23,
+   "elo": 2163,
+   "styles": [
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 91
+    },
+    {
+     "key": "counterattack",
+     "label": "반격",
+     "score": 89
+    },
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 80
+    }
+   ],
+   "humanP": 35,
+   "risk": null,
+   "quality": "good",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "r1kq1r2/ppp1b3/8/2PQP3/8/4B3/PP4PP/RN3RK1 w - - 1 20",
+   "san": "Qxd8+",
+   "uci": "d5d8",
+   "color": "w",
+   "moveNumber": 20,
+   "elo": 1806,
+   "styles": [
+    {
+     "key": "counterattack",
+     "label": "반격",
+     "score": 89
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 88
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 78
+    }
+   ],
+   "humanP": 42,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "r1bq1rk1/1p3ppp/2P5/p7/8/1PP3P1/P4P1P/R2QKB1R b KQ - 0 15",
+   "san": "Qxd1+",
+   "uci": "d8d1",
+   "color": "b",
+   "moveNumber": 15,
+   "elo": 994,
+   "styles": [
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 89
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 77
+    },
+    {
+     "key": "simplifying",
+     "label": "단순화",
+     "score": 75
+    }
+   ],
+   "humanP": 32,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 98,
+   "best": "Re8+",
+   "bestUci": "f8e8"
+  }
+ ],
+ "ASRO": [
+  {
+   "kind": "signature",
+   "fen": "r6k/3n2p1/4rn1p/2p5/p1Np1b2/B7/PPK3PP/4R2R b - - 3 28",
+   "san": "Rxe1",
+   "uci": "e6e1",
+   "color": "b",
+   "moveNumber": 28,
+   "elo": 2101,
+   "styles": [
+    {
+     "key": "counterattack",
+     "label": "반격",
+     "score": 89
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 75
+    },
+    {
+     "key": "simplifying",
+     "label": "단순화",
+     "score": 75
+    }
+   ],
+   "humanP": 9,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "1kb5/8/pp1p4/2pPp3/P1P1P3/1P1KB3/2Q5/1q6 b - - 4 41",
+   "san": "Qa1",
+   "uci": "b1a1",
+   "color": "b",
+   "moveNumber": 41,
+   "elo": 2072,
+   "styles": [
+    {
+     "key": "defensive",
+     "label": "수비적",
+     "score": 89
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 63
+    },
+    {
+     "key": "solid",
+     "label": "안정적",
+     "score": 43
+    }
+   ],
+   "humanP": 1,
+   "risk": null,
+   "quality": "good",
+   "lossPp": 1,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "r2qr3/ppp3kp/6p1/3P1p2/2P1n3/8/PPQ1NPPP/2KR3R w - - 0 17",
+   "san": "f3",
+   "uci": "f2f3",
+   "color": "w",
+   "moveNumber": 17,
+   "elo": 1733,
+   "styles": [
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 69
+    },
+    {
+     "key": "defensive",
+     "label": "수비적",
+     "score": 66
+    },
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 60
+    }
+   ],
+   "humanP": 9,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 50,
+   "best": "Nf4",
+   "bestUci": "e2f4"
+  }
+ ],
+ "ASRE": [
+  {
+   "kind": "signature",
+   "fen": "rnbq1rk1/ppp1ppbp/5np1/4P3/5B2/2N2N2/PPP2PPP/R2QKB1R b KQ - 0 7",
+   "san": "Qxd1+",
+   "uci": "d8d1",
+   "color": "b",
+   "moveNumber": 7,
+   "elo": 1600,
+   "styles": [
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 89
+    },
+    {
+     "key": "counterattack",
+     "label": "반격",
+     "score": 89
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 73
+    }
+   ],
+   "humanP": 52,
+   "risk": null,
+   "quality": "good",
+   "lossPp": 1,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "r2q1rk1/ppp2ppp/3b4/8/3n1pb1/2N2N2/PPPP2PP/R1BQ1RK1 b - - 6 12",
+   "san": "Nxf3+",
+   "uci": "d4f3",
+   "color": "b",
+   "moveNumber": 12,
+   "elo": 1432,
+   "styles": [
+    {
+     "key": "simplifying",
+     "label": "단순화",
+     "score": 80
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 68
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 63
+    }
+   ],
+   "humanP": 53,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "5rk1/6bp/2bqp3/p2Pp3/5rQ1/1B6/PP3PPP/3R1RK1 w - - 1 24",
+   "san": "Qxe6+",
+   "uci": "g4e6",
+   "color": "w",
+   "moveNumber": 24,
+   "elo": 1649,
+   "styles": [
+    {
+     "key": "defensive",
+     "label": "수비적",
+     "score": 90
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 89
+    },
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 80
+    }
+   ],
+   "humanP": 63,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 50,
+   "best": "dxc6",
+   "bestUci": "d5c6"
+  }
+ ],
+ "PWIO": [
+  {
+   "kind": "signature",
+   "fen": "r5k1/4Bpbp/B3p1p1/3p4/3rP3/N1n2P2/P4P1P/R4R1K w - - 2 23",
+   "san": "Rac1",
+   "uci": "a1c1",
+   "color": "w",
+   "moveNumber": 23,
+   "elo": 985,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    },
+    {
+     "key": "complicating",
+     "label": "복잡화",
+     "score": 55
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 51
+    }
+   ],
+   "humanP": 4,
+   "risk": "soundSacrifice",
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "r1b1kb1r/ppqppppp/8/2Pn4/8/P4N2/1PPBPPPP/R2QKB1R w KQkq - 0 8",
+   "san": "c4",
+   "uci": "c2c4",
+   "color": "w",
+   "moveNumber": 8,
+   "elo": 651,
+   "styles": [
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 73
+    },
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 65
+    },
+    {
+     "key": "complicating",
+     "label": "복잡화",
+     "score": 63
+    }
+   ],
+   "humanP": 8,
+   "risk": "trap",
+   "quality": "good",
+   "lossPp": 3,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "r2qkb1r/p4ppp/2p1p3/2p1Pn2/3PN3/5Q1P/PP3PP1/R1B1K2R w KQkq - 3 14",
+   "san": "Nd6+",
+   "uci": "e4d6",
+   "color": "w",
+   "moveNumber": 14,
+   "elo": 2204,
+   "styles": [
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 80
+    },
+    {
+     "key": "complicating",
+     "label": "복잡화",
+     "score": 70
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 68
+    }
+   ],
+   "humanP": 5,
+   "risk": null,
+   "quality": "mistake",
+   "lossPp": 28,
+   "best": "dxc5",
+   "bestUci": "d4c5"
+  }
+ ],
+ "PWIE": [
+  {
+   "kind": "signature",
+   "fen": "4r1k1/R1p2pp1/2p4p/8/3P4/4P3/P4PPP/6K1 b - - 0 20",
+   "san": "Rb8",
+   "uci": "e8b8",
+   "color": "b",
+   "moveNumber": 20,
+   "elo": 1072,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 66
+    },
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 63
+    },
+    {
+     "key": "positional",
+     "label": "포지셔널",
+     "score": 47
+    }
+   ],
+   "humanP": 39,
+   "risk": "trap",
+   "quality": "good",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "5k2/8/7R/2PpB2P/3Pp1K1/4P3/p7/r7 w - - 0 48",
+   "san": "Ra6",
+   "uci": "h6a6",
+   "color": "w",
+   "moveNumber": 48,
+   "elo": 2226,
+   "styles": [
+    {
+     "key": "complicating",
+     "label": "복잡화",
+     "score": 77
+    },
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    },
+    {
+     "key": "positional",
+     "label": "포지셔널",
+     "score": 57
+    }
+   ],
+   "humanP": 47,
+   "risk": "soundSacrifice",
+   "quality": "good",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "r7/3k2p1/5p1p/p1Bp1b2/2pP4/P6P/5PP1/4R1K1 b - - 3 30",
+   "san": "Re8",
+   "uci": "a8e8",
+   "color": "b",
+   "moveNumber": 30,
+   "elo": 1991,
+   "styles": [
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 73
+    },
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 63
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 55
+    }
+   ],
+   "humanP": 61,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 49,
+   "best": "c3",
+   "bestUci": "c4c3"
+  }
+ ],
+ "PWRO": [
+  {
+   "kind": "signature",
+   "fen": "3Q4/6r1/8/4BB1k/3P2p1/6P1/1P4P1/6K1 b - - 2 43",
+   "san": "Re7",
+   "uci": "g7e7",
+   "color": "b",
+   "moveNumber": 43,
+   "elo": 1637,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    },
+    {
+     "key": "positional",
+     "label": "포지셔널",
+     "score": 47
+    }
+   ],
+   "humanP": 2,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "2krr3/1p3Q2/2nP4/5P2/p1B2B2/P3P1P1/6KP/RNq5 b - - 2 29",
+   "san": "Rxd6",
+   "uci": "d8d6",
+   "color": "b",
+   "moveNumber": 29,
+   "elo": 1362,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    },
+    {
+     "key": "active",
+     "label": "활동적",
+     "score": 72
+    }
+   ],
+   "humanP": 0,
+   "risk": "trap",
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "8/1p1k3p/p1n3p1/1b4P1/3p3P/B7/2P2r2/1R2K3 w - - 9 48",
+   "san": "Rb4",
+   "uci": "b1b4",
+   "color": "w",
+   "moveNumber": 48,
+   "elo": 1916,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    }
+   ],
+   "humanP": 0,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 50,
+   "best": "Kxf2",
+   "bestUci": "e1f2"
+  }
+ ],
+ "PWRE": [
+  {
+   "kind": "signature",
+   "fen": "6k1/5p1q/3p4/1p1P4/2p4N/2b1P1PQ/6BK/3r4 b - - 0 40",
+   "san": "Rd2",
+   "uci": "d1d2",
+   "color": "b",
+   "moveNumber": 40,
+   "elo": 2377,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    },
+    {
+     "key": "complicating",
+     "label": "복잡화",
+     "score": 63
+    },
+    {
+     "key": "positional",
+     "label": "포지셔널",
+     "score": 47
+    }
+   ],
+   "humanP": 9,
+   "risk": null,
+   "quality": "good",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "8/6k1/6pn/6Kp/5R1P/8/8/8 w - - 2 65",
+   "san": "Ra4",
+   "uci": "f4a4",
+   "color": "w",
+   "moveNumber": 65,
+   "elo": 1198,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 73
+    },
+    {
+     "key": "complicating",
+     "label": "복잡화",
+     "score": 63
+    },
+    {
+     "key": "positional",
+     "label": "포지셔널",
+     "score": 47
+    }
+   ],
+   "humanP": 26,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 1,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "4r1k1/p4p1p/5n1p/5q2/2r2N2/5Q2/PP3KPP/R2R4 w - - 0 31",
+   "san": "g3",
+   "uci": "g2g3",
+   "color": "w",
+   "moveNumber": 31,
+   "elo": 1862,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    },
+    {
+     "key": "positional",
+     "label": "포지셔널",
+     "score": 45
+    },
+    {
+     "key": "space",
+     "label": "공간 확보",
+     "score": 45
+    }
+   ],
+   "humanP": 51,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 46,
+   "best": "Nd3",
+   "bestUci": "f4d3"
+  }
+ ],
+ "PSIO": [
+  {
+   "kind": "signature",
+   "fen": "r3k2r/1pp2ppp/p1nqpnb1/3p4/2PP1P2/2NBP3/PP4PP/1R1QK1NR w Kkq - 2 10",
+   "san": "c5",
+   "uci": "c4c5",
+   "color": "w",
+   "moveNumber": 10,
+   "elo": 1706,
+   "styles": [
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 83
+    },
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 67
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 55
+    }
+   ],
+   "humanP": 34,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "3r2k1/p4ppp/4pb2/3nn3/8/P3P3/3B1PPP/R1R2K2 w - - 7 24",
+   "san": "Rab1",
+   "uci": "a1b1",
+   "color": "w",
+   "moveNumber": 24,
+   "elo": 2008,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 69
+    },
+    {
+     "key": "positional",
+     "label": "포지셔널",
+     "score": 47
+    },
+    {
+     "key": "solid",
+     "label": "안정적",
+     "score": 43
+    }
+   ],
+   "humanP": 53,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "r4rk1/ppp2ppp/8/3Pb3/7q/P2Q4/1PP2PPP/R1B2RK1 w - - 3 14",
+   "san": "Re1",
+   "uci": "f1e1",
+   "color": "w",
+   "moveNumber": 14,
+   "elo": 1230,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    },
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 73
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 53
+    }
+   ],
+   "humanP": 1,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 89,
+   "best": "g3",
+   "bestUci": "g2g3"
+  }
+ ],
+ "PSIE": [
+  {
+   "kind": "signature",
+   "fen": "r1b3k1/1p3p1p/1R2p1p1/1P2P3/p1P5/r4BP1/3N1PKP/8 b - - 0 28",
+   "san": "Rd3",
+   "uci": "a3d3",
+   "color": "b",
+   "moveNumber": 28,
+   "elo": 1542,
+   "styles": [
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 73
+    },
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 63
+    },
+    {
+     "key": "active",
+     "label": "활동적",
+     "score": 60
+    }
+   ],
+   "humanP": 32,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "2rr2k1/pbp1Rp1p/6pB/2p5/8/2P5/PP3PPK/R7 b - - 0 19",
+   "san": "Re8",
+   "uci": "d8e8",
+   "color": "b",
+   "moveNumber": 19,
+   "elo": 1846,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 65
+    },
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 60
+    },
+    {
+     "key": "tactical",
+     "label": "전술적",
+     "score": 55
+    }
+   ],
+   "humanP": 28,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "r2q2k1/p1p3B1/1p1p2P1/2nP4/2P1p3/3B1n2/PP3P2/1QKR3R b - - 0 20",
+   "san": "Nxd3+",
+   "uci": "c5d3",
+   "color": "b",
+   "moveNumber": 20,
+   "elo": 1392,
+   "styles": [
+    {
+     "key": "initiative",
+     "label": "주도권",
+     "score": 80
+    },
+    {
+     "key": "simplifying",
+     "label": "단순화",
+     "score": 80
+    },
+    {
+     "key": "aggressive",
+     "label": "공격적",
+     "score": 73
+    }
+   ],
+   "humanP": 45,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 100,
+   "best": "Qg5+",
+   "bestUci": "d8g5"
+  }
+ ],
+ "PSRO": [
+  {
+   "kind": "signature",
+   "fen": "r4k1r/pppn1qpp/2npp3/2b1p1P1/4P1QP/2PP4/PP3P2/RNB1K1NR w KQ - 1 12",
+   "san": "Qf3",
+   "uci": "g4f3",
+   "color": "w",
+   "moveNumber": 12,
+   "elo": 1495,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 65
+    },
+    {
+     "key": "defensive",
+     "label": "수비적",
+     "score": 60
+    },
+    {
+     "key": "solid",
+     "label": "안정적",
+     "score": 58
+    }
+   ],
+   "humanP": 2,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "8/5Qpk/4p2p/8/8/6PP/6RK/1q2r3 w - - 3 53",
+   "san": "Rf2",
+   "uci": "g2f2",
+   "color": "w",
+   "moveNumber": 53,
+   "elo": 2235,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    },
+    {
+     "key": "positional",
+     "label": "포지셔널",
+     "score": 47
+    }
+   ],
+   "humanP": 4,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "r3k1r1/1R1b1p1p/p3p3/1pPpP3/5PNp/2nB3P/6P1/5RK1 b q - 2 25",
+   "san": "Na4",
+   "uci": "c3a4",
+   "color": "b",
+   "moveNumber": 25,
+   "elo": 1656,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    },
+    {
+     "key": "positional",
+     "label": "포지셔널",
+     "score": 55
+    },
+    {
+     "key": "defensive",
+     "label": "수비적",
+     "score": 41
+    }
+   ],
+   "humanP": 3,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 51,
+   "best": "O-O-O",
+   "bestUci": "e8c8"
+  }
+ ],
+ "PSRE": [
+  {
+   "kind": "signature",
+   "fen": "r1b1k1nr/pp2ppbp/3p2p1/8/PnPPq3/1P2BN2/5PPP/RN1QK2R w KQkq - 3 12",
+   "san": "O-O",
+   "uci": "e1g1",
+   "color": "w",
+   "moveNumber": 12,
+   "elo": 1385,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    },
+    {
+     "key": "defensive",
+     "label": "수비적",
+     "score": 59
+    },
+    {
+     "key": "solid",
+     "label": "안정적",
+     "score": 58
+    }
+   ],
+   "humanP": 48,
+   "risk": null,
+   "quality": "best",
+   "lossPp": 0,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "signature",
+   "fen": "r3k2r/pp2bppp/2np1n2/1Np1p1Nq/2P5/P2P2P1/1P1BPP1P/R2Q1RK1 b kq - 3 12",
+   "san": "O-O-O",
+   "uci": "e8c8",
+   "color": "b",
+   "moveNumber": 12,
+   "elo": 1805,
+   "styles": [
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    },
+    {
+     "key": "solid",
+     "label": "안정적",
+     "score": 75
+    },
+    {
+     "key": "practical",
+     "label": "실용적",
+     "score": 55
+    }
+   ],
+   "humanP": 6,
+   "risk": null,
+   "quality": "good",
+   "lossPp": 1,
+   "best": null,
+   "bestUci": null
+  },
+  {
+   "kind": "pitfall",
+   "fen": "3r4/3k1p1r/QR2p1pp/p2qP3/8/4P3/5PPP/2R3K1 b - - 0 26",
+   "san": "Ke8",
+   "uci": "d7e8",
+   "color": "b",
+   "moveNumber": 26,
+   "elo": 1528,
+   "styles": [
+    {
+     "key": "defensive",
+     "label": "수비적",
+     "score": 78
+    },
+    {
+     "key": "prophylactic",
+     "label": "예방적",
+     "score": 75
+    }
+   ],
+   "humanP": 61,
+   "risk": null,
+   "quality": "blunder",
+   "lossPp": 43,
+   "best": "Ke7",
+   "bestUci": "d7e7"
+  }
+ ]
+}

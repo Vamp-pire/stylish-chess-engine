@@ -15,6 +15,92 @@ const GROUP_ORDER = ['AW', 'AS', 'PW', 'PS'];
 const DIST = new URL('../dist/', import.meta.url);
 const data = JSON.parse(readFileSync(new URL('../src/data/chess-types.json', import.meta.url), 'utf8'));
 const calib = JSON.parse(readFileSync(new URL('../src/data/type-calib.json', import.meta.url), 'utf8'));
+/** 유형별 실제 예시 수 (scripts/calib/pick-examples.mts) */
+const examples = JSON.parse(readFileSync(new URL('../src/data/type-examples.json', import.meta.url), 'utf8'));
+
+// ── 체스판 그림 (정적 SVG). 기물은 chessground의 cburnett 세트 ──
+const pieceCss = readFileSync(new URL('../node_modules/chessground/assets/chessground.cburnett.css', import.meta.url), 'utf8');
+const PIECE_NAMES = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
+function pieceSymbol(code) {
+  const color = code === code.toUpperCase() ? 'white' : 'black';
+  const m = pieceCss.match(new RegExp(`piece\\.${PIECE_NAMES[code.toLowerCase()]}\\.${color}\\s*\\{[^}]*base64,([A-Za-z0-9+/=]+)`));
+  const svg = Buffer.from(m[1], 'base64').toString('utf8');
+  const inner = svg.replace(/^[\s\S]*?<svg[^>]*>/, '').replace(/<\/svg>\s*$/, '');
+  return `<symbol id="pc-${color[0]}${code.toLowerCase()}" viewBox="0 0 45 45">${inner}</symbol>`;
+}
+const RISK_NAME = { soundSacrifice: '건전한 희생', speculative: '무리한 희생', trap: '함정수', gamble: '도박수' };
+const ARROW_COLOR = { good: '#15803d', bad: '#c2410c', best: '#15803d' };
+
+/** FEN → 8×8 판 SVG (둔 쪽이 아래로), 화살표 [from, to, 종류] */
+function boardSvg(fen, flip, arrows) {
+  const S = 40, rows = fen.split(' ')[0].split('/');
+  const used = new Set();
+  let squares = '', pieces = '';
+  const xy = (file, rank) => {
+    const c = flip ? 7 - file : file, r = flip ? rank : 7 - rank;
+    return [c * S, r * S];
+  };
+  for (let rank = 7; rank >= 0; rank--) {
+    let file = 0;
+    for (const ch of rows[7 - rank]) {
+      if (/\d/.test(ch)) { file += Number(ch); continue; }
+      const [x, y] = xy(file, rank);
+      const id = `pc-${ch === ch.toUpperCase() ? 'w' : 'b'}${ch.toLowerCase()}`;
+      used.add(ch === ch.toUpperCase() ? ch : ch);
+      pieces += `<use href="#${id}" x="${x}" y="${y}" width="${S}" height="${S}"/>`;
+      file++;
+    }
+  }
+  for (let f = 0; f < 8; f++) for (let r = 0; r < 8; r++) {
+    const [x, y] = xy(f, r);
+    squares += `<rect x="${x}" y="${y}" width="${S}" height="${S}" fill="${(f + r) % 2 ? '#f0d9b5' : '#b58863'}"/>`;
+  }
+  // 좌표
+  let coords = '';
+  for (let i = 0; i < 8; i++) {
+    const file = flip ? 7 - i : i, rank = flip ? i : 7 - i;
+    coords += `<text x="${i * S + S - 3}" y="${8 * S - 3}" text-anchor="end" font-size="8" fill="${(i + 0) % 2 ? '#b58863' : '#f0d9b5'}" font-weight="700">${'abcdefgh'[file]}</text>`;
+    coords += `<text x="2" y="${i * S + 9}" font-size="8" fill="${i % 2 ? '#f0d9b5' : '#b58863'}" font-weight="700">${rank + 1}</text>`;
+  }
+  const center = (sq) => { const [x, y] = xy(sq.charCodeAt(0) - 97, Number(sq[1]) - 1); return [x + S / 2, y + S / 2]; };
+  let arr = '';
+  for (const [from, to, kind] of arrows) {
+    const [x1, y1] = center(from), [x2, y2] = center(to);
+    const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy), ux = dx / len, uy = dy / len;
+    const head = 13, ex = x2 - ux * 8, ey = y2 - uy * 8, bx = ex - ux * head, by = ey - uy * head;
+    const c = ARROW_COLOR[kind];
+    arr += `<path d="M${x1 + ux * 10} ${y1 + uy * 10} L${bx} ${by}" stroke="${c}" stroke-width="7" stroke-linecap="round" opacity="0.85"/>`;
+    arr += `<path d="M${ex} ${ey} L${bx - uy * 9} ${by + ux * 9} L${bx + uy * 9} ${by - ux * 9} Z" fill="${c}" opacity="0.9"/>`;
+  }
+  const symbols = [...new Set(fen.split(' ')[0].replace(/[\d/]/g, ''))].map(pieceSymbol).join('');
+  return `<svg class="board" viewBox="0 0 ${8 * S} ${8 * S}" role="img"><defs>${symbols}</defs>${squares}${coords}${pieces}${arr}</svg>`;
+}
+
+/** 실제 예시 카드 */
+function exampleCard(e, t) {
+  const flip = e.color === 'b';
+  const moveNo = `${e.moveNumber}${e.color === 'w' ? '.' : '...'}`;
+  const chips = e.styles.map((x) => `<span class="chip">${esc(x.label)} ${x.score}</span>`).join('') + (e.risk ? `<span class="chip risk">${RISK_NAME[e.risk]}</span>` : '');
+  const signature = e.kind === 'signature';
+  const arrows = [[e.uci.slice(0, 2), e.uci.slice(2, 4), signature ? 'good' : 'bad']];
+  if (!signature && e.bestUci) arrows.push([e.bestUci.slice(0, 2), e.bestUci.slice(2, 4), 'best']);
+  const styleText = e.styles.slice(0, 2).map((x) => x.label).join('·');
+  const rare = e.humanP <= 20;
+  const body = signature
+    ? `<p>${styleText ? `<b>${esc(styleText)}</b> 점수가 높은 수예요. ` : ''}같은 레이팅의 사람이 이 자리에서 이 수를 둘 확률은 <b>${e.humanP}%</b>로, ${rare ? '쉽게 떠올리기 어려운 남다른 선택' : '자연스럽지만 성향이 잘 드러나는 선택'}이에요.${e.risk ? ` 엔진은 이 수를 <b>${RISK_NAME[e.risk]}</b>로 판정했어요.` : ''}</p>`
+    : `<p>이 수로 기대 점수가 <b>${e.lossPp}%p</b> 떨어졌어요.${e.best ? ` 더 나은 수는 <b>${esc(e.best)}</b>(초록 화살표)였어요.` : ''} ${styleText ? `<b>${esc(styleText)}</b> 성향이 강한 수라, ${esc(t.name)} 유형의 습관이 지나치면 이런 실수로 이어지기 쉬워요.` : ''}</p>`;
+  return `<figure class="example ${signature ? 'ok' : 'ng'}">
+${boardSvg(e.fen, flip, arrows)}
+<figcaption>
+<span class="ex-kind">${signature ? '대표 수' : '빠지기 쉬운 실수'}</span>
+<h3>${moveNo} ${esc(e.san)}</h3>
+<p class="ex-meta">레이팅 ${e.elo} 플레이어 · ${e.color === 'w' ? '백' : '흑'}${signature ? '' : ` · ${e.quality === 'blunder' ? '블런더' : '실수'}`}</p>
+<div class="chips">${chips}</div>
+${body}
+</figcaption>
+</figure>`;
+}
+
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const list = (xs) => `<ul>${xs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
@@ -214,6 +300,9 @@ for (const t of data.types) {
 <div class="card"><h3>강점</h3>${list(t.strengths)}</div>
 <div class="card"><h3>약점</h3>${list(t.weaknesses)}</div>
 </div>
+${(examples[t.code] ?? []).length ? `<h2>실제 ${esc(t.name)} 플레이어의 수</h2>
+<p>Stylish 기준을 만들 때 분석한 Lichess 플레이어(이름은 지움) 중 <b>${t.code}</b>로 판정된 사람들의 실제 게임에서 골랐어요. 흔한 되잡기나 누구나 두는 수는 빼고, 이 유형의 성향이 가장 잘 드러나는 수를 골랐어요.</p>
+<div class="examples">${examples[t.code].map((e) => exampleCard(e, t)).join('')}</div>` : ''}
 <h2>실력을 올리는 방법</h2>${list(t.tips)}
 <h2>정반대 유형</h2>
 <a class="opp-card g-${opp.code.slice(0, 2)}" href="/types/${opp.code}"><img src="/img/types/${opp.code}-square.png" alt="" width="600" height="600" loading="lazy" /><span><b>${opp.code} ${esc(opp.name)}</b>${esc(opp.tagline)}. 모든 글자가 반대인 유형이라, 이 유형을 상대할 때는 내 방식이 가장 잘 통하거나 가장 안 통할 수 있습니다.</span></a>
