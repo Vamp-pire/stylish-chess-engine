@@ -56,7 +56,7 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 }
 
-async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, format: Format, nick: string, photo: HTMLImageElement | null) {
+export async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, format: Format, nick: string, photo: HTMLImageElement | null) {
   const [W, H] = SIZE[format];
   await Promise.all([
     document.fonts.ready,
@@ -83,7 +83,7 @@ async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, format: 
     if (!story && c * cell < W * 0.45) continue; // 정사각형은 오른쪽에만
     ctx.beginPath(); ctx.roundRect(c * cell + 6, r * cell + 6, cell - 12, cell - 12, cell * 0.12); ctx.fill();
   }
-  const cx = story ? W / 2 : 790, cy = story ? 560 : 300, radius = story ? 300 : 200;
+  const cx = story ? W / 2 : 790, cy = story ? 470 : 300, radius = story ? 280 : 200;
   const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 2.2);
   glow.addColorStop(0, hexA(light, 0.45)); glow.addColorStop(1, hexA(light, 0));
   ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
@@ -120,81 +120,121 @@ async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, format: 
   const sw = ctx.measureText('Stylish').width;
   ctx.fillStyle = light; ctx.fillText('.', lx + 62 + sw, ly);
 
-  // 글자 영역
+  // 글자 영역: 모든 글자는 재어 보고 넘치면 줄인다. 축 막대는 아래 주소 위에 고정해서 위 글자와 겹치지 않게 한다.
+  const en = getLang() === 'en';
   const align: CanvasTextAlign = story ? 'center' : 'left';
   const x = story ? W / 2 : 80;
-  let y = story ? cy + radius + 110 : 210;
+  const left = story ? 120 : 80, right = W - left;
+  /** 정사각형에서 장면(오른쪽 위)과 겹치지 않는 왼쪽 글자 폭 */
+  const topW = story ? W - 2 * left : cx - radius * 1.15 - x;
+  const fullW = right - left;
+  const fit = (text: string, weight: number, size: number, maxW: number, min = size * 0.5) => {
+    let sz = size;
+    ctx.font = `${weight} ${sz}px ${FONT}`;
+    while (sz > min && ctx.measureText(text).width > maxW) { sz -= 2; ctx.font = `${weight} ${sz}px ${FONT}`; }
+    return sz;
+  };
+  const cut = (text: string, maxW: number) => {
+    if (ctx.measureText(text).width <= maxW) return text;
+    let t2 = text;
+    while (t2.length > 1 && ctx.measureText(`${t2}…`).width > maxW) t2 = t2.slice(0, -1);
+    return `${t2}…`;
+  };
   ctx.textAlign = align;
+
+  let y = story ? cy + radius + 110 : 200;
   if (nick) {
-    ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = `700 ${story ? 44 : 38}px ${FONT}`;
-    ctx.fillText(tr(`${nick}의 체스 유형`, `${nick}'s chess type`), x, y);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    fit(tr(`${nick}의 체스 유형`, `${nick}'s chess type`), 700, story ? 44 : 38, topW, story ? 30 : 26);
+    ctx.fillText(cut(tr(`${nick}의 체스 유형`, `${nick}'s chess type`), topW), x, y);
   }
   // 그룹 이름표
-  ctx.font = `700 ${story ? 32 : 28}px ${FONT}`;
-  const en = getLang() === 'en';
-  const pill = en ? group.name : `${group.name} · ${group.en}`;
+  const pillH = story ? 54 : 48;
+  let pill = en ? group.name : `${group.name} · ${group.en}`;
+  const pillSize = fit(pill, 700, story ? 32 : 28, topW - 40, 20);
+  if (ctx.measureText(pill).width > topW - 40) pill = group.name;
   const pw = ctx.measureText(pill).width + 40;
-  const pillY = story ? y + 50 : y + 46;
+  const pillY = y + (story ? 40 : 36);
   const pillX = story ? x - pw / 2 : x;
-  ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.beginPath(); ctx.roundRect(pillX, pillY, pw, story ? 54 : 48, 27); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.beginPath(); ctx.roundRect(pillX, pillY, pw, pillH, pillH / 2); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.font = `700 ${pillSize}px ${FONT}`;
+  ctx.fillText(pill, pillX + 20, pillY + pillH / 2 + 1);
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = align;
+
+  // 4글자 코드 (글자 간격 때문에 가운데 정렬이 밀리지 않도록 직접 위치 계산)
+  const spacing = 'letterSpacing' in ctx;
+  const setSpacing = (v: string) => { if (spacing) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = v; };
+  setSpacing('8px');
+  const codeSize = fit(input.code, 800, story ? 230 : 190, topW, 120);
+  const codeW = ctx.measureText(input.code).width - (spacing ? 8 : 0);
+  y = pillY + pillH + codeSize * 0.82;
   ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left';
-  ctx.fillText(pill, pillX + 20, pillY + (story ? 38 : 34));
-  ctx.textAlign = align;
+  ctx.fillText(input.code, story ? x - codeW / 2 : x, y);
+  setSpacing('0px');
 
-  y = story ? pillY + 260 : 560;
-  ctx.font = `800 ${story ? 230 : 190}px ${FONT}`;
-  ctx.fillStyle = '#ffffff';
-  if ('letterSpacing' in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '8px';
-  ctx.fillText(input.code, x, y);
-  if ('letterSpacing' in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = '0px';
-
-  y += story ? 120 : 100;
-  ctx.font = `800 ${story ? 96 : 80}px ${FONT}`;
+  // 유형 이름 (+ 영어 이름, 자리가 없으면 뺀다)
+  const nameSize = fit(t.name, 800, story ? 96 : 80, fullW, 44);
   const nameW = ctx.measureText(t.name).width;
   ctx.font = `500 ${story ? 44 : 38}px ${FONT}`;
-  const enW = en ? 0 : ctx.measureText(t.en).width;
-  const nameX = story ? x - (nameW + (en ? 0 : 20) + enW) / 2 : x;
+  const showEn = !en && nameW + 20 + ctx.measureText(t.en).width <= fullW;
+  const enW = showEn ? ctx.measureText(t.en).width + 20 : 0;
+  y += Math.round(nameSize * 1.2);
+  const nameX = story ? x - (nameW + enW) / 2 : x;
   ctx.textAlign = 'left';
-  ctx.font = `800 ${story ? 96 : 80}px ${FONT}`; ctx.fillStyle = '#ffffff';
+  ctx.font = `800 ${nameSize}px ${FONT}`; ctx.fillStyle = '#ffffff';
   ctx.fillText(t.name, nameX, y);
-  ctx.font = `500 ${story ? 44 : 38}px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.75)';
-  if (!en) ctx.fillText(t.en, nameX + nameW + 20, y);
+  if (showEn) {
+    ctx.font = `500 ${story ? 44 : 38}px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.75)';
+    ctx.fillText(t.en, nameX + nameW + 20, y);
+  }
   ctx.textAlign = align;
 
-  ctx.font = `500 ${story ? 46 : 40}px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.92)';
-  const lines = wrapText(ctx, t.tagline, story ? 860 : 900);
-  y += story ? 90 : 76;
-  for (const l of lines) { ctx.fillText(l, x, y); y += story ? 62 : 54; }
+  // 축 막대: 아래 주소 위에 고정
+  const rowH = story ? 76 : 50;
+  const footY = H - (story ? 90 : 46);
+  const axesTop = footY - (story ? 110 : 80) - 3 * rowH;
+
+  // 한 줄 소개: 이름과 축 막대 사이에 들어가도록 줄 수·크기를 맞춘다
+  const tagTop = y + (story ? 30 : 20), tagBottom = axesTop - (story ? 60 : 44);
+  let tagSize = story ? 46 : 40, lines: string[] = [];
+  for (; tagSize >= 22; tagSize -= 2) {
+    ctx.font = `500 ${tagSize}px ${FONT}`;
+    lines = wrapText(ctx, t.tagline, fullW);
+    if (tagTop + lines.length * tagSize * 1.35 <= tagBottom) break;
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  let ty = tagTop + tagSize;
+  for (const l of lines) { ctx.fillText(l, x, ty); ty += tagSize * 1.35; }
 
   // 축 막대
-  const rowH = story ? 76 : 50;
-  y += story ? 40 : 14;
-  const left = story ? 120 : 80, right = W - left;
-  const labelW = story ? 170 : 150;
+  const axSize = story ? 32 : 26;
+  ctx.font = `800 ${axSize}px ${FONT}`;
+  const labelW = Math.max(...TYPE_DATA.axes.flatMap((ax) => [ctx.measureText(`${ax.letters[0]} ${ax.names[0]}`).width, ctx.measureText(`${ax.names[1]} ${ax.letters[1]}`).width])) + 24;
   const trackX = left + labelW, trackW = right - labelW - trackX;
   input.pcts.forEach((pct, i) => {
     const ax = TYPE_DATA.axes[i];
     const first = input.code[i] === ax.letters[0];
-    const ry = y + i * rowH;
-    ctx.font = `${first ? 800 : 500} ${story ? 32 : 26}px ${FONT}`;
+    const ry = axesTop + i * rowH;
+    ctx.font = `${first ? 800 : 500} ${axSize}px ${FONT}`;
     ctx.fillStyle = first ? '#ffffff' : 'rgba(255,255,255,0.55)';
     ctx.textAlign = 'left'; ctx.fillText(`${ax.letters[0]} ${ax.names[0]}`, left, ry);
-    ctx.font = `${first ? 500 : 800} ${story ? 32 : 26}px ${FONT}`;
+    ctx.font = `${first ? 500 : 800} ${axSize}px ${FONT}`;
     ctx.fillStyle = first ? 'rgba(255,255,255,0.55)' : '#ffffff';
     ctx.textAlign = 'right'; ctx.fillText(`${ax.names[1]} ${ax.letters[1]}`, right, ry);
-    const ty = ry - (story ? 12 : 9);
+    const ty2 = ry - (story ? 12 : 9);
     ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.beginPath(); ctx.roundRect(trackX, ty - 5, trackW, 10, 5); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(trackX + trackW / 2 - 1, ty - 12, 2, 24);
+    ctx.beginPath(); ctx.roundRect(trackX, ty2 - 5, trackW, 10, 5); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.fillRect(trackX + trackW / 2 - 1, ty2 - 12, 2, 24);
     const mx = trackX + trackW * (1 - pct / 100);
-    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(mx, ty, story ? 15 : 12, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = mid; ctx.beginPath(); ctx.arc(mx, ty, story ? 8 : 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(mx, ty2, story ? 15 : 12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = mid; ctx.beginPath(); ctx.arc(mx, ty2, story ? 8 : 6, 0, Math.PI * 2); ctx.fill();
   });
 
   // 아래 주소
   ctx.textAlign = align;
   ctx.font = `500 ${story ? 34 : 28}px ${FONT}`; ctx.fillStyle = 'rgba(255,255,255,0.72)';
-  ctx.fillText(`${tr('나의 체스 유형은?', "What's your chess type?")} ${SITE}`, story ? W / 2 : 80, H - (story ? 90 : 46));
+  ctx.fillText(`${tr('나의 체스 유형은?', "What's your chess type?")} ${SITE}`, story ? W / 2 : 80, footY);
 }
 
 function hexA(hex: string, a: number) {
