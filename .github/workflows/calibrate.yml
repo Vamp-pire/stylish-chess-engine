@@ -1,17 +1,52 @@
-# 4글자 체스 유형 보정: 익명화한 Lichess 플레이어 480명의 게임을 사이트와 같은 조건으로 분석해
-# src/data/type-calib.json을 만든다. 결과는 아티팩트로 올리고, 확인 후 사람이 커밋한다 (자동 커밋 안 함).
+# 4글자 체스 유형 보정 (대규모): Lichess 공개 데이터베이스(CC0)의 월별 기보 앞부분에서
+# 시간대(불릿·블리츠·래피드) × 레이팅 구간(600~2600, 200점)마다 플레이어를 골라 익명화하고,
+# 사이트와 같은 조건(깊이 10, Maia3, 오프닝 이론)으로 분석해 src/data/type-calib.json(시간대별 포함)을 만든다.
+# 닮은 선수 데이터(src/data/masters.json)도 같은 조건으로 다시 만든다.
+# 결과는 아티팩트로 올리고, 확인 후 사람이 커밋한다 (자동 커밋 안 함).
 name: Calibrate chess types
 
 on:
   workflow_dispatch:
+    inputs:
+      month:
+        description: 'Lichess DB 월 (YYYY-MM)'
+        default: '2026-08'
+      gigabytes:
+        description: '앞부분을 몇 GB 받을지 (.pgn.zst)'
+        default: '6'
+      per_band:
+        description: '시간대·구간마다 플레이어 수'
+        default: '110'
 
 permissions:
   contents: read
 
 jobs:
-  analyze:
+  collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download part of the Lichess database
+        run: |
+          BYTES=$(( ${{ inputs.gigabytes }} * 1000000000 ))
+          curl -sSf -r 0-$BYTES -o part.pgn.zst "https://database.lichess.org/standard/lichess_db_standard_rated_${{ inputs.month }}.pgn.zst"
+          ls -la part.pgn.zst
+      - name: Pick and anonymize players
+        run: node --max-old-space-size=12000 scripts/calib/collect.mjs part.pgn.zst games.jsonl.gz ${{ inputs.per_band }} 10
+      - uses: actions/upload-artifact@v4
+        with:
+          name: games
+          path: games.jsonl.gz
+          retention-days: 7
+
+  analyze:
+    needs: collect
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
     strategy:
       fail-fast: false
       matrix:
@@ -19,6 +54,7 @@ jobs:
     env:
       JOBS: 20
       PROCS: 4 # 러너 vCPU 수만큼 동시에
+      CALIB_GAMES: games.jsonl.gz
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +62,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: games
       - name: Analyze shard
         run: |
           SHARDS=$((JOBS * PROCS))
@@ -34,7 +73,7 @@ jobs:
             npx tsx scripts/calib/analyze.mts $s $SHARDS out-$s.jsonl > log-$s.txt 2>&1 &
           done
           wait
-          cat log-*.txt
+          tail -n 3 log-*.txt
           cat out-*.jsonl > shard-${{ matrix.job }}.jsonl
           wc -l shard-${{ matrix.job }}.jsonl
       - uses: actions/upload-artifact@v4
@@ -42,6 +81,49 @@ jobs:
           name: shard-${{ matrix.job }}
           path: shard-${{ matrix.job }}.jsonl
           retention-days: 7
+
+  masters:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Download master games
+        run: |
+          mkdir -p masters-pgn
+          A=https://raw.githubusercontent.com/antlr/grammars-v4/master/pgn/examples
+          curl -sSf "$A/Adams%20-%20OK.pgn" -o masters-pgn/Adams.pgn
+          curl -sSf "$A/Alekhine.pgn" -o masters-pgn/Alekhine.pgn
+          curl -sSf "$A/Anand%20-%20OK.pgn" -o masters-pgn/Anand.pgn
+          curl -sSf "$A/Ivanchuk.pgn" -o masters-pgn/Ivanchuk.pgn
+          curl -sSf "$A/Karpov.pgn" -o masters-pgn/Karpov.pgn
+          curl -sSf "$A/Morozevich.pgn" -o masters-pgn/Morozevich.pgn
+          curl -sSf "$A/Shirov%20-%20OK.pgn" -o masters-pgn/Shirov.pgn
+          curl -sSf "$A/Topalov.pgn" -o masters-pgn/Topalov.pgn
+          B=https://raw.githubusercontent.com/cran/bigchess/master/inst/extdata
+          curl -sSf "$B/Carlsen.gz" | gunzip > masters-pgn/Carlsen.pgn
+          curl -sSf "$B/Kasparov.gz" | gunzip > masters-pgn/Kasparov.pgn
+          ls -la masters-pgn
+      - name: Analyze master games (4 at a time)
+        run: |
+          set -e
+          for group in "Adams,Alekhine,Anand" "Ivanchuk,Karpov,Morozevich" "Shirov,Topalov" "Carlsen,Kasparov"; do
+            BUILD_MASTERS=1 MASTERS_DIR=masters-pgn MASTERS_OUT=masters-out PLAYERS="$group" npx vitest run test/masters.build.test.ts > "log-$group.txt" 2>&1 &
+          done
+          wait
+          tail -n 5 log-*.txt
+          node scripts/build-masters.mjs masters-out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: masters
+          path: |
+            src/data/masters.json
+            masters-out
+          retention-days: 30
 
   calibrate:
     needs: analyze
@@ -56,16 +138,18 @@ jobs:
           pattern: shard-*
           merge-multiple: true
           path: shards
-      - name: Build calibration
+      - name: Build calibration and stability report
         run: |
           cat shards/*.jsonl > all.jsonl
           wc -l all.jsonl
           node scripts/build-type-calib.mjs all.jsonl | tee report.txt
+          node scripts/calib/stability.mjs src/data/type-calib.json all.jsonl | tee -a report.txt
+          gzip -k all.jsonl
       - uses: actions/upload-artifact@v4
         with:
           name: type-calib
           path: |
             src/data/type-calib.json
             report.txt
-            all.jsonl
+            all.jsonl.gz
           retention-days: 30

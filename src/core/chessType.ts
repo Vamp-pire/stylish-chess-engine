@@ -29,6 +29,8 @@ export const AXIS_DEF: Record<AxisKey, { plus: Metric[]; minus: Metric[] }> = {
 export interface Calibration {
   /** 보정에 쓴 플레이어 수 */
   players: number;
+  /** 시간대별 보정 (불릿·블리츠·래피드). 없는 시간대는 전체 보정을 쓴다 */
+  byClass?: Record<string, Omit<Calibration, 'byClass'>>;
   /** 지표별 레이팅 회귀(기대값 = a + b × 레이팅)와 잔차 표준편차 */
   metrics: Record<Metric, { a: number; b: number; std: number }>;
   /** 축별 분포: 0~100 백분위에 해당하는 축 값 101개 */
@@ -67,6 +69,22 @@ export const MIN_COUNTED = 80;
 /** 레이팅 범위 (Maia3와 같음). 기보에 없으면 기본값 */
 export const RATING_MIN = 600, RATING_MAX = 2600, RATING_DEFAULT = 1500;
 export const ratingOf = (p: PlayerProfile) => Math.max(RATING_MIN, Math.min(RATING_MAX, p.rating || RATING_DEFAULT));
+
+/** PGN TimeControl 헤더(예: 180+2) → 시간대. Lichess 기준(예상 시간 = 기본 + 40 × 추가) */
+export function timeClassOf(h: Record<string, string>): string | null {
+  const tc = h.TimeControl ?? '';
+  if (/^\d+\/\d+$/.test(tc)) return 'daily';
+  const m = tc.match(/^(\d+)(?:\+(\d+))?$/);
+  if (!m) return null;
+  const est = Number(m[1]) + 40 * Number(m[2] ?? 0);
+  return est < 180 ? 'bullet' : est < 480 ? 'blitz' : est < 1500 ? 'rapid' : 'classical';
+}
+
+/** 이 프로필의 시간대에 맞는 보정 (없으면 전체) */
+export function calibFor(p: PlayerProfile, base: Calibration = CALIB as Calibration): Calibration {
+  const c = p.timeClass ? base.byClass?.[p.timeClass] : undefined;
+  return c ? { ...c } : base;
+}
 
 /** 프로필 → 지표 값. 독창성(Maia)이 없으면 null */
 export function metricsOf(p: PlayerProfile): Record<Metric, number> | null {
@@ -109,7 +127,7 @@ export interface AxisResult {
 export interface ChessType { code: string; info: TypeInfo; axes: AxisResult[]; counted: number; reliable: boolean }
 
 /** 프로필 → 4글자 유형. Maia 기록이 없는 프로필이면 null */
-export function chessTypeOf(p: PlayerProfile, cal: Calibration = CALIB as Calibration): ChessType | null {
+export function chessTypeOf(p: PlayerProfile, cal: Calibration = calibFor(p)): ChessType | null {
   const m = metricsOf(p);
   if (!m) return null;
   const axes = AXIS_KEYS.map((key, i): AxisResult => {
@@ -138,7 +156,7 @@ export const PEER_METRICS: PeerMetric[] = ['aggressive', 'tactical', 'initiative
  * 같은 레이팅 플레이어(보정 데이터) 대비 지표별 위치: z점수와 백분위(0~100, 50 = 같은 레이팅 평균).
  * 원점수(0~100)는 보통 20 안팎이라 '낮아 보이고' 기준도 안 보여서, 화면에는 이 값을 쓴다.
  */
-export function peerStats(p: PlayerProfile, cal: Calibration = CALIB as Calibration): Record<PeerMetric, { z: number; pct: number }> | null {
+export function peerStats(p: PlayerProfile, cal: Calibration = calibFor(p)): Record<PeerMetric, { z: number; pct: number }> | null {
   if (!cal.players || !p.counted) return null;
   const risks = RISK_KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0);
   const rating = ratingOf(p);

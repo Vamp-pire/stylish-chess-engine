@@ -40,6 +40,8 @@ export interface PlayerProfile {
   time?: TimeProfile | null;
   /** 기보에 적힌 이 플레이어의 레이팅 (없으면 null). 유형 판정을 같은 레이팅끼리 비교하는 데 쓴다 */
   rating?: number | null;
+  /** 이 프로필이 주로 나온 시간대 (bullet·blitz·rapid…). 유형 보정을 시간대별로 고른다 */
+  timeClass?: string | null;
   /** 사람 수 예측(Maia3) 기준 독창성: 같은 레이팅 사람들이 잘 안 두는 수를 얼마나 두는가 (예전 저장본·규칙 기반엔 없음) */
   human?: HumanStats | null;
   /** 오프닝: 이론을 따라간 수, 이론 이탈 수 (한 게임 기준) */
@@ -76,6 +78,13 @@ function mergeHuman(list: (HumanStats | null | undefined)[]): HumanStats | null 
     rare: live.reduce((s, h) => s + h.rare * h.n, 0) / n,
     surprise: live.reduce((s, h) => s + h.surprise * h.n, 0) / n,
   };
+}
+
+/** 가장 많은 수가 나온 시간대 */
+export function mainTimeClass(list: { timeClass?: string | null; counted: number }[]): string | null {
+  const by = new Map<string, number>();
+  for (const p of list) if (p.timeClass) by.set(p.timeClass, (by.get(p.timeClass) ?? 0) + p.counted);
+  return [...by].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
 }
 
 /** 레이팅은 평가 대상 수로 가중 평균 (레이팅이 있는 판만) */
@@ -335,6 +344,7 @@ export function mergeProfiles(list: PlayerProfile[]): PlayerProfile | null {
     archetype: archetype(avg, riskRate),
     human: mergeHuman(list.map((p) => p.human)),
     rating: mergeRating(list),
+    timeClass: mainTimeClass(list),
     opening: { bookMoves: list.reduce((s, p) => s + p.opening.bookMoves, 0), leftBookFirst: null, deviation: null },
   };
 }

@@ -1,10 +1,12 @@
 // 유명 선수 프로필 만들기 (닮은 선수 찾기용). 평소 테스트에서는 건너뛴다.
 // BUILD_MASTERS=1 MASTERS_DIR=pgn폴더 MASTERS_OUT=결과폴더 [PLAYERS=Karpov,Tal] npx vitest run test/masters.build.test.ts
 // pgn폴더에는 <성>.pgn 파일을 둔다. 각 선수의 게임 중 날짜순 뒤쪽 70%에서 고르게 GAMES판을 골라 깊이 10으로 분석한다.
+// 유형 보정(scripts/calib/analyze.mts)과 같은 조건: 깊이 10, Maia3, 오프닝 이론. 조건이 다르면 닮은 선수 비교가 어긋난다
 import { describe, it } from 'vitest';
 import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createNodeEngine, loadNodeBook } from './node-engine';
+import { createNodeHuman } from './node-human';
 import { analyzeGame } from '../src/core/analyzer';
 import { mergeProfiles, type PlayerProfile } from '../src/core/profile';
 
@@ -40,11 +42,12 @@ describe.skipIf(!enabled)('유명 선수 프로필 만들기', () => {
     it(name, async () => {
       const engine = await createNodeEngine();
       const book = loadNodeBook();
+      const human = await createNodeHuman();
       const picked = pickGames(readFileSync(join(dir, f), 'utf8'), name.toLowerCase());
       const profiles: PlayerProfile[] = [];
       for (const g of picked) {
         try {
-          const a = await analyzeGame(g.pgn, engine, { depth: DEPTH, book });
+          const a = await analyzeGame(g.pgn, engine, { depth: DEPTH, book, human });
           profiles.push(a.profiles[g.side as 'w' | 'b']);
         } catch (e) { console.log(name, '분석 실패', String(e).slice(0, 80)); }
       }
@@ -52,7 +55,7 @@ describe.skipIf(!enabled)('유명 선수 프로필 만들기', () => {
       const merged = mergeProfiles(profiles)!;
       mkdirSync(out, { recursive: true });
       writeFileSync(join(out, `${name}.json`), JSON.stringify({ name, games: profiles.length, profile: merged }));
-      console.log(`${name}: ${profiles.length}판, ${merged.archetype.name}, 정확도 ${merged.accuracy}`);
+      console.log(`${name}: ${profiles.length}판, 정확도 ${merged.accuracy}`);
     }, 3_600_000);
   }
 });

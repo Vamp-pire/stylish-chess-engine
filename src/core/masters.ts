@@ -4,8 +4,7 @@ import { tr } from '../i18n';
 import masters from '../data/masters.json';
 import type { StyleKey } from './styles';
 import type { PlayerProfile } from './profile';
-import { ratingOf, type Calibration, type Metric } from './chessType';
-import CALIB from '../data/type-calib.json';
+import { ratingOf, calibFor, type Metric } from './chessType';
 import { RISK_KINDS } from './styles';
 
 export interface Master {
@@ -32,7 +31,7 @@ const STATS = Object.fromEntries(KEYS.map((k) => {
 const masterVector = (m: Master) => KEYS.map((k) => (masterMetric(m, k) - STATS[k].mean) / STATS[k].sd);
 
 function userVector(p: PlayerProfile) {
-  const cal = CALIB as Calibration;
+  const cal = calibFor(p);
   const risks = RISK_KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0);
   const rating = ratingOf(p);
   return KEYS.map((k) => {

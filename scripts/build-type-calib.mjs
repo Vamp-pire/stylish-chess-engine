@@ -2,6 +2,7 @@
 // 잔차 표준편차, 그리고 축별 분포를 구한다. 지표 대부분이 레이팅과 상관이 커서 같은 레이팅끼리 비교한다.
 // 입력 한 줄 = 플레이어 한 명 { name, elo, moves: [{ s: 스타일 점수, r: 위험 판정, hp: Maia 확률, f: 강제, b: 이론 }] }
 // 사용: node scripts/build-type-calib.mjs <jsonl 파일들...>  → src/data/type-calib.json
+// 줄에 cls(bullet|blitz|rapid)가 있으면 시간대별 보정(byClass)도 만든다. 시간대마다 같은 수를 둬도 성향 분포가 다르기 때문
 // 축 정의는 src/core/chessType.ts의 AXIS_DEF와 같아야 한다.
 import { readFileSync, writeFileSync } from 'node:fs';
 
@@ -30,7 +31,7 @@ for (const file of process.argv.slice(2)) {
     for (const k of STYLES) m[k] = Math.round(counted.reduce((s, x) => s + x.s[k], 0) / counted.length);
     m.risk = (p.moves.filter((x) => x.r).length / counted.length) * 100;
     m.rare = (hps.filter((x) => x < RARE_P).length / hps.length) * 100;
-    players.push({ id: p.id ?? p.name, elo: clampRating(p.elo), band: p.band, m });
+    players.push({ id: p.id ?? p.name, elo: clampRating(p.elo), band: p.band, cls: p.cls ?? null, m });
   }
 }
 if (players.length < 50) throw new Error(`플레이어가 너무 적습니다: ${players.length}`);
@@ -39,36 +40,50 @@ const stat = (xs) => {
   const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
   return { mean, std: Math.sqrt(xs.reduce((s, x) => s + (x - mean) ** 2, 0) / xs.length) };
 };
-// 지표 = a + b × 레이팅 + 잔차. 잔차의 표준편차로 표준점수를 낸다
-const fit = (k) => {
-  const xs = players.map((p) => p.elo), ys = players.map((p) => p.m[k]);
-  const mx = stat(xs).mean, my = stat(ys).mean;
-  const b = xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0) / xs.reduce((s, x) => s + (x - mx) ** 2, 0);
-  const a = my - b * mx;
-  return { a, b, std: stat(ys.map((y, i) => y - (a + b * xs[i]))).std };
-};
-const metrics = Object.fromEntries(METRICS.map((k) => [k, fit(k)]));
-const axisValue = (m, elo, axis) => {
-  const z = (k) => (m[k] - (metrics[k].a + metrics[k].b * elo)) / (metrics[k].std || 1);
-  const mean = (ks) => (ks.length ? ks.reduce((s, k) => s + z(k), 0) / ks.length : 0);
-  return mean(AXIS_DEF[axis].plus) - mean(AXIS_DEF[axis].minus);
-};
 const quantile = (sorted, q) => {
   const i = q * (sorted.length - 1), lo = Math.floor(i), hi = Math.ceil(i);
   return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
 };
-const quantiles = {};
-for (const axis of Object.keys(AXIS_DEF)) {
-  const vals = players.map((p) => axisValue(p.m, p.elo, axis)).sort((a, b) => a - b);
-  quantiles[axis] = Array.from({ length: 101 }, (_, i) => Math.round(quantile(vals, i / 100) * 10000) / 10000);
-}
 const round = (x) => Math.round(x * 1e6) / 1e6;
-const out = {
-  players: players.length,
-  metrics: Object.fromEntries(Object.entries(metrics).map(([k, v]) => [k, { a: round(v.a), b: round(v.b), std: round(v.std) }])),
-  quantiles,
-};
+
+/** 플레이어 묶음 하나로 보정: 지표 = a + b × 레이팅 + 잔차, 잔차 표준편차로 표준점수, 축별 백분위 */
+function calibrate(list) {
+  const fit = (k) => {
+    const xs = list.map((p) => p.elo), ys = list.map((p) => p.m[k]);
+    const mx = stat(xs).mean, my = stat(ys).mean;
+    const b = xs.reduce((s, x, i) => s + (x - mx) * (ys[i] - my), 0) / (xs.reduce((s, x) => s + (x - mx) ** 2, 0) || 1);
+    const a = my - b * mx;
+    return { a, b, std: stat(ys.map((y, i) => y - (a + b * xs[i]))).std };
+  };
+  const metrics = Object.fromEntries(METRICS.map((k) => [k, fit(k)]));
+  const axisValue = (m, elo, axis) => {
+    const z = (k) => (m[k] - (metrics[k].a + metrics[k].b * elo)) / (metrics[k].std || 1);
+    const mean = (ks) => (ks.length ? ks.reduce((s, k) => s + z(k), 0) / ks.length : 0);
+    return mean(AXIS_DEF[axis].plus) - mean(AXIS_DEF[axis].minus);
+  };
+  const quantiles = {};
+  for (const axis of Object.keys(AXIS_DEF)) {
+    const vals = list.map((p) => axisValue(p.m, p.elo, axis)).sort((a, b) => a - b);
+    quantiles[axis] = Array.from({ length: 101 }, (_, i) => Math.round(quantile(vals, i / 100) * 10000) / 10000);
+  }
+  return {
+    out: { players: list.length, metrics: Object.fromEntries(Object.entries(metrics).map(([k, v]) => [k, { a: round(v.a), b: round(v.b), std: round(v.std) }])), quantiles },
+    axisValue, quantiles,
+  };
+}
+
+const all = calibrate(players);
+const out = { ...all.out };
+const MIN_CLASS = 200;
+const byClass = {};
+for (const cls of ['bullet', 'blitz', 'rapid']) {
+  const list = players.filter((p) => p.cls === cls);
+  if (list.length >= MIN_CLASS) byClass[cls] = calibrate(list).out;
+  console.log(`${cls}: ${list.length}명${list.length >= MIN_CLASS ? '' : ` (${MIN_CLASS}명 미만이라 전체 보정 사용)`}`);
+}
+if (Object.keys(byClass).length) out.byClass = byClass;
 writeFileSync(new URL('../src/data/type-calib.json', import.meta.url), JSON.stringify(out) + '\n');
+const { axisValue, quantiles } = all;
 
 // ── 보고: 유형 분포, 축끼리 상관, 레이팅과의 상관 ──
 const letters = { AP: ['A', 'P'], WS: ['W', 'S'], IR: ['I', 'R'], OE: ['O', 'E'] };

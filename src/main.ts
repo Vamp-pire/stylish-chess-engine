@@ -21,7 +21,7 @@ import { decodeVs, saveVs, loadVs, clearVs, vsBanner, shareCompare } from './ui/
 import { evalGraph, radar } from './ui/charts';
 import { renderGuide, HOW } from './ui/guide';
 import type { GameAnalysis, MoveAnalysis } from './core/analyzer';
-import { buildProfile, mergeProfiles, riskTotal, type PlayerProfile } from './core/profile';
+import { buildProfile, mergeProfiles, mainTimeClass, riskTotal, type PlayerProfile } from './core/profile';
 import { fetchGames, userResult, SOURCE_LABEL, type OnlineGame, type Source } from './online/sources';
 import { cacheKey, getCached, putCached, gameHash } from './ui/cache';
 import { savePlayerGame, playerKey, listPlayers, getPlayer, deletePlayer, deleteGame, clearPlayers, combinedProfile, gamesOf, isNamed, SOURCE_NAME, type PlayerSource, type SavedPlayer, type SavedGame } from './ui/players';
@@ -437,7 +437,10 @@ function batchProfile(b: BatchState) {
   }
   // 수만 모아 새로 만들면 레이팅이 빠지므로 판별 레이팅 평균을 넣는다
   const profile = moves.length ? buildProfile(moves) : null;
-  if (profile) profile.rating = ratingN ? Math.round(ratingSum / ratingN) : null;
+  if (profile) {
+    profile.rating = ratingN ? Math.round(ratingSum / ratingN) : null;
+    profile.timeClass = mainTimeClass(b.games.filter((g) => b.results.has(g.id)).map((g) => b.results.get(g.id)!.profiles[g.userColor]));
+  }
   return {
     profile,
     record: { w, l, d }, leftFirst, withBook,

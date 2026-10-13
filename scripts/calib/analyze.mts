@@ -12,8 +12,8 @@ const [shard, shards] = [Number(process.argv[2]), Number(process.argv[3])];
 const outFile = process.argv[4];
 const DEPTH = 10;
 
-interface Player { id: string; band: number; games: string[] }
-const players: Player[] = gunzipSync(readFileSync('calib/games.jsonl.gz')).toString('utf8')
+interface Player { id: string; band: number; cls?: string; games: string[] }
+const players: Player[] = gunzipSync(readFileSync(process.env.CALIB_GAMES ?? 'calib/games.jsonl.gz')).toString('utf8')
   .split('\n').filter(Boolean).map((l) => JSON.parse(l))
   .filter((_: Player, i: number) => i % shards === shard);
 
@@ -25,7 +25,7 @@ for (const p of players) {
   const t0 = Date.now();
   const moves: unknown[] = [];
   const elos: number[] = [];
-  for (const pgn of p.games) {
+  for (const [gi, pgn] of p.games.entries()) {
     const color = /\[White "Player"\]/.test(pgn) ? 'w' : 'b';
     const elo = Number(pgn.match(color === 'w' ? /\[WhiteElo "(\d+)"\]/ : /\[BlackElo "(\d+)"\]/)?.[1]);
     if (elo) elos.push(elo);
@@ -35,12 +35,15 @@ for (const p of players) {
       if (m.color !== color) continue;
       moves.push({
         s: m.scores, r: m.risk, hp: m.humanP, f: m.forced, b: m.book, q: m.quality,
-        cp: m.cpLoss, wd: Math.round(m.deep.winDrop * 10) / 10, ph: m.phase,
+        cp: m.cpLoss, wd: Math.round(m.deep.winDrop * 10) / 10, ph: m.phase, gi, // gi: 몇 번째 판 (필요한 판 수 측정용)
+        // 더 안정적인 지표를 찾기 위한 추가 값: 수 두기 전 기대 점수, 선택 성향(대안 대비), 잡기·체크, 상황, 남은 시간 부족
+        eb: Math.round((m.deep.expBefore ?? 0.5) * 1000) / 1000, cd: m.choiceDelta ?? null,
+        x: m.san.includes('x') ? 1 : 0, ck: m.san.includes('+') ? 1 : 0, si: m.situation, lt: m.lowTime ?? null,
       });
     }
   }
   const elo = elos.length ? Math.round(elos.reduce((a, b) => a + b, 0) / elos.length) : 0;
-  appendFileSync(outFile, JSON.stringify({ id: p.id, band: p.band, elo, games: p.games.length, moves }) + '\n');
+  appendFileSync(outFile, JSON.stringify({ id: p.id, band: p.band, cls: p.cls ?? null, elo, games: p.games.length, moves }) + '\n');
   console.log(`${p.id} (${p.band}) ${p.games.length}판 ${moves.length}수 ${Math.round((Date.now() - t0) / 1000)}s`);
 }
 engine.quit();

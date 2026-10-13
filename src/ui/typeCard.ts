@@ -107,15 +107,7 @@ export function typeChangeSection(games: { date: number | null; profile: PlayerP
   </div>`;
 }
 
-/** PGN TimeControl 헤더(예: 180+2) → 시간대. Lichess 기준(예상 시간 = 기본 + 40 × 추가) */
-export function timeClassOf(h: Record<string, string>): string | null {
-  const tc = h.TimeControl ?? '';
-  if (/^\d+\/\d+$/.test(tc)) return 'daily';
-  const m = tc.match(/^(\d+)(?:\+(\d+))?$/);
-  if (!m) return null;
-  const est = Number(m[1]) + 40 * Number(m[2] ?? 0);
-  return est < 180 ? 'bullet' : est < 480 ? 'blitz' : est < 1500 ? 'rapid' : 'classical';
-}
+export { timeClassOf } from '../core/chessType';
 
 const TIME_ORDER = ['bullet', 'blitz', 'rapid', 'classical', 'daily'];
 const timeName = (c: string) => ({ bullet: tr('불릿', 'Bullet'), blitz: tr('블리츠', 'Blitz'), rapid: tr('래피드', 'Rapid'), classical: tr('클래식', 'Classical'), daily: tr('데일리', 'Daily') } as Record<string, string>)[c] ?? c;

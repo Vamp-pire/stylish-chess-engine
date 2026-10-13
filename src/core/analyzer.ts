@@ -10,6 +10,7 @@ import { gridFromFen, material, opp, kingZone, attackMap, type Color } from './g
 import { Position } from '../search/position';
 import { Searcher, threatOf, replyOutcomes, quickValue } from '../search/search';
 import { buildProfiles, type PlayerProfile } from './profile';
+import { timeClassOf } from './chessType';
 import type { OpeningBook, OpeningInfo } from './openings';
 import { plyClocks, type PlyClock } from './clock';
 import { clampElo, ELO_DEFAULT, type HumanModel, type HumanPolicy } from '../human/maia3';
@@ -47,6 +48,8 @@ export interface AnalyzeOptions {
   book?: OpeningBook | null;
   /** 사람 수 예측 모델 (없거나 실패하면 규칙 기반 '자연스러운 수'로 대신한다) */
   human?: HumanModel | null;
+  /** 마무리 보정(경계 판정 재확인)을 끈다. 기본은 켬 */
+  noRefine?: boolean;
 }
 
 export interface MoveAnalysis extends StyleResult, PlyClock {
@@ -108,6 +111,10 @@ function terminalLines(fen: string): EngineLine[] | null {
 
 /** 판정 중에 생기는 추가 분석은 엔진 풀에서 먼저 처리한다 (앞 수부터 결과가 나오도록) */
 export const URGENT = 10;
+/** 마무리 보정: 몇 수 더 깊게, 품질 기준값(winDrop %p) 근처 폭, 한 판 최대 개수 */
+const REFINE_DEPTH = 2, REFINE_BAND = 4, REFINE_MAX = 8;
+/** qualityOf의 기준값과 손해 기준(LOSS_PP) */
+const QUALITY_EDGES = [10, 12, 25, 30, 40, 50];
 
 export async function evalLines(engine: Engine, fen: string, depth: number, multipv = 3, priority = 0): Promise<EngineLine[]> {
   return terminalLines(fen) ?? engine.analyse(fen, { depth, multipv, priority });
@@ -228,11 +235,13 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
   lines[0] = await pending[0];
   opts.onProgress?.(1, total);
 
+  const humans: (HumanPolicy | null)[] = [];
   for (let i = 0; i < history.length; i++) {
     if (opts.signal?.aborted) break;
     lines[i + 1] = await pending[i + 1];
     const m = history[i];
     const humanBefore = await humanAt(i), humanAfter = await humanAt(i + 1);
+    humans[i] = humanBefore; humans[i + 1] = humanAfter;
     if (!humanBefore || !humanAfter) humanUsed = false;
     const res = await analyzeMove({
       move: m, prev: i > 0 ? history[i - 1] : null, ply: i,
@@ -244,6 +253,37 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
     results.push(res);
     opts.onMove?.(res);
     opts.onProgress?.(i + 2, total);
+  }
+
+  // ── 마무리 보정: 다 분석한 뒤, 판정이 기준값 근처에 걸린 수만 조금 더 깊게 다시 판정한다 ──
+  // 같은 수라도 엔진 상태(해시)에 따라 '희생/함정', '실수/블런더'가 갈리는 경계 판정을 안정시키려는 단계.
+  // 위험 판정(희생·함정·도박)은 모두, 품질은 기준값 ±REFINE_BAND%p 안의 수만. 한 판에 REFINE_MAX개까지
+  if (!opts.signal?.aborted && !opts.noRefine && results.length) {
+    const deeper = depth + REFINE_DEPTH;
+    const near = (x: number) => QUALITY_EDGES.some((e) => Math.abs(x - e) <= REFINE_BAND);
+    const picks = results
+      .map((r, i) => ({ i, pri: r.risk ? 2 : !r.book && !r.forced && near(r.deep.winDrop) ? 1 : 0 }))
+      .filter((x) => x.pri > 0)
+      .sort((a, b) => b.pri - a.pri || b.i - a.i)
+      .slice(0, REFINE_MAX);
+    const deepLines = new Map<number, Promise<EngineLine[]>>();
+    const deepAt = (k: number) => {
+      if (!deepLines.has(k)) { const p = evalLines(engine, fens[k], deeper, 3, URGENT); p.catch(() => {}); deepLines.set(k, p); }
+      return deepLines.get(k)!;
+    };
+    for (const { i } of picks) { deepAt(i); deepAt(i + 1); } // 한꺼번에 요청해서 엔진 풀이 나눠 처리
+    for (const { i } of picks.sort((a, b) => a.i - b.i)) {
+      if (opts.signal?.aborted) break;
+      const old = results[i];
+      const res = await analyzeMove({
+        move: history[i], prev: i > 0 ? history[i - 1] : null, ply: i,
+        before: await deepAt(i), after: await deepAt(i + 1), engine, depth: deeper, searcher,
+        humanBefore: humans[i] ?? null, humanAfter: humans[i + 1] ?? null, oppElo: elo[history[i].color === 'w' ? 'b' : 'w'],
+      });
+      Object.assign(res, clocks[i]);
+      res.book = old.book; res.opening = old.opening;
+      results[i] = res;
+    }
   }
 
   return finalizeGame(results, headers, startFen, depth, humanUsed ? 'maia3' : 'rules', elo);
@@ -278,6 +318,7 @@ export function finalizeGame(
   const rating = (v: string | undefined) => (Number(v) > 0 ? Number(v) : null);
   profiles.w.rating = rating(headers.WhiteElo);
   profiles.b.rating = rating(headers.BlackElo);
+  profiles.w.timeClass = profiles.b.timeClass = timeClassOf(headers);
   return { headers, startFen, moves: results, profiles, depth, opening: named, bookPlies, human, elo };
 }
 
