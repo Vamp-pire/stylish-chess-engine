@@ -4,7 +4,8 @@
 // 사용: node scripts/build-type-calib.mjs <jsonl 파일들...>  → src/data/type-calib.json
 // 줄에 cls(bullet|blitz|rapid)가 있으면 시간대별 보정(byClass)도 만든다. 시간대마다 같은 수를 둬도 성향 분포가 다르기 때문
 // 축 정의는 src/core/chessType.ts의 AXIS_DEF와 같아야 한다.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync, createReadStream } from 'node:fs';
+import { createInterface } from 'node:readline';
 
 const AXIS_DEF = {
   AP: { plus: ['aggressive', 'tactical'], minus: ['positional', 'prophylactic'] },
@@ -20,7 +21,8 @@ const clampRating = (r) => Math.max(RATING_MIN, Math.min(RATING_MAX, r || RATING
 
 const players = [];
 for (const file of process.argv.slice(2)) {
-  for (const line of readFileSync(file, 'utf8').split('\n')) {
+  // 결과 파일이 수백 MB라 한 번에 읽지 않고 줄 단위로 읽는다
+  for await (const line of createInterface({ input: createReadStream(file), crlfDelay: Infinity })) {
     if (!line.trim()) continue;
     const p = JSON.parse(line);
     const counted = p.moves.filter((m) => !m.f && !m.b);

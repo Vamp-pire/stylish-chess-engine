@@ -2,7 +2,8 @@
 // 서로 얼마나 일치하는지 본다. 같은 사람의 두 묶음이 같은 글자를 내는 비율 = 그 판 수에서의 '재현율'.
 // 사용: node scripts/calib/stability.mjs <type-calib.json> <분석 결과 jsonl...>
 // 축 정의·지표 계산은 scripts/build-type-calib.mjs와 같다.
-import { readFileSync } from 'node:fs';
+import { readFileSync, createReadStream } from 'node:fs';
+import { createInterface } from 'node:readline';
 
 const AXIS_DEF = {
   AP: { plus: ['aggressive', 'tactical'], minus: ['positional', 'prophylactic'] },
@@ -36,7 +37,7 @@ function letters(m, elo, cal) {
 }
 
 const players = [];
-for (const f of files) for (const line of readFileSync(f, 'utf8').split('\n')) {
+for (const f of files) for await (const line of createInterface({ input: createReadStream(f), crlfDelay: Infinity })) {
   if (!line.trim()) continue;
   const p = JSON.parse(line);
   if (!p.moves?.length || p.moves[0].gi == null) continue;
