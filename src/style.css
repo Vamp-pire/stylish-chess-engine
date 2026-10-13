@@ -543,3 +543,18 @@ footer .footer-links a { color: inherit; }
 .type-change { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .type-code.small { font-size: 20px; color: var(--accent, #b5562d); }
 #update-msg:empty { display: none; }
+
+/* ── 같은 레이팅 대비 막대 (가운데 = 평균) ── */
+.pbar { display: grid; grid-template-columns: 84px 1fr auto; align-items: center; gap: 10px; font-size: 14px; }
+.pbar .ptrack { position: relative; height: 8px; border-radius: 99px; background: var(--surface-2); }
+.pbar .ptrack b { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--text-3); opacity: .6; }
+.pbar .ptrack i { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid var(--surface, #fff); box-shadow: 0 0 0 1px rgba(0,0,0,.12); }
+.pbar .val { color: var(--text-2); font-size: 13px; white-space: nowrap; }
+.chart-note { margin: 4px 0 0; font-size: 13px; }
+.rating-edit { display: inline-flex; gap: 6px; align-items: center; margin-left: 6px; flex-wrap: wrap; }
+.rating-edit input { width: 120px; padding: 4px 8px; font-size: 13px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: inherit; }
+.rating-edit button.small { padding: 4px 10px; font-size: 13px; }
+.tt-list { display: grid; gap: 6px; }
+.tt-row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); font-size: 14px; }
+.tt-cls { font-weight: 700; }
+.type-unsure { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: rgba(224, 122, 46, .12); color: var(--text); font-size: 14px; }

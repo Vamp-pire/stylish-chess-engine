@@ -76,14 +76,19 @@ export async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, f
   const bg = ctx.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0, dark); bg.addColorStop(1, mid);
   ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = 'rgba(255,255,255,0.08)';
-  const cell = story ? 120 : 96;
-  for (let r = 0; r < Math.ceil(H / cell) + 1; r++) for (let c = 0; c < Math.ceil(W / cell) + 1; c++) {
-    if ((r + c) % 2) continue;
-    if (!story && c * cell < W * 0.45) continue; // 정사각형은 오른쪽에만
-    ctx.beginPath(); ctx.roundRect(c * cell + 6, r * cell + 6, cell - 12, cell - 12, cell * 0.12); ctx.fill();
-  }
+  // 체스 무늬 칸은 장면(5×5 칸) 격자와 크기·원점을 똑같이 맞춘다 → 기물이 정확히 칸 위에 놓인다
   const cx = story ? W / 2 : 790, cy = story ? 470 : 300, radius = story ? 280 : 200;
+  const ss = radius * 2.3, cell = ss / 5;
+  const ox = cx - ss / 2, oy = cy - ss / 2;
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  const c0 = -Math.ceil(ox / cell), r0 = -Math.ceil(oy / cell);
+  for (let gr = r0; oy + gr * cell < H; gr++) for (let gc = c0; ox + gc * cell < W; gc++) {
+    // 장면의 왼쪽 위 칸이 a5(어두운 칸): 밝은 칸만 칠한다
+    if (((gr + gc) % 2 + 2) % 2 !== 1) continue;
+    const x = ox + gc * cell, y = oy + gr * cell;
+    if (!story && x < W * 0.45) continue; // 정사각형은 오른쪽에만 (글자 쪽은 비운다)
+    ctx.beginPath(); ctx.roundRect(x + 6, y + 6, cell - 12, cell - 12, cell * 0.12); ctx.fill();
+  }
   const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius * 2.2);
   glow.addColorStop(0, hexA(light, 0.45)); glow.addColorStop(1, hexA(light, 0));
   ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
@@ -106,8 +111,7 @@ export async function draw(canvas: HTMLCanvasElement, input: ResultImageInput, f
   } else {
     // 사진이 없으면 유형 장면(기물과 화살표, 투명 PNG)
     const sc = await cachedImage(`/img/scenes/${input.code}.png`);
-    const ss = radius * 2.3;
-    ctx.drawImage(sc, cx - ss / 2, cy - ss / 2, ss, ss);
+    ctx.drawImage(sc, ox, oy, ss, ss);
   }
 
   // 로고

@@ -120,3 +120,43 @@ export function chessTypeOf(p: PlayerProfile, cal: Calibration = CALIB as Calibr
   const code = axes.map((a) => a.letter).join('');
   return { code, info: typeInfo(code)!, axes, counted: p.counted, reliable: p.counted >= MIN_COUNTED };
 }
+
+// ───────────── 같은 레이팅과 비교 (프로필 화면의 수치) ─────────────
+
+/** 표준정규 누적분포 (z → 0~1) */
+function normCdf(z: number) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp(-z * z / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z > 0 ? 1 - p : p;
+}
+
+export type PeerMetric = Exclude<Metric, 'rare'>;
+export const PEER_METRICS: PeerMetric[] = ['aggressive', 'tactical', 'initiative', 'positional', 'prophylactic', 'solid', 'defensive', 'simplifying', 'complicating', 'risk'];
+
+/**
+ * 같은 레이팅 플레이어(보정 데이터) 대비 지표별 위치: z점수와 백분위(0~100, 50 = 같은 레이팅 평균).
+ * 원점수(0~100)는 보통 20 안팎이라 '낮아 보이고' 기준도 안 보여서, 화면에는 이 값을 쓴다.
+ */
+export function peerStats(p: PlayerProfile, cal: Calibration = CALIB as Calibration): Record<PeerMetric, { z: number; pct: number }> | null {
+  if (!cal.players || !p.counted) return null;
+  const risks = RISK_KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0);
+  const rating = ratingOf(p);
+  return Object.fromEntries(PEER_METRICS.map((k) => {
+    const v = k === 'risk' ? (risks / p.counted) * 100 : p.avg[k];
+    const c = cal.metrics[k];
+    const z = (v - (c.a + c.b * rating)) / (c.std || 1);
+    return [k, { z, pct: Math.round(normCdf(z) * 100) }];
+  })) as Record<PeerMetric, { z: number; pct: number }>;
+}
+
+/** 레이더용 묶음: 묶음 안 지표 z의 평균 → 백분위 */
+export const PEER_GROUPS: { key: string; ko: string; en: string; keys: PeerMetric[] }[] = [
+  { key: 'attack', ko: '공격', en: 'Attack', keys: ['aggressive', 'tactical', 'initiative'] },
+  { key: 'position', ko: '포지션', en: 'Position', keys: ['positional', 'prophylactic'] },
+  { key: 'safety', ko: '안전', en: 'Safety', keys: ['solid', 'defensive', 'simplifying'] },
+  { key: 'chaos', ko: '난전', en: 'Chaos', keys: ['complicating', 'risk'] },
+];
+export function peerGroupPct(s: Record<PeerMetric, { z: number }>, keys: PeerMetric[]) {
+  return Math.round(normCdf(keys.reduce((a, k) => a + s[k].z, 0) / keys.length) * 100);
+}

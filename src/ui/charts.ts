@@ -31,7 +31,8 @@ export function evalGraph(moves: MoveAnalysis[], total: number, current: number)
 }
 
 /** 레이더 차트 (값 0~100) */
-export function radar(axes: { label: string; value: number }[], color: string, size = 200): string {
+/** ref: 기준선(예: 50 = 같은 레이팅 평균)을 점선으로 그린다 */
+export function radar(axes: { label: string; value: number }[], color: string, size = 200, ref: number | null = null): string {
   const c = size / 2, r = size / 2 - 34, n = axes.length;
   const pt = (i: number, v: number) => {
     const a = -Math.PI / 2 + (i / n) * Math.PI * 2;
@@ -41,12 +42,13 @@ export function radar(axes: { label: string; value: number }[], color: string, s
     `<polygon points="${axes.map((_, i) => pt(i, s).join(',')).join(' ')}" fill="none" stroke="var(--border)" />`).join('');
   const spokes = axes.map((_, i) => { const [px, py] = pt(i, 1); return `<line x1="${c}" y1="${c}" x2="${px}" y2="${py}" stroke="var(--border)" />`; }).join('');
   const shape = axes.map((a, i) => pt(i, Math.max(0.04, a.value / 100)).join(',')).join(' ');
+  const refRing = ref == null ? '' : `<polygon points="${axes.map((_, i) => pt(i, ref / 100).join(',')).join(' ')}" fill="none" stroke="var(--text-3)" stroke-dasharray="4 3" stroke-width="1.5" />`;
   const labels = axes.map((a, i) => {
     const [px, py] = pt(i, 1.24);
     return `<text x="${px}" y="${py}" text-anchor="middle" dominant-baseline="middle" font-size="11" fill="var(--text-2)">${a.label}</text>`;
   }).join('');
   return `<svg viewBox="0 0 ${size} ${size}" role="img" aria-label="${tr('스타일 레이더', 'Style radar')}">
-    ${rings}${spokes}
+    ${rings}${spokes}${refRing}
     <polygon points="${shape}" fill="${color}" fill-opacity=".25" stroke="${color}" stroke-width="2" />
     ${labels}
   </svg>`;

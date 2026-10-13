@@ -12,14 +12,16 @@ import { AnalysisRun, getEngine } from './ui/runner';
 import { humanStatus, onHumanStatus } from './human/browser';
 import { typeSection, shareType } from './ui/typeCard';
 import { openResultImage } from './ui/resultImage';
-import { chessTypeOf } from './core/chessType';
+import { chessTypeOf, peerStats, peerGroupPct, PEER_GROUPS, PEER_METRICS, ratingOf, type PeerMetric } from './core/chessType';
+import TYPE_CALIB from './data/type-calib.json';
+const CALIB_PLAYERS = TYPE_CALIB.players;
 import { addPractice, weeklySet, practiceStats, markPractice, asQuizMove, clearPractice, WEEKLY } from './ui/practice';
-import { typeChangeSection } from './ui/typeCard';
+import { typeChangeSection, withRating, setRatingOverride, timeClassOf, timeTypeSection } from './ui/typeCard';
 import { decodeVs, saveVs, loadVs, clearVs, vsBanner, shareCompare } from './ui/compare';
 import { evalGraph, radar } from './ui/charts';
 import { renderGuide, HOW } from './ui/guide';
 import type { GameAnalysis, MoveAnalysis } from './core/analyzer';
-import { buildProfile, riskTotal, type PlayerProfile } from './core/profile';
+import { buildProfile, mergeProfiles, riskTotal, type PlayerProfile } from './core/profile';
 import { fetchGames, userResult, SOURCE_LABEL, type OnlineGame, type Source } from './online/sources';
 import { cacheKey, getCached, putCached, gameHash } from './ui/cache';
 import { savePlayerGame, playerKey, listPlayers, getPlayer, deletePlayer, deleteGame, clearPlayers, combinedProfile, gamesOf, isNamed, SOURCE_NAME, type PlayerSource, type SavedPlayer, type SavedGame } from './ui/players';
@@ -491,7 +493,12 @@ function updateBatch() {
         </div>
         ${agg.missed.length ? `<div><button class="btn" id="batch-quiz">🧩 ${tr(`놓친 기회 퀴즈 ${agg.missed.length}문제`, `Missed chances quiz (${agg.missed.length})`)}</button></div>` : ''}
         `;
-      const tail = openingSection(b.games.filter((g) => b.results.has(g.id)).map((g) => { const r = b.results.get(g.id)!; return { opening: r.opening?.name ?? g.opening, profile: r.profiles[g.userColor] }; }));
+      const done = b.games.filter((g) => b.results.has(g.id));
+      // 시간대별: 판마다 만든 프로필을 합친다
+      const byTime = new Map<string, PlayerProfile[]>();
+      for (const g of done) { const k = g.timeClass; if (!byTime.has(k)) byTime.set(k, []); byTime.get(k)!.push(b.results.get(g.id)!.profiles[g.userColor]); }
+      const tail = timeTypeSection([...byTime].map(([cls, list]) => ({ cls, games: list.length, profile: mergeProfiles(list) })), b.user) +
+        openingSection(done.map((g) => { const r = b.results.get(g.id)!; return { opening: r.opening?.name ?? g.opening, profile: r.profiles[g.userColor] }; }));
       pe.innerHTML = profileCard(agg.profile, null, {}, { name: b.user, sub: `${SOURCE_LABEL[b.source]} · ${tr(`${b.results.size}판 종합`, `${b.results.size} games combined`)}`, extra, tail, color: '#b5562d' });
       $('#batch-quiz')?.addEventListener('click', () => openQuiz(agg.missed.slice(0, 30)));
     }
@@ -549,7 +556,7 @@ function saveProfiles(g: GameState, result: GameAnalysis) {
     const outcome = res === '1/2-1/2' ? 'draw' : res === '1-0' ? (c === 'w' ? 'win' : 'loss') : res === '0-1' ? (c === 'b' ? 'win' : 'loss') : null;
     const ok = savePlayerGame(g.source, name, {
       gameId: gameHash(g.pgn), date: g.date ?? headerDate(h), savedAt: Date.now(), color: c, opponent, result: outcome,
-      opening: result.opening?.name ?? h.Opening ?? null, depth: result.depth, url: g.url, profile: result.profiles[c],
+      opening: result.opening?.name ?? h.Opening ?? null, depth: result.depth, url: g.url, timeClass: timeClassOf(h), profile: result.profiles[c],
     });
     if (!ok) state.storageFull = true;
     // 놓친 기회는 이 플레이어의 연습 과제로 모아 둔다
@@ -979,14 +986,29 @@ interface CardOptions { name?: string; sub?: string; extra?: string; tail?: stri
 function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, string>, o: CardOptions = {}) {
   const color = o.color ?? (c === 'b' ? '#5b6ee1' : '#c9a227');
   const name = o.name ?? (c ? playerName(h, c) : '');
+  p = withRating(p, name);
   const sub = o.sub ?? `${c === 'w' ? tr('백', 'White') : tr('흑', 'Black')} · ${tr(`평가 대상 ${p.counted}/${p.moves}수`, `${p.counted}/${p.moves} moves rated`)}`;
   const op = p.opening;
   const openingHtml = c && (op.bookMoves || op.deviation)
     ? `<div><div class="section-title">${tr('오프닝', 'Opening')}</div><p class="muted" style="margin:0">${tr(`이론 ${op.bookMoves}수`, `${op.bookMoves} theory moves`)}${op.leftBookFirst === true && op.deviation ? ` · ${tr('먼저 이론을 벗어남', 'Left theory first')}: ${op.deviation.moveNumber}${c === 'w' ? '.' : '...'} ${esc(op.deviation.san)}${op.deviation.quality ? ` (${QUALITY_LABEL[op.deviation.quality]})` : ''}` : op.leftBookFirst === false ? tr(' · 상대가 먼저 이론을 벗어남', ' · Opponent left theory first') : ''}</p></div>`
     : '';
-  // 그룹 점수는 그룹 안 상위 2개 평균을 0~100으로 강조
-  const axes = GROUP_AXES.map((a) => ({ label: a.label, value: groupScore(p.avg, a.keys) }));
-  const top = p.top.map((k) => `<div class="sbar" title="${esc(HOW[k])}"><span>${STYLES[k].label}</span><div class="track"><i style="width:${p.avg[k]}%;background:${STYLES[k].color}"></i></div><span class="val">${p.avg[k]}</span></div>`).join('');
+  // 수치는 같은 레이팅 플레이어 대비 백분위로 (50 = 같은 레이팅 평균). 보정 데이터가 없으면 예전 원점수
+  const peer = p.counted >= 20 ? peerStats(p) : null; // 수가 적으면 백분위가 극단으로 튀므로 원점수로
+  const metricLabel = (k: PeerMetric) => (k === 'risk' ? tr('위험한 수', 'Risky moves') : STYLES[k].label);
+  const metricColor = (k: PeerMetric) => (k === 'risk' ? '#ab4aba' : STYLES[k].color);
+  const axes = peer
+    ? PEER_GROUPS.map((g) => ({ label: tr(g.ko, g.en), value: peerGroupPct(peer, g.keys) }))
+    : GROUP_AXES.map((a) => ({ label: a.label, value: groupScore(p.avg, a.keys) }));
+  const top = peer
+    ? PEER_METRICS.map((k) => ({ k, ...peer[k] })).sort((a, b) => Math.abs(b.z) - Math.abs(a.z)).slice(0, 5).map((x) => {
+      const more = x.pct >= 50;
+      const rank = more ? tr(`상위 ${Math.max(1, 100 - x.pct)}%`, `top ${Math.max(1, 100 - x.pct)}%`) : tr(`하위 ${Math.max(1, x.pct)}%`, `bottom ${Math.max(1, x.pct)}%`);
+      const tip = x.k === 'risk' ? tr('희생·함정·도박 판정을 받은 수의 비율', 'Share of moves judged as sacrifices, traps or gambles') : HOW[x.k];
+      return `<div class="pbar" title="${esc(tip)}"><span>${metricLabel(x.k)}</span>
+        <div class="ptrack"><b></b><i style="left:${x.pct}%;background:${metricColor(x.k)}"></i></div>
+        <span class="val">${more ? tr('많음', 'more') : tr('적음', 'less')} · ${rank}</span></div>`;
+    }).join('')
+    : p.top.map((k) => `<div class="sbar" title="${esc(HOW[k])}"><span>${STYLES[k].label}</span><div class="track"><i style="width:${p.avg[k]}%;background:${STYLES[k].color}"></i></div><span class="val">${p.avg[k]}</span></div>`).join('');
   const qOrder: QualityKey[] = ['best', 'good', 'inaccuracy', 'mistake', 'blunder'];
   const qColors: Record<QualityKey, string> = { best: 'var(--good)', good: '#8fd1ae', inaccuracy: 'var(--warn)', mistake: '#e07a2e', blunder: 'var(--bad)' };
   const qTotal = qOrder.reduce((s, k) => s + p.quality[k], 0) || 1;
@@ -1006,11 +1028,12 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
         <div class="stat"><b>${riskTotal(p)}</b><span>${tr('희생·함정·도박', 'Sacrifices · traps · gambles')}</span></div>
       </div>
       <div class="profile-grid">
-        <div class="radar">${radar(axes, color)}</div>
-        <div><div class="section-title">${tr('자주 보인 스타일', 'Most frequent styles')}</div><div class="style-bars">${top}</div></div>
+        <div class="radar">${radar(axes, color, 200, peer ? 50 : null)}</div>
+        <div><div class="section-title">${peer ? tr('같은 레이팅과 비교해 두드러진 점', 'What stands out vs. players at your rating') : tr('자주 보인 스타일', 'Most frequent styles')}</div><div class="style-bars">${top}</div></div>
       </div>
+      ${peer ? `<p class="faint chart-note">${tr(`레이팅 ${ratingOf(p)} 전후 플레이어 ${CALIB_PLAYERS}명과 비교했어요. 그래프의 점선과 막대 가운데가 같은 레이팅 평균이에요. 마우스를 올리면 각 항목 설명이 나와요.`, `Compared with ${CALIB_PLAYERS} players around ${ratingOf(p)}. The dashed line and the middle of each bar are the average at that rating. Hover for what each item means.`)}</p>` : ''}
       ${mastersSection(p)}
-      ${p.choiceTop.length ? `<div><div class="section-title">${tr('선택 성향 — 비슷한 대안이 있을 때 고른 쪽', 'Choices: what you picked when alternatives were equal')}</div><div class="chips">${p.choiceTop.map((k) => `<span class="chip"><span class="dot" style="background:${STYLES[k].color}"></span>${STYLES[k].label} +${p.choice![k]}</span>`).join('')}</div></div>` : ''}
+      ${p.choiceTop.length ? `<div><div class="section-title">${tr('비슷하게 좋은 수가 여럿일 때 더 자주 고른 쪽', 'When several moves were about equally good, you leaned toward')}</div><div class="chips">${p.choiceTop.map((k) => `<span class="chip" title="${esc(tr(`다른 후보 수보다 '${STYLES[k].label}' 점수가 평균 ${p.choice![k]}점 높은 수를 골랐어요`, `Your picks scored ${p.choice![k]} points higher on '${STYLES[k].label}' than the alternatives on average`))}"><span class="dot" style="background:${STYLES[k].color}"></span>${STYLES[k].label}</span>`).join('')}</div></div>` : ''}
       ${risks ? `<div><div class="section-title">${tr('위험한 수', 'Risky moves')}</div><div class="chips">${risks}</div></div>` : ''}
       ${openingHtml}
       <div><div class="section-title">${tr('게임 단계별', 'By game phase')}</div><div class="slices">${sliceHtml(tr('오프닝', 'Opening'), p.byPhase.opening)}${sliceHtml(tr('미들게임', 'Middlegame'), p.byPhase.middlegame)}${sliceHtml(tr('엔드게임', 'Endgame'), p.byPhase.endgame)}</div></div>
@@ -1070,7 +1093,10 @@ function renderPlayers() {
       <div class="stat"><b>${tr('백', 'White')} ${games.filter((g) => g.color === 'w').length} · ${tr('흑', 'Black')} ${games.filter((g) => g.color === 'b').length}</b><span>${tr('둔 색', 'Colors played')}</span></div>
     </div>
     `;
-  const tail = `${trendSection(games.map((g) => ({ date: g.date ?? g.savedAt, profile: g.profile })))}
+  const byTime = new Map<string, PlayerProfile[]>();
+  for (const g of games) if (g.timeClass) { if (!byTime.has(g.timeClass)) byTime.set(g.timeClass, []); byTime.get(g.timeClass)!.push(g.profile); }
+  const tail = `${timeTypeSection([...byTime].map(([cls, list]) => ({ cls, games: list.length, profile: mergeProfiles(list) })), p.name)}
+    ${trendSection(games.map((g) => ({ date: g.date ?? g.savedAt, profile: g.profile })))}
     ${openingSection(games.map((g) => ({ opening: g.opening, profile: g.profile })))}`;
   const rows = games.map((g) => `<tr>
     <td class="faint">${g.date ? fmtDate(g.date) : '-'}</td>
@@ -1090,7 +1116,7 @@ function renderPlayers() {
     </div>
     ${returnCard(p, games)}
     <div class="batch">
-      <div>${profileCard(prof, null, {}, { name: p.name, sub: `${SOURCE_NAME[p.source]} · ${tr(`저장된 ${games.length}판 종합`, `${games.length} saved games combined`)}`, extra, tail, color: '#b5562d' })}</div>
+      <div>${profileCard(prof, null, {}, { name: p.name, sub: `${SOURCE_NAME[p.source]} · ${tr(`저장된 ${games.length}판 전체 기준`, `based on all ${games.length} saved games`)}`, extra: `<p class="faint chart-note">${tr('이 화면은 지금까지 저장된 모든 판을 합친 결과라, 방금 분석한 몇 판만의 결과와 다를 수 있어요.', 'This combines every saved game, so it can differ from the result of the few games you just analyzed.')}</p>${extra}`, tail, color: '#b5562d' })}</div>
       <div class="card card-pad">
         <div class="section-title">${tr('저장된 게임', 'Saved games')}</div>
         <div class="game-table-wrap"><table class="game-table">${rows}</table></div>
@@ -1182,7 +1208,27 @@ document.addEventListener('click', (e) => {
   if ((e.target as HTMLElement).closest('[data-vs-clear]')) { clearVs(); (e.target as HTMLElement).closest('.vs-banner')?.remove(); }
   const img = (e.target as HTMLElement).closest<HTMLElement>('[data-type-image]');
   if (img) openResultImage(JSON.parse(img.dataset.typeImage!));
+  // 레이팅 직접 입력
+  const rs = (e.target as HTMLElement).closest<HTMLElement>('[data-rating-save]');
+  if (rs) {
+    const input = rs.parentElement?.querySelector<HTMLInputElement>('[data-rating-input]');
+    const v = Number(input?.value);
+    if (v >= 400 && v <= 3000) { setRatingOverride(rs.dataset.ratingSave!, v); rerenderProfiles(); }
+    else input?.focus();
+  }
+  const rc = (e.target as HTMLElement).closest<HTMLElement>('[data-rating-clear]');
+  if (rc) { setRatingOverride(rc.dataset.ratingClear!, null); rerenderProfiles(); }
 });
+document.addEventListener('keydown', (e) => {
+  const t = e.target as HTMLElement;
+  if (e.key === 'Enter' && t.matches('[data-rating-input]')) t.parentElement?.querySelector<HTMLButtonElement>('[data-rating-save]')?.click();
+});
+/** 프로필 카드만 다시 그린다 (분석 중인 화면은 건드리지 않음) */
+function rerenderProfiles() {
+  if (state.view === 'players') renderPlayers();
+  else if (state.game) renderProfiles();
+  else if (state.batch) updateBatch();
+}
 
 /** 첫 화면(유형 소개)에서 넘어온 요청: /app?source=lichess&user=… 이면 바로 게임 목록, ?view=coach 등은 그 메뉴로 */
 function readEntryQuery() {

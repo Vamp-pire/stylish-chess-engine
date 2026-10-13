@@ -8,7 +8,8 @@ type Situation = MoveAnalysis['situation'];
 
 export interface SliceProfile { count: number; avg: Record<StyleKey, number>; top: StyleKey[] }
 
-export interface TimeSlice extends SliceProfile { accuracy: number }
+/** accuracy는 승부가 걸린 국면(기대 점수 10~90%)의 수만으로 계산하고, 그 수의 개수가 contested (예전 기록에는 없음) */
+export interface TimeSlice extends SliceProfile { accuracy: number; contested?: number }
 export interface TimeProfile {
   moves: number;
   /** 수당 평균 소요 시간 (초) */
@@ -107,6 +108,35 @@ function slice(list: MoveAnalysis[]): SliceProfile {
 }
 
 /**
+ * 판 정확도 (Lichess 방식): 수 정확도의 '변동성 가중 평균'과 '조화 평균'의 평균.
+ * 단순 평균은 쉬운 수가 대부분이라 누구나 90%대가 나와 실력 차이가 안 보였다(보정 플레이어 479명: 800점 91.6%, 2400점 94.7%).
+ * 조화 평균은 큰 실수를 무겁게 반영하고, 변동성 가중은 승부가 요동치는 구간의 수를 더 중요하게 본다.
+ * ordered가 false면(시간대별처럼 연속이 아닌 묶음) 가중 없이 단순 평균을 쓴다.
+ */
+export function aggregateAccuracy(list: MoveAnalysis[], ordered = true): number {
+  if (!list.length) return 0;
+  const acc = list.map(moveAccuracy);
+  let weighted: number;
+  if (ordered && list.length >= 4) {
+    const win = list.map((m) => (m.deep.expBefore ?? 0.5) * 100);
+    const size = Math.max(2, Math.min(8, Math.floor(list.length / 10)));
+    let sw = 0, sa = 0;
+    for (let i = 0; i < list.length; i++) {
+      const from = Math.max(0, Math.min(i - size + 1, list.length - size));
+      const w = win.slice(from, from + size);
+      const mean = w.reduce((x, y) => x + y, 0) / w.length;
+      const sd = Math.sqrt(w.reduce((x, y) => x + (y - mean) ** 2, 0) / w.length);
+      const weight = Math.max(0.5, Math.min(12, sd));
+      sw += weight; sa += acc[i] * weight;
+    }
+    weighted = sa / sw;
+  } else weighted = acc.reduce((x, y) => x + y, 0) / acc.length;
+  // 0%인 수 하나가 조화 평균을 0으로 만들지 않도록 아래를 10으로 막는다
+  const harmonic = acc.length / acc.reduce((x, y) => x + 1 / Math.max(10, y), 0);
+  return Math.round(((weighted + harmonic) / 2) * 10) / 10;
+}
+
+/**
  * 수 정확도: Stockfish WDL 기대 점수 하락폭(%p)을 Lichess 정확도 곡선에 넣는다.
  * Stockfish WDL은 Lichess 승률 공식보다 약 2.5배 가파르므로 같은 척도로 맞춰 넣는다.
  */
@@ -172,8 +202,11 @@ function archetype(avg: Record<StyleKey, number>, riskRate: number): PlayerProfi
 function timeSlice(list: MoveAnalysis[]): TimeSlice {
   const counted = list.filter((m) => !m.forced);
   const avg = average(counted);
-  const accuracy = list.length ? Math.round(list.reduce((s, m) => s + moveAccuracy(m), 0) / list.length * 10) / 10 : 0;
-  return { count: list.length, avg, top: topOf(avg), accuracy };
+  // 시간에 쫓긴 수는 대부분 이미 승부가 기운 국면(뭘 둬도 기대 점수가 거의 안 변함)이라 그대로 평균하면 정확도가 부풀려진다.
+  // 실제 게임 25판 확인: 시간 부족 수의 92%가 기운 국면(평소 59%). 승부가 걸린 국면만 보면 시간 부족 때 정확도가 오히려 낮다
+  const live = counted.filter((m) => m.deep.expBefore == null || (m.deep.expBefore >= 0.1 && m.deep.expBefore <= 0.9));
+  const accuracy = aggregateAccuracy(live, false);
+  return { count: list.length, avg, top: topOf(avg), accuracy, contested: live.length };
 }
 
 function buildTime(all: MoveAnalysis[]): TimeProfile | null {
@@ -212,7 +245,7 @@ export function buildProfile(all: MoveAnalysis[]): PlayerProfile {
   for (const m of all) if (m.quality) quality[m.quality]++;
 
   const acpl = all.length ? Math.round(all.reduce((s, m) => s + Math.min(m.cpLoss, 1000), 0) / all.length) : 0;
-  const accuracy = all.length ? Math.round(all.reduce((s, m) => s + moveAccuracy(m), 0) / all.length * 10) / 10 : 0;
+  const accuracy = aggregateAccuracy(all);
 
   const by = <T extends string>(keys: T[], pick: (m: MoveAnalysis) => T) =>
     Object.fromEntries(keys.map((k) => [k, slice(counted.filter((m) => pick(m) === k))])) as Record<T, SliceProfile>;
@@ -312,8 +345,11 @@ function mergeSlice(parts: TimeSlice[]): TimeSlice {
   const avg = zero();
   for (const s of live) for (const k of STYLE_KEYS) avg[k] += (s.avg[k] * s.count) / count;
   for (const k of STYLE_KEYS) avg[k] = Math.round(avg[k]);
-  const accuracy = count ? Math.round(live.reduce((s, x) => s + x.accuracy * x.count, 0) / count * 10) / 10 : 0;
-  return { count, avg, top: topOf(avg), accuracy };
+  const w = (x: TimeSlice) => x.contested ?? x.count;
+  const wsum = live.reduce((s, x) => s + w(x), 0);
+  const accuracy = wsum ? Math.round(live.reduce((s, x) => s + x.accuracy * w(x), 0) / wsum * 10) / 10 : 0;
+  const contested = live.every((x) => x.contested != null) ? live.reduce((s, x) => s + x.contested!, 0) : undefined;
+  return { count, avg, top: topOf(avg), accuracy, contested };
 }
 
 function mergeTime(list: TimeProfile[]): TimeProfile | null {

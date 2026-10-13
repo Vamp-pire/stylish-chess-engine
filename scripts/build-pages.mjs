@@ -358,7 +358,7 @@ for (const t of data.types) {
 <h3>게임에서 보이는 특징</h3>${list(t.traits)}
 <div class="cols">
 <div class="card"><h3>강점</h3>${list(t.strengths)}</div>
-<div class="card"><h3>약점</h3>${list(t.weaknesses)}</div>
+<div class="card"><h3>이럴 때 조심</h3>${list(t.weaknesses)}</div>
 </div>
 ${(examples[t.code] ?? []).length ? `<h2>실제 ${esc(t.name)} 플레이어의 수</h2>
 <p>Stylish 기준을 만들 때 분석한 Lichess 플레이어(이름은 지움) 중 <b>${t.code}</b>로 판정된 사람들의 실제 게임에서 골랐어요. 흔한 되잡기나 누구나 두는 수는 빼고, 이 유형의 성향이 가장 잘 드러나는 수를 골랐어요.</p>
@@ -573,7 +573,7 @@ for (const base of data.types) {
 <h3>What shows up in their games</h3>${list(t.traits)}
 <div class="cols">
 <div class="card"><h3>Strengths</h3>${list(t.strengths)}</div>
-<div class="card"><h3>Weaknesses</h3>${list(t.weaknesses)}</div>
+<div class="card"><h3>Watch out for</h3>${list(t.weaknesses)}</div>
 </div>
 ${(examples[t.code] ?? []).length ? `<h2>Real moves by ${esc(t.name)} players</h2>
 <p>Picked from real games of Lichess players (names removed) that Stylish classified as <b>${t.code}</b> when building its cutoffs. Routine recaptures and moves everyone plays were skipped in favor of moves that show the style most clearly.</p>

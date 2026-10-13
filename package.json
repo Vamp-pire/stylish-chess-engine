@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node scripts/build-pages.mjs",
+    "check:scenes": "tsx scripts/check-scenes.mts",
+    "images": "node scripts/build-type-images.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"

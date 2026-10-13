@@ -38,11 +38,15 @@ export const groupScore = (avg: Record<StyleKey, number>, keys: StyleKey[]) => {
 
 export function timeSection(t: TimeProfile | null | undefined): string {
   if (!t || t.moves < 6) return '';
+  // 정확도는 승부가 걸린 국면의 수만으로 (이미 기운 국면은 뭘 둬도 정확도가 높게 나온다). 그런 수가 적으면 정확도는 생략
+  const MIN_CONTESTED = 8;
+  const enough = (s: TimeSlice) => (s.contested ?? s.count) >= MIN_CONTESTED;
   const cell = (title: string, s: TimeSlice, note: string) => `
-    <div class="slice"><b>${title} (${tr(`${s.count}수`, `${s.count} moves`)})</b>${s.count ? `${tr('정확도', 'Accuracy')} ${s.accuracy}%<br><span class="faint">${esc(styleNames(s.top))}</span>` : `<span class="faint">${note}</span>`}</div>`;
-  const drop = t.lowTime.count >= 3 && t.normal.count ? Math.round((t.normal.accuracy - t.lowTime.accuracy) * 10) / 10 : null;
+    <div class="slice"><b>${title} (${tr(`${s.count}수`, `${s.count} moves`)})</b>${s.count ? `${enough(s) ? `${tr('정확도', 'Accuracy')} ${s.accuracy}%` : `<span class="faint">${tr('정확도: 승부가 걸린 국면의 수가 적음', 'Accuracy: too few moves in undecided positions')}</span>`}<br><span class="faint">${esc(styleNames(s.top))}</span>` : `<span class="faint">${note}</span>`}</div>`;
+  const drop = enough(t.lowTime) && enough(t.normal) ? Math.round((t.normal.accuracy - t.lowTime.accuracy) * 10) / 10 : null;
   return `<div><div class="section-title">${tr('시간 사용', 'Time use')}</div>
     <p class="muted" style="margin:0 0 8px">${tr('수당 평균', 'Average per move')} ${fmtSec(t.avgSpent)}${drop != null ? ` · ${tr('시간에 쫓길 때 정확도', 'Accuracy under time pressure')} ${drop > 0 ? tr(`${drop}%p 하락`, `−${drop} pp`) : drop < 0 ? tr(`${-drop}%p 상승`, `+${-drop} pp`) : tr('변화 없음', 'no change')}` : ''}</p>
+    <p class="faint chart-note" style="margin:0 0 8px">${tr('정확도는 아직 승부가 걸린 국면(이미 이기거나 진 국면 제외)의 수로만 계산해요.', 'Accuracy counts only moves in positions that were still undecided.')}</p>
     <div class="slices">${cell(tr('평소', 'Normal'), t.normal, '-')}${cell(tr('시간 부족', 'Low time'), t.lowTime, tr('없음', 'none'))}${cell(tr('오래 생각한 수', 'Long thinks'), t.long, tr('없음', 'none'))}</div></div>`;
 }
 

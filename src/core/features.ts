@@ -41,6 +41,8 @@ export interface StaticFeatures {
   hangOwnBefore: number;
   /** 수 둔 후 잡힐 위험에 놓인 내 기물 칸 (미끼 후보: 새로 노출됐거나 일부러 방치한 기물) */
   riskSquares: string[];
+  /** 수 두기 전부터 잡힐 위험에 있던 내 기물 칸 */
+  riskSquaresBefore: string[];
   isRecapture: boolean;
   isTrade: boolean;           // 비슷한 가치의 교환
   piecesTraded: boolean;      // 기물(폰 제외)이 줄어드는 교환
@@ -267,7 +269,7 @@ export function extractFeatures(fenBefore: string, fenAfter: string, move: MoveL
     materialBalance: material(B, c) - material(B, o),
     capturedValue, promoValue, sacrifice, offered, ignoredThreat, rescued, threatsCreated,
     hangOwnAfter, hangOwnBefore,
-    riskSquares: riskA.map((x) => x.square),
+    riskSquares: riskA.map((x) => x.square), riskSquaresBefore: riskB.map((x) => x.square),
     isRecapture, isTrade, piecesTraded,
     isCheck, isMate, isCastle, kingWalk, inCheckBefore: ctx.inCheckBefore,
     kingAttack, kingAttackTotal: zonePressure(mAc, zoneOA), attackersNearKing: zoneAttackers(mAc, zoneOA),

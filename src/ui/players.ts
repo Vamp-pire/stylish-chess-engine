@@ -18,6 +18,8 @@ export interface SavedGame {
   opening: string | null;
   depth: number;
   url: string | null;
+  /** bullet | blitz | rapid | classical | daily (예전 기록에는 없음) */
+  timeClass?: string | null;
   profile: PlayerProfile;
 }
 

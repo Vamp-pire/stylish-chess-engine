@@ -10,6 +10,21 @@ const MIN_SHOW = 20;
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
+// 레이팅 직접 입력: 기보에 레이팅이 없거나 다른 시간대 레이팅으로 비교하고 싶을 때 (이 브라우저에만 저장)
+const RATING_KEY = 'stylish.rating.v1';
+function ratingMap(): Record<string, number> { try { return JSON.parse(localStorage.getItem(RATING_KEY) ?? '{}'); } catch { return {}; } }
+export function ratingOverride(name: string): number | null { return name ? ratingMap()[name.toLowerCase()] ?? null : null; }
+export function setRatingOverride(name: string, rating: number | null) {
+  const m = ratingMap();
+  if (rating) m[name.toLowerCase()] = Math.round(rating); else delete m[name.toLowerCase()];
+  try { localStorage.setItem(RATING_KEY, JSON.stringify(m)); } catch { /* 저장 못 하면 이번만 */ }
+}
+/** 직접 입력한 레이팅이 있으면 그걸로 바꾼 프로필 */
+export function withRating(p: PlayerProfile, name: string): PlayerProfile {
+  const r = ratingOverride(name);
+  return r ? { ...p, rating: r } : p;
+}
+
 export function typeSection(p: PlayerProfile, name = ''): string {
   // 보정 데이터가 아직 없으면(임시 값) 보여주지 않는다
   if (!CALIB.players || p.counted < MIN_SHOW) return '';
@@ -27,7 +42,7 @@ export function typeSection(p: PlayerProfile, name = ''): string {
   }).join('');
   const note = t.reliable
     ? ''
-    : `<p class="faint type-note">${tr(`평가 대상 수가 ${t.counted}수로 아직 적어요. ${Math.ceil((MIN_COUNTED - t.counted) / 25)}판 정도 더 분석하면 결과가 정확해집니다.`, `Only ${t.counted} moves rated so far. About ${Math.ceil((MIN_COUNTED - t.counted) / 25)} more games will make it accurate.`)}</p>`;
+    : `<p class="type-note type-unsure">⚠ ${tr(`아직 바뀔 수 있어요. 평가한 수가 ${t.counted}수뿐이라, ${Math.ceil((MIN_COUNTED - t.counted) / 25)}판 정도 더 분석하면 결과가 안정돼요.`, `This may still change. Only ${t.counted} moves rated so far; about ${Math.ceil((MIN_COUNTED - t.counted) / 25)} more games will settle it.`)}</p>`;
   return `<div class="type-card g-${g}">
     <div class="type-top">
       <a href="/types/${t.code}" target="_blank" rel="noopener"><img class="type-thumb" src="/img/types/${t.code}-square.png" alt="${t.code} ${esc(t.info.name)}" width="600" height="600" /></a>
@@ -40,7 +55,8 @@ export function typeSection(p: PlayerProfile, name = ''): string {
       </div>
     </div>
     <div class="type-axes">${bars}</div>
-    <p class="faint type-note">${p.rating ? tr(`레이팅 ${ratingOf(p)} 전후 플레이어들과 비교한 결과예요.`, `Compared with players rated around ${ratingOf(p)}.`) : tr('레이팅 정보가 없어 1500 전후 플레이어들과 비교한 결과예요.', 'No rating found, so compared with players around 1500.')}</p>
+    <p class="faint type-note">${p.rating ? tr(`레이팅 ${ratingOf(p)} 전후 플레이어들과 비교한 결과예요${ratingOverride(name) ? ' (직접 입력)' : ''}.`, `Compared with players rated around ${ratingOf(p)}${ratingOverride(name) ? ' (entered by you)' : ''}.`) : tr('레이팅 정보가 없어 1500 전후 플레이어들과 비교한 결과예요.', 'No rating found, so compared with players around 1500.')}
+      ${name ? `<span class="rating-edit"><input type="number" min="400" max="3000" step="10" inputmode="numeric" data-rating-input="${esc(name)}" value="${ratingOverride(name) ?? ''}" placeholder="${tr('레이팅 직접 입력', 'Enter rating')}" aria-label="${tr('레이팅 직접 입력', 'Enter rating')}" /><button type="button" class="secondary small" data-rating-save="${esc(name)}">${tr('적용', 'Apply')}</button>${ratingOverride(name) ? `<button type="button" class="ghost small" data-rating-clear="${esc(name)}">${tr('기보 레이팅으로', 'Use game rating')}</button>` : ''}</span>` : ''}</p>
     ${note}
     ${(() => { const v = loadVs(); return v && !(v.name && v.name === name && v.code === t.code) ? compareBlock(t, name, v) : ''; })()}
     <div class="type-actions">
@@ -89,6 +105,35 @@ export function typeChangeSection(games: { date: number | null; profile: PlayerP
       <span class="faint">${same ? tr('유형은 그대로예요', 'Same type') : esc(tr(`${b.info.name}(으)로 바뀌었어요`, `Now the ${b.info.name}`))}</span></div>
     ${shifts ? `<div class="chips">${shifts}</div>` : ''}
   </div>`;
+}
+
+/** PGN TimeControl 헤더(예: 180+2) → 시간대. Lichess 기준(예상 시간 = 기본 + 40 × 추가) */
+export function timeClassOf(h: Record<string, string>): string | null {
+  const tc = h.TimeControl ?? '';
+  if (/^\d+\/\d+$/.test(tc)) return 'daily';
+  const m = tc.match(/^(\d+)(?:\+(\d+))?$/);
+  if (!m) return null;
+  const est = Number(m[1]) + 40 * Number(m[2] ?? 0);
+  return est < 180 ? 'bullet' : est < 480 ? 'blitz' : est < 1500 ? 'rapid' : 'classical';
+}
+
+const TIME_ORDER = ['bullet', 'blitz', 'rapid', 'classical', 'daily'];
+const timeName = (c: string) => ({ bullet: tr('불릿', 'Bullet'), blitz: tr('블리츠', 'Blitz'), rapid: tr('래피드', 'Rapid'), classical: tr('클래식', 'Classical'), daily: tr('데일리', 'Daily') } as Record<string, string>)[c] ?? c;
+
+/** 시간대별 유형: 시간대가 둘 이상일 때만. 판이 적은 시간대는 '판이 더 필요해요' */
+export function timeTypeSection(groups: { cls: string; games: number; profile: PlayerProfile | null }[], name = ''): string {
+  const live = groups.filter((g) => g.profile).sort((a, b) => TIME_ORDER.indexOf(a.cls) - TIME_ORDER.indexOf(b.cls));
+  if (!CALIB.players || live.length < 2) return '';
+  const rows = live.map((g) => {
+    const p = withRating(g.profile!, name);
+    const t = p.counted >= MIN_SHOW ? chessTypeOf(p) : null;
+    return `<div class="tt-row"><span class="tt-cls">${timeName(g.cls)} <span class="faint">${tr(`${g.games}판`, `${g.games} games`)}</span></span>
+      ${t ? `<span><b class="type-code small">${t.code}</b> ${esc(t.info.name)}${t.reliable ? '' : ` <span class="faint">${tr('(판이 적어 바뀔 수 있음)', '(few games, may change)')}</span>`}</span>` : `<span class="faint">${tr('판이 더 필요해요', 'Needs more games')}</span>`}</div>`;
+  }).join('');
+  const bullet = live.some((g) => g.cls === 'bullet');
+  return `<div><div class="section-title">${tr('시간대별 유형', 'Type by time control')}</div>
+    <div class="tt-list">${rows}</div>
+    ${bullet ? `<p class="faint chart-note">${tr('불릿은 시간에 쫓겨 둔 수가 많아 유형이 크게 흔들릴 수 있어요. 래피드·블리츠 결과를 더 믿을 만해요.', 'Bullet has many rushed moves, so its type can swing a lot. Rapid and blitz results are more reliable.')}</p>` : ''}</div>`;
 }
 
 export type { ChessType };

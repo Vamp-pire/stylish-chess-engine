@@ -177,6 +177,17 @@ export function flipSide(fen: string): string {
   return p.join(' ');
 }
 
+/**
+ * 함정·도박의 '미끼' 칸: 상대가 물면 손해인 내 기물 자리.
+ * 잡는 수는 예외: 되잡기(같은 칸)에서 상대가 어떤 기물로 잡을지 고르는 건 교환일 뿐이고,
+ * 이미 공격받던 기물을 두고 먼저 잡는 수(데스페라도·맞잡기, 상대 위험수를 받아치는 수)도 함정이 아니다.
+ * (보정 게임 33판 표본에서 함정·도박 26개 중 14개가 이런 잡는 수였다)
+ */
+function baitSquares(to: string, f: { capturedValue: number; riskSquares: string[]; riskSquaresBefore: string[] }) {
+  if (f.capturedValue > 0) return new Set(f.riskSquares.filter((s) => s !== to && !f.riskSquaresBefore.includes(s)));
+  return new Set([to, ...f.riskSquares]);
+}
+
 /** 기보 하나를 분석한다. engine은 브라우저 Worker든 Node 프로세스든 상관없다 */
 export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOptions = {}): Promise<GameAnalysis> {
   const depth = opts.depth ?? 14;
@@ -374,7 +385,7 @@ export async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
 
     // 미끼를 무는 응수만 본다: 방금 움직인 기물이나 잡힐 위험에 놓인(놓아둔) 기물을 잡는 수.
     // (그렇지 않으면 원래 국면에 있던 상대의 실수 가능성까지 이 수의 함정으로 잘못 돌리게 된다)
-    const bait = new Set([move.to, ...f.riskSquares]);
+    const bait = baitSquares(move.to, f);
     const tempting = humanAfter
       .filter((h) => h.uci !== refutation && h.p >= TEMPT_P && bait.has(h.uci.slice(2, 4)))
       .slice(0, TEMPT_MAX);
@@ -444,7 +455,7 @@ export async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
 
     // 자연스러운 응수 중 상대에게 손해인 것을 찾고, Stockfish로 재확인
     const refVal = val(refutation) ?? 0;
-    const bait = new Set([move.to, ...f.riskSquares]);
+    const bait = baitSquares(move.to, f);
     // 미끼: 방금 움직인 기물이나 잡힐 위험에 놓인(놓아둔) 기물을 무는 솔깃한 응수.
     // 소형 탐색은 몇 수 뒤의 메이트나 장기 공격을 못 보므로, 후보가 있으면 Stockfish로 직접 확인한다.
     const cands = ranked.slice(0, 3)

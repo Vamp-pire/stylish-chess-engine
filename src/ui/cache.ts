@@ -5,7 +5,7 @@ import type { GameAnalysis } from '../core/analyzer';
 
 const DB = 'stylish', STORE = 'analyses', VERSION = 1;
 /** 판정 규칙이 바뀌면 올려서 예전 결과를 무효화한다 */
-const RULES_VERSION = 6;
+const RULES_VERSION = 7;
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 function db() {
