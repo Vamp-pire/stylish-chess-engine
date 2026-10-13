@@ -439,6 +439,7 @@ function batchProfile(b: BatchState) {
   const profile = moves.length ? buildProfile(moves) : null;
   if (profile) {
     profile.rating = ratingN ? Math.round(ratingSum / ratingN) : null;
+    profile.ratingConverted = b.source === 'chesscom';
     profile.timeClass = mainTimeClass(b.games.filter((g) => b.results.has(g.id)).map((g) => b.results.get(g.id)!.profiles[g.userColor]));
   }
   return {

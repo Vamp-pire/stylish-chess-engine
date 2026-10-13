@@ -55,7 +55,7 @@ export function typeSection(p: PlayerProfile, name = ''): string {
       </div>
     </div>
     <div class="type-axes">${bars}</div>
-    <p class="faint type-note">${p.rating ? tr(`레이팅 ${ratingOf(p)} 전후 플레이어들과 비교한 결과예요${ratingOverride(name) ? ' (직접 입력)' : ''}.`, `Compared with players rated around ${ratingOf(p)}${ratingOverride(name) ? ' (entered by you)' : ''}.`) : tr('레이팅 정보가 없어 1500 전후 플레이어들과 비교한 결과예요.', 'No rating found, so compared with players around 1500.')}
+    <p class="faint type-note">${p.rating ? tr(`레이팅 ${ratingOf(p)} 전후 플레이어들과 비교한 결과예요${ratingOverride(name) ? ' (직접 입력)' : p.ratingConverted ? ' (Chess.com 레이팅을 Lichess 기준으로 환산)' : ''}.`, `Compared with players rated around ${ratingOf(p)}${ratingOverride(name) ? ' (entered by you)' : p.ratingConverted ? ' (Chess.com rating converted to the Lichess scale)' : ''}.`) : tr('레이팅 정보가 없어 1500 전후 플레이어들과 비교한 결과예요.', 'No rating found, so compared with players around 1500.')}
       ${name ? `<span class="rating-edit"><input type="number" min="400" max="3000" step="10" inputmode="numeric" data-rating-input="${esc(name)}" value="${ratingOverride(name) ?? ''}" placeholder="${tr('레이팅 직접 입력', 'Enter rating')}" aria-label="${tr('레이팅 직접 입력', 'Enter rating')}" /><button type="button" class="secondary small" data-rating-save="${esc(name)}">${tr('적용', 'Apply')}</button>${ratingOverride(name) ? `<button type="button" class="ghost small" data-rating-clear="${esc(name)}">${tr('기보 레이팅으로', 'Use game rating')}</button>` : ''}</span>` : ''}</p>
     ${note}
     ${(() => { const v = loadVs(); return v && !(v.name && v.name === name && v.code === t.code) ? compareBlock(t, name, v) : ''; })()}

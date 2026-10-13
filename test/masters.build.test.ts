@@ -9,12 +9,21 @@ import { createNodeEngine, loadNodeBook } from './node-engine';
 import { createNodeHuman } from './node-human';
 import { analyzeGame } from '../src/core/analyzer';
 import { mergeProfiles, type PlayerProfile } from '../src/core/profile';
+import { Chess } from 'chess.js';
+import { spanishToEnglish } from './pgn-lang';
 
 const enabled = process.env.BUILD_MASTERS === '1';
 const dir = process.env.MASTERS_DIR ?? '';
 const out = process.env.MASTERS_OUT ?? 'masters-out';
 const GAMES = Number(process.env.GAMES ?? 24);
 const DEPTH = Number(process.env.DEPTH ?? 10);
+
+/** 읽을 수 없으면 스페인어 표기로 보고 바꿔 본다 */
+function readable(pgn: string) {
+  try { new Chess().loadPgn(pgn); return pgn; } catch { /* 아래에서 다시 */ }
+  const es = spanishToEnglish(pgn);
+  try { new Chess().loadPgn(es); return es; } catch { return null; }
+}
 
 const header = (pgn: string, key: string) => pgn.match(new RegExp(`\\[${key} "([^"]*)"\\]`))?.[1] ?? '';
 
@@ -24,9 +33,9 @@ function pickGames(text: string, surname: string) {
     .map((g) => {
       const side = header(g, 'White').toLowerCase().includes(surname) ? 'w' : header(g, 'Black').toLowerCase().includes(surname) ? 'b' : null;
       const plies = (g.split(/\n\n/).slice(1).join(' ').replace(/\{[^}]*\}/g, '').match(/[a-hKQRBNO][^\s]*/g) ?? []).length;
-      return { pgn: g, side, date: header(g, 'Date'), plies };
+      return { pgn: readable(g) ?? '', side, date: header(g, 'Date'), plies };
     })
-    .filter((g) => g.side && g.plies >= 40 && g.plies <= 160)
+    .filter((g) => g.side && g.pgn && g.plies >= 40 && g.plies <= 160)
     .sort((a, b) => a.date.localeCompare(b.date));
   const pool = games.slice(Math.floor(games.length * 0.3));
   const step = pool.length / GAMES;
@@ -52,7 +61,8 @@ describe.skipIf(!enabled)('유명 선수 프로필 만들기', () => {
         } catch (e) { console.log(name, '분석 실패', String(e).slice(0, 80)); }
       }
       engine.quit();
-      const merged = mergeProfiles(profiles)!;
+      const merged = mergeProfiles(profiles);
+      if (!merged) { console.log(`${name}: 분석한 판이 없어 건너뜀`); return; }
       mkdirSync(out, { recursive: true });
       writeFileSync(join(out, `${name}.json`), JSON.stringify({ name, games: profiles.length, profile: merged }));
       console.log(`${name}: ${profiles.length}판, 정확도 ${merged.accuracy}`);

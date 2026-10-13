@@ -11,6 +11,7 @@ import { Position } from '../search/position';
 import { Searcher, threatOf, replyOutcomes, quickValue } from '../search/search';
 import { buildProfiles, type PlayerProfile } from './profile';
 import { timeClassOf } from './chessType';
+import { lichessScale, isChesscom } from './rating';
 import type { OpeningBook, OpeningInfo } from './openings';
 import { plyClocks, type PlyClock } from './clock';
 import { clampElo, ELO_DEFAULT, type HumanModel, type HumanPolicy } from '../human/maia3';
@@ -217,7 +218,8 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
   pending.forEach((p) => p.catch(() => {})); // 중단 시 처리되지 않은 거부 방지
 
   // 사람 수 예측도 함께 요청한다 (국면마다 둘 차례인 쪽의 레이팅 기준). 실패한 국면은 null
-  const elo = { w: clampElo(Number(headers.WhiteElo)), b: clampElo(Number(headers.BlackElo)) };
+  // Maia3는 Lichess 레이팅으로 학습했으므로 Chess.com 레이팅은 Lichess 척도로 바꿔 넣는다
+  const elo = { w: clampElo(lichessScale(headers, headers.WhiteElo)), b: clampElo(lichessScale(headers, headers.BlackElo)) };
   const human = opts.human;
   const humanChunks: Promise<(HumanPolicy | null)[]>[] = [];
   if (human) {
@@ -315,9 +317,10 @@ export function finalizeGame(
   // 이름은 정확히 일치한 가장 깊은 국면 우선
   const named = [...results.slice(0, bookPlies)].reverse().find((r) => r.opening?.exact)?.opening ?? lastBook;
   const profiles = buildProfiles(results);
-  const rating = (v: string | undefined) => (Number(v) > 0 ? Number(v) : null);
-  profiles.w.rating = rating(headers.WhiteElo);
-  profiles.b.rating = rating(headers.BlackElo);
+  // 유형 보정도 Lichess 레이팅 기준이라 Chess.com 레이팅은 환산해서 저장한다
+  profiles.w.rating = lichessScale(headers, headers.WhiteElo);
+  profiles.b.rating = lichessScale(headers, headers.BlackElo);
+  if (isChesscom(headers)) profiles.w.ratingConverted = profiles.b.ratingConverted = true;
   profiles.w.timeClass = profiles.b.timeClass = timeClassOf(headers);
   return { headers, startFen, moves: results, profiles, depth, opening: named, bookPlies, human, elo };
 }

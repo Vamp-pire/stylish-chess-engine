@@ -40,6 +40,8 @@ export interface PlayerProfile {
   time?: TimeProfile | null;
   /** 기보에 적힌 이 플레이어의 레이팅 (없으면 null). 유형 판정을 같은 레이팅끼리 비교하는 데 쓴다 */
   rating?: number | null;
+  /** rating이 Chess.com 레이팅을 Lichess 척도로 환산한 값인가 */
+  ratingConverted?: boolean;
   /** 이 프로필이 주로 나온 시간대 (bullet·blitz·rapid…). 유형 보정을 시간대별로 고른다 */
   timeClass?: string | null;
   /** 사람 수 예측(Maia3) 기준 독창성: 같은 레이팅 사람들이 잘 안 두는 수를 얼마나 두는가 (예전 저장본·규칙 기반엔 없음) */
@@ -345,6 +347,7 @@ export function mergeProfiles(list: PlayerProfile[]): PlayerProfile | null {
     human: mergeHuman(list.map((p) => p.human)),
     rating: mergeRating(list),
     timeClass: mainTimeClass(list),
+    ratingConverted: list.some((p) => p.ratingConverted),
     opening: { bookMoves: list.reduce((s, p) => s + p.opening.bookMoves, 0), leftBookFirst: null, deviation: null },
   };
 }
