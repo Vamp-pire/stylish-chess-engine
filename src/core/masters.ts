@@ -2,8 +2,10 @@
 // 기준값(BASELINE)에서 벗어난 방향이 곧 그 사람의 개성이므로, 점수 수준이 아니라 방향을 본다.
 import { tr } from '../i18n';
 import masters from '../data/masters.json';
-import { STYLE_KEYS, type StyleKey } from './styles';
-import { BASELINE, type PlayerProfile } from './profile';
+import type { StyleKey } from './styles';
+import type { PlayerProfile } from './profile';
+import { ratingOf, type Calibration, type Metric } from './chessType';
+import CALIB from '../data/type-calib.json';
 import { RISK_KINDS } from './styles';
 
 export interface Master {
@@ -14,18 +16,30 @@ export interface Master {
 
 export const MASTERS = masters as Master[];
 
-/** 스타일마다 선수들 사이 편차의 표준편차로 나눠, 원래 흔들림이 큰 스타일이 비교를 독차지하지 않게 한다 */
-const SCALE: Record<StyleKey, number> = Object.fromEntries(STYLE_KEYS.map((k) => {
-  const vals = MASTERS.map((m) => m.avg[k]);
+// 비교는 '개성' 끼리만 한다.
+// - 선수: 10명 평균에서 얼마나 벗어났는지 (선수들 사이 표준편차 단위). 모든 선수에게 공통인 '고수다운 점'은 빠진다.
+// - 사용자: 같은 레이팅 아마추어 기대값에서 얼마나 벗어났는지 (유형 보정 데이터의 z점수).
+// 예전에는 고정 기준값과의 차이로 비교해서, 아마추어와 고수의 공통 차이가 방향을 독차지해 한 선수(카르포프)만 자주 나왔다.
+const KEYS: Metric[] = ['aggressive', 'tactical', 'positional', 'prophylactic', 'complicating', 'risk', 'solid', 'simplifying', 'initiative', 'defensive'];
+const masterMetric = (m: Master, k: Metric) => (k === 'risk' ? m.riskRate * 100 : m.avg[k as StyleKey] ?? 0);
+const STATS = Object.fromEntries(KEYS.map((k) => {
+  const vals = MASTERS.map((m) => masterMetric(m, k));
   const mean = vals.reduce((s, v) => s + v, 0) / (vals.length || 1);
   const sd = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / (vals.length || 1));
-  return [k, Math.max(2, sd)];
-})) as Record<StyleKey, number>;
-const RISK_SCALE = 0.02;
-const meanRisk = MASTERS.reduce((s, m) => s + m.riskRate, 0) / (MASTERS.length || 1);
+  return [k, { mean, sd: Math.max(k === 'risk' ? 0.3 : 0.6, sd) }];
+})) as Record<Metric, { mean: number; sd: number }>;
 
-function vector(avg: Record<StyleKey, number>, riskRate: number) {
-  return [...STYLE_KEYS.map((k) => ((avg[k] ?? 0) - BASELINE[k]) / SCALE[k]), (riskRate - meanRisk) / RISK_SCALE];
+const masterVector = (m: Master) => KEYS.map((k) => (masterMetric(m, k) - STATS[k].mean) / STATS[k].sd);
+
+function userVector(p: PlayerProfile) {
+  const cal = CALIB as Calibration;
+  const risks = RISK_KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0);
+  const rating = ratingOf(p);
+  return KEYS.map((k) => {
+    const v = k === 'risk' ? (p.counted ? (risks / p.counted) * 100 : 0) : p.avg[k as StyleKey] ?? 0;
+    const c = cal.metrics[k];
+    return (v - (c.a + c.b * rating)) / (c.std || 1);
+  });
 }
 
 function cosine(a: number[], b: number[]) {
@@ -39,9 +53,8 @@ export const MIN_MOVES_FOR_MATCH = 15;
 
 export function similarMasters(p: PlayerProfile, n = 3): { master: Master; score: number }[] {
   if (!MASTERS.length) return [];
-  const risk = p.counted ? RISK_KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0) / p.counted : 0;
-  const v = vector(p.avg, risk);
-  return MASTERS.map((m) => ({ master: m, score: Math.round(((cosine(v, vector(m.avg, m.riskRate)) + 1) / 2) * 100) }))
+  const v = userVector(p);
+  return MASTERS.map((m) => ({ master: m, score: Math.round(((cosine(v, masterVector(m)) + 1) / 2) * 100) }))
     .sort((a, b) => b.score - a.score).slice(0, n);
 }
 

@@ -421,18 +421,23 @@ async function runBatch(b: BatchState) {
 function batchProfile(b: BatchState) {
   const moves: MoveAnalysis[] = [];
   const missed: { move: MoveAnalysis; game: string }[] = [];
-  let w = 0, l = 0, d = 0, leftFirst = 0, withBook = 0;
+  let w = 0, l = 0, d = 0, leftFirst = 0, withBook = 0, ratingSum = 0, ratingN = 0;
   for (const g of b.games) {
     const r = b.results.get(g.id); if (!r) continue;
     moves.push(...r.moves.filter((m) => m.color === g.userColor));
+    const rt = r.profiles[g.userColor].rating;
+    if (rt) { ratingSum += rt; ratingN++; }
     const opp = g.userColor === 'w' ? g.black : g.white;
     for (const m of findMissed(r.moves, g.userColor)) missed.push({ move: m, game: `vs ${opp.name} · ${fmtDate(g.date)}` });
     const res = userResult(g); if (res === 'win') w++; else if (res === 'loss') l++; else if (res === 'draw') d++;
     const p = r.profiles[g.userColor];
     if (p.opening.leftBookFirst != null) { withBook++; if (p.opening.leftBookFirst) leftFirst++; }
   }
+  // 수만 모아 새로 만들면 레이팅이 빠지므로 판별 레이팅 평균을 넣는다
+  const profile = moves.length ? buildProfile(moves) : null;
+  if (profile) profile.rating = ratingN ? Math.round(ratingSum / ratingN) : null;
   return {
-    profile: moves.length ? buildProfile(moves) : null,
+    profile,
     record: { w, l, d }, leftFirst, withBook,
     missed: missed.sort((x, y) => y.move.deep.winDrop - x.move.deep.winDrop),
   };
