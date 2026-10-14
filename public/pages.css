@@ -242,3 +242,8 @@ th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: l
 .rp-rows dt { color: var(--muted, #666); }
 .rp-rows dd { margin: 0; font-weight: 700; text-align: right; }
 @media (max-width: 480px) { .rp-axis { grid-template-columns: 70px 1fr 70px; font-size: 12px; } }
+
+/* 업데이트 소식 */
+.update { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 24px; }
+.update h3 { margin: 18px 0 6px; }
+.update li { margin: 4px 0; }

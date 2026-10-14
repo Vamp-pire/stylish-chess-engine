@@ -3,6 +3,7 @@
 // 분석 앱은 /app (app.html). 유형 이미지는 scripts/build-type-images.mjs로 만들어 public/img/types/에 커밋해 둔다.
 // 검색엔진과 광고 심사가 읽을 수 있도록 자바스크립트 없이 보이는 HTML로 만든다. 내용은 src/data/chess-types.json
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { UPDATES } from './updates.mjs';
 
 const SITE = (process.env.SITE_URL ?? 'https://stylish-chess-engine.pages.dev').replace(/\/$/, '');
 const ADSENSE = 'ca-pub-8762647584529985';
@@ -203,8 +204,8 @@ ${body}
 <div class="footer-brand"><a class="brand" href="${P(lang, '/')}"><img src="/logo.png" alt="" width="22" height="22" /><span>Stylish<em>.</em></span></a>
 <p>${en ? 'Your chess style and 4-letter chess type, from your own games.' : '내 게임으로 알아보는 체스 스타일과 4글자 체스 유형.'}</p></div>
 <div class="footer-links">${en
-  ? `<a href="/en/types/">Chess types</a><a href="${APP(lang)}">Analyze</a><a href="/en/about">About</a><a href="/en/privacy">Privacy</a><a href="/en/contact">Contact</a><a href="${path}" lang="ko">한국어</a>`
-  : `<a href="/types/">체스 유형</a><a href="/app">분석하기</a><a href="/about">소개</a><a href="/privacy">개인정보처리방침</a><a href="/contact">문의</a><a href="${P('en', path)}" lang="en">English</a>`}</div>
+  ? `<a href="/en/types/">Chess types</a><a href="${APP(lang)}">Analyze</a><a href="/en/about">About</a><a href="/en/updates">Updates</a><a href="/en/privacy">Privacy</a><a href="/en/contact">Contact</a><a href="${path}" lang="ko">한국어</a>`
+  : `<a href="/types/">체스 유형</a><a href="/app">분석하기</a><a href="/about">소개</a><a href="/updates">업데이트 소식</a><a href="/privacy">개인정보처리방침</a><a href="/contact">문의</a><a href="${P('en', path)}" lang="en">English</a>`}</div>
 <p class="footer-note">${en
   ? 'Stylish is <a href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener">GPLv3</a> open source. Engine: Stockfish 19. Human-move model: Maia3 (CSSLab). Board and pieces: chessground (cburnett). All analysis runs inside your browser.'
   : 'Stylish는 <a href="https://www.gnu.org/licenses/gpl-3.0.html" rel="noopener">GPLv3</a> 오픈소스입니다. 분석 엔진 Stockfish 19, 사람 수 예측 Maia3(CSSLab), 보드·기물 chessground(cburnett). 모든 분석은 방문자의 브라우저 안에서 이뤄집니다.'}</p>
@@ -710,8 +711,26 @@ write('/en/privacy', page({
 <p>For privacy questions or requests, use the form on the <a href="/en/contact">contact page</a> and choose "Privacy" as the type.</p></div>`,
 }));
 
+// ── 업데이트 소식 (scripts/updates.mjs) ──
+for (const lang of ['ko', 'en']) {
+  const en = lang === 'en';
+  const fmt = (d) => { const [y, m, day] = d.split('-').map(Number); return en ? new Date(Date.UTC(y, m - 1, day)).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }) : `${y}년 ${m}월 ${day}일`; };
+  const body = UPDATES.map((u) => `<section class="update">${u.date ? `<h2>${fmt(u.date)}</h2>` : ''}
+${u[lang].map(([title, items]) => `<h3>${title}</h3>\n<ul>${items.map((x) => `<li>${x}</li>`).join('')}</ul>`).join('\n')}
+</section>`).join('\n');
+  write(P(lang, '/updates'), page({
+    path: '/updates', lang,
+    title: en ? 'Updates | Stylish' : '업데이트 소식 | Stylish',
+    description: en ? 'What changed in Stylish, the chess style analyzer: speed, openings, more honest results and new features.' : 'Stylish 체스 스타일 분석기의 업데이트 소식: 속도, 오프닝, 더 정직한 결과, 새 기능.',
+    body: `<div class="prose"><h1>${en ? 'Updates' : '업데이트 소식'}</h1>
+<p class="lead">${en ? 'What changed in Stylish.' : 'Stylish에서 달라진 점을 모아 둡니다.'}</p>
+${body}
+<p class="muted">${en ? 'Bugs or ideas? Tell us on the <a href="/en/contact">contact page</a>.' : '버그나 제안은 <a href="/contact">문의 페이지</a>에 남겨 주세요.'}</p></div>`,
+  }));
+}
+
 // ── 사이트맵·robots ──
-const koPaths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/app', '/about', '/contact', '/privacy'];
+const koPaths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/app', '/about', '/updates', '/contact', '/privacy'];
 const paths = [...koPaths, ...koPaths.filter((p) => p !== '/app').map((p) => P('en', p))];
 writeFileSync(new URL('sitemap.xml', DIST), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
