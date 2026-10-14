@@ -3,9 +3,8 @@
 import { tr } from '../i18n';
 import masters from '../data/masters.json';
 import type { StyleKey } from './styles';
-import type { PlayerProfile } from './profile';
+import { riskPerMove, type PlayerProfile } from './profile';
 import { ratingOf, calibFor, type Metric } from './chessType';
-import { RISK_KINDS } from './styles';
 
 export interface Master {
   id: string; name: string; ko: string; era: string; desc: string;
@@ -32,10 +31,9 @@ const masterVector = (m: Master) => KEYS.map((k) => (masterMetric(m, k) - STATS[
 
 function userVector(p: PlayerProfile) {
   const cal = calibFor(p);
-  const risks = RISK_KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0);
   const rating = ratingOf(p);
   return KEYS.map((k) => {
-    const v = k === 'risk' ? (p.counted ? (risks / p.counted) * 100 : 0) : p.avg[k as StyleKey] ?? 0;
+    const v = k === 'risk' ? riskPerMove(p) * 100 : p.avg[k as StyleKey] ?? 0;
     const c = cal.metrics[k];
     return (v - (c.a + c.b * rating)) / (c.std || 1);
   });

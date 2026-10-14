@@ -23,11 +23,13 @@ const INFO = {
 const KINDS = ['soundSacrifice', 'speculative', 'trap', 'gamble'];
 const masters = readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => {
   const { name, games, profile: p } = JSON.parse(readFileSync(join(dir, f), 'utf8'));
-  const risk = KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0);
+  // src/core/profile.ts riskPerMove와 같은 방식 (오프닝 스타일 반영분 포함)
+  const risk = KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0) + (p.openingRisk ?? 0);
+  const n = p.counted + (p.openingWeight ?? 0);
   return {
     id: name, name, ...(INFO[name] ?? { ko: name, era: '', desc: '' }),
     games, counted: p.counted, accuracy: p.accuracy, archetype: p.archetype.name,
-    avg: p.avg, riskRate: p.counted ? Math.round((risk / p.counted) * 1000) / 1000 : 0,
+    avg: p.avg, riskRate: n ? Math.round((risk / n) * 1000) / 1000 : 0,
   };
 }).sort((a, b) => a.ko.localeCompare(b.ko, 'ko'));
 

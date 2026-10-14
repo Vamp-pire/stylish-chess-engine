@@ -117,6 +117,9 @@ jobs:
           wait
           tail -n 5 log-*.txt
           node scripts/build-masters.mjs masters-out
+      # 아티팩트를 못 받는 환경에서도 결과를 가져갈 수 있게 로그에 gzip+base64로 남긴다 (scripts/calib/from-log.mjs로 복원)
+      - name: Print result for log download
+        run: gzip -c src/data/masters.json | base64 -w 180 | sed 's/^/@@masters.json /'
       - uses: actions/upload-artifact@v4
         with:
           name: masters
@@ -145,6 +148,8 @@ jobs:
           node scripts/build-type-calib.mjs all.jsonl | tee report.txt
           node scripts/calib/stability.mjs src/data/type-calib.json all.jsonl | tee -a report.txt
           gzip -k all.jsonl
+      - name: Print result for log download
+        run: gzip -c src/data/type-calib.json | base64 -w 180 | sed 's/^/@@type-calib.json /'
       - uses: actions/upload-artifact@v4
         with:
           name: type-calib

@@ -46,6 +46,11 @@ export interface PlayerProfile {
   timeClass?: string | null;
   /** 사람 수 예측(Maia3) 기준 독창성: 같은 레이팅 사람들이 잘 안 두는 수를 얼마나 두는가 (예전 저장본·규칙 기반엔 없음) */
   human?: HumanStats | null;
+  /** 이론 수를 뺀 수 (정확도·손실 가중용). 예전 저장본엔 없음 → moves */
+  rated?: number;
+  /** 오프닝 스타일 반영 무게 (판마다 OPENING_WEIGHT수만큼) 와 그만큼의 위험 판정 수 (예전 저장본엔 없음) */
+  openingWeight?: number;
+  openingRisk?: number;
   /** 오프닝: 이론을 따라간 수, 이론 이탈 수 (한 게임 기준) */
   opening: { bookMoves: number; leftBookFirst: boolean | null; deviation: { san: string; moveNumber: number; quality: QualityKey | null } | null };
 }
@@ -234,10 +239,34 @@ function buildTime(all: MoveAnalysis[]): TimeProfile | null {
   };
 }
 
+/**
+ * 오프닝 이론 수는 하나하나 평가하지 않고, 그 판 오프닝의 미리 분석한 스타일로 묶어 판마다 이만큼의 수로만 반영한다.
+ * 한 판에 평가하는 수가 20개 남짓이라 10%가 안 된다: 오프닝 선택(갬빗 등)은 남기되 성향이 오프닝에 치우치지 않게
+ */
+export const OPENING_WEIGHT = 2;
+
+/** 위험 판정(희생·함정·도박) 비율: 평가한 수 + 오프닝 반영분 기준 */
+export function riskPerMove(p: Pick<PlayerProfile, 'risk' | 'counted' | 'openingWeight' | 'openingRisk'>) {
+  const risks = RISK_KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0) + (p.openingRisk ?? 0);
+  const n = p.counted + (p.openingWeight ?? 0);
+  return n ? risks / n : 0;
+}
+
 export function buildProfile(all: MoveAnalysis[]): PlayerProfile {
+  // 오프닝 이론 수는 정확도·품질·손실·위험 판정에서 빼고(얕게만 분석함), 성향에는 오프닝 스타일로 묶어 조금만 넣는다
+  const rated = all.filter((m) => !m.book);
   // 선택이 아닌 수(강제된 수)와 누구나 두는 오프닝 이론 수는 성향 집계에서 뺀다
-  const counted = all.filter((m) => !m.forced && !m.book);
-  const avg = average(counted);
+  const counted = rated.filter((m) => !m.forced);
+  const openings = all.map((m) => m.openingStyle).filter((o): o is NonNullable<typeof o> => !!o);
+  const openingWeight = openings.length * OPENING_WEIGHT;
+  const openingRisk = openings.reduce((s, o) => s + o.riskRate * OPENING_WEIGHT, 0);
+  const avg = zero();
+  if (counted.length + openingWeight) {
+    for (const k of STYLE_KEYS) {
+      const sum = counted.reduce((s, m) => s + m.scores[k], 0) + openings.reduce((s, o) => s + o.scores[k] * OPENING_WEIGHT, 0);
+      avg[k] = Math.round(sum / (counted.length + openingWeight));
+    }
+  }
   const primaryCounts = Object.fromEntries([...STYLE_KEYS, 'neutral'].map((k) => [k, 0])) as PlayerProfile['primaryCounts'];
   for (const m of counted) primaryCounts[m.primary]++;
 
@@ -250,21 +279,21 @@ export function buildProfile(all: MoveAnalysis[]): PlayerProfile {
   }
 
   const risk = emptyRisk();
-  for (const m of all) if (m.risk) { risk[m.risk].count++; if (m.riskSucceeded) risk[m.risk].success++; }
+  for (const m of rated) if (m.risk) { risk[m.risk].count++; if (m.riskSucceeded) risk[m.risk].success++; }
 
   const quality: Record<QualityKey, number> = { best: 0, good: 0, inaccuracy: 0, mistake: 0, blunder: 0 };
-  for (const m of all) if (m.quality) quality[m.quality]++;
+  for (const m of rated) if (m.quality) quality[m.quality]++;
 
-  const acpl = all.length ? Math.round(all.reduce((s, m) => s + Math.min(m.cpLoss, 1000), 0) / all.length) : 0;
-  const accuracy = aggregateAccuracy(all);
+  const acpl = rated.length ? Math.round(rated.reduce((s, m) => s + Math.min(m.cpLoss, 1000), 0) / rated.length) : 0;
+  const accuracy = aggregateAccuracy(rated);
 
   const by = <T extends string>(keys: T[], pick: (m: MoveAnalysis) => T) =>
     Object.fromEntries(keys.map((k) => [k, slice(counted.filter((m) => pick(m) === k))])) as Record<T, SliceProfile>;
 
-  const riskRate = counted.length ? RISK_KINDS.reduce((s, k) => s + risk[k].count, 0) / counted.length : 0;
+  const riskRate = riskPerMove({ risk, counted: counted.length, openingWeight, openingRisk });
 
   return {
-    moves: all.length, counted: counted.length, avg, primaryCounts, top: topOf(avg, 5),
+    moves: all.length, rated: rated.length, counted: counted.length, openingWeight, openingRisk, avg, primaryCounts, top: topOf(avg, 5),
     choice, choiceTop: choice ? topOf(choice, 3).filter((k) => choice![k] >= 5) : [],
     risk, quality, acpl, accuracy,
     byPhase: by(['opening', 'middlegame', 'endgame'], (m) => m.phase),
@@ -311,7 +340,10 @@ export function mergeProfiles(list: PlayerProfile[]): PlayerProfile | null {
     for (const k of STYLE_KEYS) out[k] = Math.round(out[k] / total);
     return out;
   };
-  const avg = wavg((p) => p.avg, (p) => p.counted) ?? zero();
+  const avg = wavg((p) => p.avg, (p) => p.counted + (p.openingWeight ?? 0)) ?? zero();
+  const rated = list.reduce((s, p) => s + (p.rated ?? p.moves), 0);
+  const openingWeight = list.reduce((s, p) => s + (p.openingWeight ?? 0), 0);
+  const openingRisk = list.reduce((s, p) => s + (p.openingRisk ?? 0), 0);
   const choice = wavg((p) => p.choice, (p) => p.counted);
 
   const primaryCounts = Object.fromEntries([...STYLE_KEYS, 'neutral'].map((k) => [k, 0])) as PlayerProfile['primaryCounts'];
@@ -333,14 +365,14 @@ export function mergeProfiles(list: PlayerProfile[]): PlayerProfile | null {
       return [k, { count, avg: a, top: topOf(a) }];
     })) as Record<T, SliceProfile>;
 
-  const riskRate = counted ? RISK_KINDS.reduce((s, k) => s + risk[k].count, 0) / counted : 0;
+  const riskRate = riskPerMove({ risk, counted, openingWeight, openingRisk });
   return {
     time: mergeTime(list.map((p) => p.time).filter((t): t is TimeProfile => !!t)),
-    moves, counted, avg, primaryCounts, top: topOf(avg, 5),
+    moves, rated, counted, openingWeight, openingRisk, avg, primaryCounts, top: topOf(avg, 5),
     choice, choiceTop: choice ? topOf(choice, 3).filter((k) => choice[k] >= 5) : [],
     risk, quality,
-    acpl: moves ? Math.round(list.reduce((s, p) => s + p.acpl * p.moves, 0) / moves) : 0,
-    accuracy: moves ? Math.round((list.reduce((s, p) => s + p.accuracy * p.moves, 0) / moves) * 10) / 10 : 0,
+    acpl: rated ? Math.round(list.reduce((s, p) => s + p.acpl * (p.rated ?? p.moves), 0) / rated) : 0,
+    accuracy: rated ? Math.round((list.reduce((s, p) => s + p.accuracy * (p.rated ?? p.moves), 0) / rated) * 10) / 10 : 0,
     byPhase: mergeSlices(['opening', 'middlegame', 'endgame'], (p) => p.byPhase),
     bySituation: mergeSlices(['ahead', 'equal', 'behind'], (p) => p.bySituation),
     archetype: archetype(avg, riskRate),

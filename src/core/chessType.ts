@@ -2,8 +2,7 @@
 // 축 값 = (+쪽 지표의 표준점수 평균) − (−쪽 지표의 표준점수 평균). 보정 데이터: src/data/type-calib.json (scripts/build-type-calib.mjs)
 // 지표 대부분이 레이팅과 상관이 커서(예: 낮을수록 전술적·드문 수가 많음), 표준점수는 '같은 레이팅의 기대값' 대비로 잰다.
 // 즉 유형은 같은 레이팅 플레이어들 사이에서의 성향이다.
-import type { PlayerProfile } from './profile';
-import { RISK_KINDS } from './styles';
+import { riskPerMove, type PlayerProfile } from './profile';
 import TYPES from '../data/chess-types.json';
 import TYPES_EN from '../data/chess-types.en.json';
 import { getLang } from '../i18n';
@@ -89,11 +88,10 @@ export function calibFor(p: PlayerProfile, base: Calibration = CALIB as Calibrat
 /** 프로필 → 지표 값. 독창성(Maia)이 없으면 null */
 export function metricsOf(p: PlayerProfile): Record<Metric, number> | null {
   if (!p.human || !p.counted) return null;
-  const risks = RISK_KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0);
   const a = p.avg;
   return {
     aggressive: a.aggressive, tactical: a.tactical, positional: a.positional, prophylactic: a.prophylactic,
-    complicating: a.complicating, risk: (risks / p.counted) * 100, solid: a.solid, simplifying: a.simplifying,
+    complicating: a.complicating, risk: riskPerMove(p) * 100, solid: a.solid, simplifying: a.simplifying,
     initiative: a.initiative, defensive: a.defensive,
     rare: p.human.rare * 100,
   };
@@ -190,10 +188,9 @@ export const PEER_METRICS: PeerMetric[] = ['aggressive', 'tactical', 'initiative
  */
 export function peerStats(p: PlayerProfile, cal: Calibration = calibFor(p)): Record<PeerMetric, { z: number; pct: number }> | null {
   if (!cal.players || !p.counted) return null;
-  const risks = RISK_KINDS.reduce((s, k) => s + (p.risk[k]?.count ?? 0), 0);
   const rating = ratingOf(p);
   return Object.fromEntries(PEER_METRICS.map((k) => {
-    const v = k === 'risk' ? (risks / p.counted) * 100 : p.avg[k];
+    const v = k === 'risk' ? riskPerMove(p) * 100 : p.avg[k];
     const c = cal.metrics[k];
     const z = (v - (c.a + c.b * rating)) / (c.std || 1);
     return [k, { z, pct: Math.round(normCdf(z) * 100) }];

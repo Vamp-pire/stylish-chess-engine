@@ -39,6 +39,8 @@ for (const p of players) {
         // 더 안정적인 지표를 찾기 위한 추가 값: 수 두기 전 기대 점수, 선택 성향(대안 대비), 잡기·체크, 상황, 남은 시간 부족
         eb: Math.round((m.deep.expBefore ?? 0.5) * 1000) / 1000, cd: m.choiceDelta ?? null,
         x: m.san.includes('x') ? 1 : 0, ck: m.san.includes('+') ? 1 : 0, si: m.situation, lt: m.lowTime ?? null,
+        // 이 색의 마지막 이론 수에만: 그 판 오프닝의 미리 분석한 스타일 (src/core/profile.ts의 OPENING_WEIGHT만큼 반영)
+        ...(m.openingStyle ? { os: { s: m.openingStyle.scores, rr: m.openingStyle.riskRate } } : {}),
       });
     }
   }

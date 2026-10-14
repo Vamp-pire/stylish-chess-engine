@@ -22,6 +22,7 @@ import { decodeVs, saveVs, loadVs, clearVs, vsBanner, shareCompare } from './ui/
 import { evalGraph, radar } from './ui/charts';
 import { renderGuide, HOW } from './ui/guide';
 import type { GameAnalysis, MoveAnalysis } from './core/analyzer';
+import type { OpeningSideStyle } from './core/openings';
 import { buildProfile, mergeProfiles, mainTimeClass, riskTotal, type PlayerProfile } from './core/profile';
 import { fetchGames, userResult, SOURCE_LABEL, type OnlineGame, type Source } from './online/sources';
 import { cacheKey, getCached, putCached, gameHash } from './ui/cache';
@@ -154,6 +155,13 @@ const glyph = (m: MoveAnalysis) => {
   // 부정확(?!)은 표시하지 않는다: 깊이 10 판정이 정식 Stockfish(깊이 18)와 36%만 일치 (엔진 오차가 이 등급의 폭과 비슷함)
   return '';
 };
+/** 이론 수 카드: 이 오프닝의 (그 색) 스타일 */
+function openingStyleHtml(o: OpeningSideStyle | null) {
+  if (!o) return '';
+  const top = (Object.keys(o.scores) as StyleKey[]).filter((k) => o.scores[k] >= 20).sort((a, b) => o.scores[b] - o.scores[a]).slice(0, 3);
+  if (!top.length && !o.riskRate) return '';
+  return `<div><div class="section-title">${tr('이 오프닝의 스타일 (이쪽, 미리 분석)', "This opening's style (this side, pre-analyzed)")}</div><div class="chips">${top.map((k) => `<span class="chip"><span class="dot" style="background:${STYLES[k].color}"></span>${STYLES[k].label}</span>`).join('')}${o.riskRate > 0 ? `<span class="chip">${tr('희생·갬빗 포함', 'Includes sacrifices or gambits')}</span>` : ''}</div></div>`;
+}
 /** 정확도 설명: Lichess와 같은 계산식이지만 분석 깊이가 달라 값이 다르다 */
 const ACCURACY_NOTE = () => tr('Lichess와 같은 방식으로 계산하지만 분석 깊이가 달라서, 같은 게임 29판(백·흑 58건) 비교에서 Lichess보다 평균 6점쯤 높게 나왔어요. Lichess·Chess.com 정확도와 직접 비교하지는 마세요.', 'Computed like Lichess, but at a different engine depth: on 29 games (58 sides) it came out about 6 points higher than Lichess on average. Don\'t compare it directly with Lichess or Chess.com accuracy.');
 /** 부정확 등급 설명: 판정이 흔들리는 등급이라 참고용 */
@@ -1011,9 +1019,9 @@ function updateCard() {
     </div>
     ${m.risk ? `<div class="risk ${m.risk}"><strong>${RISK_LABEL[m.risk]}</strong><span>${esc(m.riskWhy)}</span></div>` : ''}
     ${varButtons ? `<div class="var-buttons">${varButtons}</div>` : ''}
-    ${m.book ? `<div class="book-banner"><strong>${tr('📖 오프닝 이론', '📖 Opening theory')}${m.opening ? ` · ${esc(m.opening.eco)} ${esc(m.opening.name)}` : ''}</strong><span>${tr('누구나 두는 이론 수라 스타일은 참고용으로 흐리게 보여주고, 플레이어 평가에서는 뺍니다.', 'A theory move everyone plays: styles are dimmed for reference and excluded from player stats.')}</span></div>` : ''}
+    ${m.book ? `<div class="book-banner"><strong>${tr('📖 오프닝 이론', '📖 Opening theory')}${m.opening ? ` · ${esc(m.opening.eco)} ${esc(m.opening.name)}` : ''}</strong><span>${tr('이론 수는 하나하나 평가하지 않고, 이 오프닝의 스타일(미리 분석)로 묶어 플레이어 성향에 조금만 반영해요. 정확도에서는 빼요.', 'Theory moves are not rated one by one: they count toward the player\'s style only lightly, as this opening\'s pre-analyzed style, and are left out of accuracy.')}</span></div>${openingStyleHtml(g.analysis?.openingStyle?.[m.color] ?? null)}` : ''}
     ${!m.book && g.ply > 0 && g.results[g.ply - 1]?.book ? `<div class="book-banner dev"><strong>${tr('↳ 이론 이탈', '↳ Left theory')}</strong><span>${tr('여기서부터 알려진 오프닝 이론을 벗어났습니다.', 'From here on, the game left known opening theory.')}</span></div>` : ''}
-    <div class="${m.book ? 'dim' : ''}">
+    <div${m.book ? ' hidden' : ''}>
     <div>
       <div class="section-title">${tr('대표 스타일', 'Main style')}</div>
       <div class="primary-style"><span class="dot" style="background:${styleColor(m.primary)};width:14px;height:14px"></span><span class="label">${styleLabel(m.primary)}</span></div>
@@ -1023,9 +1031,9 @@ function updateCard() {
     </div>
     <div class="engine-box">
       <div class="kv"><span>${tr('평가 (백 기준)', 'Eval (White)')}</span><b>${evalAfter}</b></div>
-      <div class="kv"><span>${tr('손실', 'Loss')}</span><span>${m.cpLoss}cp</span></div>
+      ${m.book ? '' : `<div class="kv"><span>${tr('손실', 'Loss')}</span><span>${m.cpLoss}cp</span></div>`}
       ${m.spent != null ? `<div class="kv"><span>${tr('소요 시간 · 남은 시간', 'Time spent · left')}</span><span>${fmtSec(m.spent)} · ${m.clock != null ? fmtClock(m.clock) : '-'}${m.lowTime ? ` <span class="chip warn-chip">${tr('시간 부족', 'Low time')}</span>` : ''}</span></div>` : ''}
-      ${!m.deep.isBest && m.bestSan ? `<div class="kv"><span>${tr('Stockfish 최선 수', 'Stockfish best')}</span><b>${esc(m.bestSan)}</b></div><div class="line">${esc(m.bestPvSan.join(' '))}</div>` : ''}
+      ${!m.book && !m.deep.isBest && m.bestSan ? `<div class="kv"><span>${tr('Stockfish 최선 수', 'Stockfish best')}</span><b>${esc(m.bestSan)}</b></div><div class="line">${esc(m.bestPvSan.join(' '))}</div>` : ''}
       ${m.playedPvSan.length ? `<div class="faint">${tr('이후 예상 수순', 'Expected continuation')}</div><div class="line">${esc(m.playedPvSan.join(' '))}</div>` : ''}
     </div>
     ${reasons ? `<details class="reasons"><summary>${tr('판단 근거 보기', 'Show reasons')}</summary>${reasons}</details>` : ''}`;

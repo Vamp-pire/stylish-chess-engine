@@ -12,7 +12,7 @@ import { Searcher, threatOf, replyOutcomes, quickValue } from '../search/search'
 import { buildProfiles, type PlayerProfile } from './profile';
 import { timeClassOf } from './chessType';
 import { lichessScale, isChesscom } from './rating';
-import type { OpeningBook, OpeningInfo } from './openings';
+import type { OpeningBook, OpeningInfo, OpeningSideStyle } from './openings';
 import { plyClocks, type PlyClock } from './clock';
 import { clampElo, ELO_DEFAULT, type HumanModel, type HumanPolicy } from '../human/maia3';
 
@@ -57,6 +57,9 @@ export interface AnalyzeOptions {
   reusePlayed?: boolean;
 }
 
+/** 오프닝 이론 구간 국면의 탐색 깊이: 이론 수는 평가에 쓰지 않고(오프닝 스타일로 대신) 그래프·기보 표시용으로만 얕게 본다 */
+export const THEORY_DEPTH = 6;
+
 /** 얕은 탐색 깊이와 '승부가 기운 국면' 기준 (둘 차례 쪽 기대 점수) */
 export const SCOUT_DEPTH = 7, DECIDED_LO = 0.06, DECIDED_HI = 0.94;
 
@@ -84,6 +87,8 @@ export interface MoveAnalysis extends StyleResult, PlyClock {
   book: boolean;
   /** 이 수까지 도달한 오프닝 이름 (이론 안에 있을 때) */
   opening: OpeningInfo | null;
+  /** 이 색의 마지막 이론 수에만: 그 판 오프닝의 미리 분석한 스타일 (플레이어 성향에 조금만 반영) */
+  openingStyle?: OpeningSideStyle | null;
   /** 함정수·도박수: 상대가 솔깃한 응수를 뒀을 때의 변화 (Stockfish 확인 수순) */
   trapLine: { replySan: string; replyUci: string; line: string[]; gainCp: number } | null;
   /** 상대가 실제로 틀렸는지 (위험 판정 수의 성공 여부) */
@@ -102,6 +107,8 @@ export interface GameAnalysis {
   depth: number;
   /** 이론을 따라간 마지막 국면의 오프닝 이름 */
   opening: OpeningInfo | null;
+  /** 그 오프닝의 미리 분석한 백·흑 스타일 (데이터가 없으면 없음) */
+  openingStyle?: { w: OpeningSideStyle | null; b: OpeningSideStyle | null } | null;
   /** 이론 수 개수 (처음부터 이어진 구간) */
   bookPlies: number;
   /** 상대 응수 예측에 쓴 방법 */
@@ -221,8 +228,13 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
 
   // 모든 국면 분석을 한꺼번에 요청한다. 엔진 풀이면 여러 엔진이 나눠서 동시에 처리하고,
   // 단일 엔진이면 차례대로 처리된다. 강제된 국면은 얕게.
+  // 오프닝 이론 구간(처음부터 끊기지 않고 이어진 이론 수): 그 수들을 두기 전 국면은 얕게만, 사람 수 예측(Maia)도 하지 않는다.
+  // 이론을 벗어난 첫 수의 직전 국면(fens[theoryPlies])부터는 원래대로 분석한다
+  let theoryPlies = 0;
+  if (opts.book) while (theoryPlies < history.length && opts.book.lookup(fens[theoryPlies + 1])) theoryPlies++;
   const fullDepth = (fen: string) => (isForcedPosition(fen) ? Math.max(8, depth - 4) : depth);
-  const pending = fens.map((fen) => {
+  const pending = fens.map((fen, k) => {
+    if (k < theoryPlies) return evalLines(engine, fen, Math.min(THEORY_DEPTH, depth));
     if (!opts.scout) return evalLines(engine, fen, fullDepth(fen));
     // 얕게 먼저: 승부가 기운 국면(무엇을 둬도 기대 점수가 거의 안 변함)과 오프닝 이론 국면은 그대로 쓴다
     return evalLines(engine, fen, Math.min(SCOUT_DEPTH, fullDepth(fen))).then((shallow) => {
@@ -240,7 +252,7 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
   const human = opts.human;
   const humanChunks: Promise<(HumanPolicy | null)[]>[] = [];
   if (human) {
-    for (let s = 0; s < fens.length; s += HUMAN_CHUNK) {
+    for (let s = theoryPlies; s < fens.length; s += HUMAN_CHUNK) {
       const queries = fens.slice(s, s + HUMAN_CHUNK).map((fen) => {
         const side = fen.split(' ')[1] === 'w' ? 'w' : 'b';
         return { fen, elo: elo[side], oppElo: elo[side === 'w' ? 'b' : 'w'] };
@@ -248,7 +260,7 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
       humanChunks.push(human.predict(queries).catch(() => queries.map(() => null)));
     }
   }
-  const humanAt = async (k: number) => (human ? (await humanChunks[Math.floor(k / HUMAN_CHUNK)])[k % HUMAN_CHUNK] : null);
+  const humanAt = async (k: number) => (human && k >= theoryPlies ? (await humanChunks[Math.floor((k - theoryPlies) / HUMAN_CHUNK)])[(k - theoryPlies) % HUMAN_CHUNK] : null);
   let humanUsed = !!human;
 
   lines[0] = await pending[0];
@@ -261,7 +273,7 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
     const m = history[i];
     const humanBefore = await humanAt(i), humanAfter = await humanAt(i + 1);
     humans[i] = humanBefore; humans[i + 1] = humanAfter;
-    if (!humanBefore || !humanAfter) humanUsed = false;
+    if (i >= theoryPlies && (!humanBefore || !humanAfter)) humanUsed = false;
     const res = await analyzeMove({
       move: m, prev: i > 0 ? history[i - 1] : null, ply: i, reusePlayed: opts.reusePlayed,
       before: lines[i], after: lines[i + 1], engine, depth, searcher,
@@ -269,6 +281,8 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
     });
     Object.assign(res, clocks[i]);
     markBook(res, results[i - 1] ?? null, opts.book ?? null);
+    // 이론 수는 얕게만 봤으므로 수 자체의 품질·위험 판정은 내지 않는다 (오프닝 스타일로 대신)
+    if (i < theoryPlies) { res.quality = null; res.risk = null; res.riskWhy = null; res.trapLine = null; res.choiceDelta = null; }
     results.push(res);
     opts.onMove?.(res);
     opts.onProgress?.(i + 2, total);
@@ -281,7 +295,7 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
     const deeper = depth + REFINE_DEPTH;
     const near = (x: number) => QUALITY_EDGES.some((e) => Math.abs(x - e) <= REFINE_BAND);
     const picks = results
-      .map((r, i) => ({ i, pri: r.risk ? 2 : !r.book && !r.forced && near(r.deep.winDrop) ? 1 : 0 }))
+      .map((r, i) => ({ i, pri: r.book ? 0 : r.risk ? 2 : !r.forced && near(r.deep.winDrop) ? 1 : 0 }))
       .filter((x) => x.pri > 0)
       .sort((a, b) => b.pri - a.pri || b.i - a.i)
       .slice(0, REFINE_MAX);
@@ -305,7 +319,20 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
     }
   }
 
+  // 오프닝 스타일: 각 색의 마지막 이론 수에 붙인다 (프로필이 판마다 한 번씩 조금만 반영)
+  const style = opts.book?.styleOf(gameOpening(results)) ?? null;
+  if (style) for (const c of ['w', 'b'] as const) {
+    const last = results.filter((r) => r.book && r.color === c).at(-1);
+    if (last) last.openingStyle = style[c];
+  }
+
   return finalizeGame(results, headers, startFen, depth, humanUsed ? 'maia3' : 'rules', elo);
+}
+
+/** 판의 오프닝 이름: 정확히 일치한 가장 깊은 이론 국면 우선, 없으면 마지막 이론 국면 */
+export function gameOpening(results: MoveAnalysis[]): OpeningInfo | null {
+  const book = results.filter((r) => r.book);
+  return [...book].reverse().find((r) => r.opening?.exact)?.opening ?? book.at(-1)?.opening ?? null;
 }
 
 /** 오프닝 이론: 처음부터 끊기지 않고 이어진 구간만 (한 번 벗어나면 다시 들어와도 이론으로 보지 않는다) */
@@ -330,16 +357,17 @@ export function finalizeGame(
   }
 
   const bookPlies = results.filter((r) => r.book).length;
-  const lastBook = bookPlies ? results[bookPlies - 1].opening : null;
   // 이름은 정확히 일치한 가장 깊은 국면 우선
-  const named = [...results.slice(0, bookPlies)].reverse().find((r) => r.opening?.exact)?.opening ?? lastBook;
+  const named = gameOpening(results);
+  const lastStyle = (c: 'w' | 'b') => results.filter((r) => r.book && r.color === c).at(-1)?.openingStyle ?? null;
+  const openingStyle = lastStyle('w') || lastStyle('b') ? { w: lastStyle('w'), b: lastStyle('b') } : null;
   const profiles = buildProfiles(results);
   // 유형 보정도 Lichess 레이팅 기준이라 Chess.com 레이팅은 환산해서 저장한다
   profiles.w.rating = lichessScale(headers, headers.WhiteElo);
   profiles.b.rating = lichessScale(headers, headers.BlackElo);
   if (isChesscom(headers)) profiles.w.ratingConverted = profiles.b.ratingConverted = true;
   profiles.w.timeClass = profiles.b.timeClass = timeClassOf(headers);
-  return { headers, startFen, moves: results, profiles, depth, opening: named, bookPlies, human, elo };
+  return { headers, startFen, moves: results, profiles, depth, opening: named, openingStyle, bookPlies, human, elo };
 }
 
 export interface MoveInput {

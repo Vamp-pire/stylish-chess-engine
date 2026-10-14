@@ -16,6 +16,8 @@ const AXIS_DEF = {
 const METRICS = [...new Set(Object.values(AXIS_DEF).flatMap((d) => [...d.plus, ...d.minus]))];
 const STYLES = METRICS.filter((m) => m !== 'risk' && m !== 'rare');
 const MIN_COUNTED = 80, RARE_P = 0.1;
+/** src/core/profile.ts의 OPENING_WEIGHT와 같아야 한다 */
+const OPENING_WEIGHT = 2;
 const RATING_MIN = 600, RATING_MAX = 2600, RATING_DEFAULT = 1500;
 const clampRating = (r) => Math.max(RATING_MIN, Math.min(RATING_MAX, r || RATING_DEFAULT));
 
@@ -28,10 +30,13 @@ for (const file of process.argv.slice(2)) {
     const counted = p.moves.filter((m) => !m.f && !m.b);
     const hps = counted.map((m) => m.hp).filter((x) => x != null);
     if (counted.length < MIN_COUNTED || hps.length < counted.length * 0.9) continue;
-    // 프로필과 같은 방식: 평가 대상 수의 스타일 평균(정수), 위험 판정 수 / 평가 대상 수
+    // 프로필(src/core/profile.ts buildProfile)과 같은 방식: 이론 수는 빼고, 판마다 오프닝 스타일을 OPENING_WEIGHT수만큼 섞는다.
+    // 스타일 평균(정수), 위험 판정 비율 = (이론 밖 위험 판정 수 + 오프닝 몫) / (평가 대상 수 + 오프닝 무게)
+    const ops = p.moves.filter((x) => x.os).map((x) => x.os);
+    const ow = ops.length * OPENING_WEIGHT;
     const m = {};
-    for (const k of STYLES) m[k] = Math.round(counted.reduce((s, x) => s + x.s[k], 0) / counted.length);
-    m.risk = (p.moves.filter((x) => x.r).length / counted.length) * 100;
+    for (const k of STYLES) m[k] = Math.round((counted.reduce((s, x) => s + x.s[k], 0) + ops.reduce((s, o) => s + (o.s[k] ?? 0) * OPENING_WEIGHT, 0)) / (counted.length + ow));
+    m.risk = ((p.moves.filter((x) => x.r && !x.b).length + ops.reduce((s, o) => s + o.rr * OPENING_WEIGHT, 0)) / (counted.length + ow)) * 100;
     m.rare = (hps.filter((x) => x < RARE_P).length / hps.length) * 100;
     players.push({ id: p.id ?? p.name, elo: clampRating(p.elo), band: p.band, cls: p.cls ?? null, m });
   }
