@@ -8,7 +8,7 @@ const SITE = (process.env.SITE_URL ?? 'https://stylish-chess-engine.pages.dev').
 const ADSENSE = 'ca-pub-8762647584529985';
 const CONTACT_FORM = 'https://forms.gle/d9PbZSYZKkzpykgq8';
 const REPO = 'https://github.com/Vamp-pire/stylish-chess-engine';
-const UPDATED = '2026-10-12';
+const UPDATED = '2026-10-14';
 const SEARCH_CONSOLE = 'T4-fwXM8oe_n6an574Sidq3X6cvTdKS9b5MsTB0bvgw';
 const PRETENDARD = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css';
 const GROUP_ORDER = ['AW', 'AS', 'PW', 'PS'];
@@ -184,6 +184,8 @@ function page({ path, title, description, body, active = '', image = null, wide 
 <link rel="stylesheet" href="${PRETENDARD}" />
 <link rel="stylesheet" href="/pages.css" />
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE}" crossorigin="anonymous"></script>
+<!-- Microsoft Clarity: 사용 행태(클릭·스크롤) 분석 -->
+<script type="text/javascript">(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "yxfrmbcyx5");</script>
 </head>
 <body>
 <header class="topbar"><div class="topbar-in">
@@ -448,6 +450,7 @@ write('/privacy', page({
 <li><b>Chess.com·Lichess</b>: 아이디로 게임을 불러올 때, 방문자의 브라우저가 입력한 아이디로 해당 사이트의 공개 API에 직접 요청합니다. 각 사이트의 개인정보처리방침이 적용됩니다.</li>
 <li><b>Cloudflare</b>: 사이트 호스팅 업체로, 서비스 제공과 보안을 위해 접속 기록(IP 주소, 브라우저 정보 등)을 처리할 수 있습니다.</li>
 <li><b>Cloudflare Web Analytics</b>: 방문자 수와 많이 본 페이지 같은 통계를 보기 위해 사용합니다. 쿠키를 쓰지 않으며 개인을 식별할 수 있는 정보를 모으지 않습니다.</li>
+<li><b>Microsoft Clarity</b>: 사이트를 더 쓰기 편하게 고치기 위해, 페이지에서의 클릭·스크롤·이동 같은 이용 행태를 익명으로 기록하고 분석합니다. 이를 위해 쿠키를 사용합니다. 입력한 글자(아이디 등)는 기록하지 않도록 가려지며, Microsoft의 개인정보처리방침(<a href="https://privacy.microsoft.com/privacystatement">privacy.microsoft.com</a>)이 적용됩니다. 브라우저에서 쿠키를 차단하면 수집되지 않습니다.</li>
 <li><b>Google Forms</b>: 문의 양식을 이용하면 입력한 내용이 Google Forms에 저장됩니다. 연락처는 선택 항목입니다.</li>
 </ul>
 <h2>4. 광고와 쿠키 (Google AdSense)</h2>
@@ -660,6 +663,7 @@ write('/en/privacy', page({
 <li><b>Chess.com and Lichess</b>: when you load games by username, your browser sends that username directly to the site's public API. Their privacy policies apply.</li>
 <li><b>Cloudflare</b>: our hosting provider may process access logs (IP address, browser information, etc.) to provide the service and for security.</li>
 <li><b>Cloudflare Web Analytics</b>: used to see statistics such as visitor counts and popular pages. It does not use cookies and does not collect personally identifiable information.</li>
+<li><b>Microsoft Clarity</b>: to make the site easier to use, we record and analyze how pages are used (clicks, scrolling, navigation) anonymously. It uses cookies. Text you type (such as usernames) is masked, and Microsoft's privacy statement (<a href="https://privacy.microsoft.com/privacystatement">privacy.microsoft.com</a>) applies. Blocking cookies in your browser stops this collection.</li>
 <li><b>Google Forms</b>: if you use the contact form, what you enter is stored in Google Forms. Contact details are optional.</li>
 </ul>
 <h2>4. Ads and cookies (Google AdSense)</h2>
