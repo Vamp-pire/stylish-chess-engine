@@ -85,6 +85,9 @@ export async function shareType(code: string, button?: HTMLElement) {
   } catch { /* 사용자가 공유 창을 닫은 경우 등 */ }
 }
 
+/** 유형 변화가 '부정확'인 판 수 (양쪽 중 하나라도 이 이하) */
+const SHAKY_GAMES = 20;
+
 /** 예전 게임 절반 vs 최근 절반의 유형 비교 (둘 다 충분할 때만) */
 export function typeChangeSection(games: { date: number | null; profile: PlayerProfile }[]): string {
   if (!CALIB.players || games.length < 4) return '';
@@ -102,11 +105,13 @@ export function typeChangeSection(games: { date: number | null; profile: PlayerP
     return `<span class="chip">${esc(d > 0 ? ax.names[0] : ax.names[1])} +${Math.abs(d)}</span>`;
   }).filter(Boolean).join('');
   const same = a.code === b.code;
-  return `<div class="return-row">
-    <div><b>${tr('유형 변화', 'Type change')}</b>
-      <span class="faint">${tr(`예전 ${half}판 → 최근 ${sorted.length - half}판`, `Older ${half} games → recent ${sorted.length - half}`)}</span></div>
+  // 같은 사람도 10판끼리 비교하면 축마다 40%쯤은 글자가 바뀐다(보정 3,604명 측정). 양쪽이 각각 SHAKY_GAMES판 이하면 흐리게 + '부정확'
+  const shaky = half <= SHAKY_GAMES || sorted.length - half <= SHAKY_GAMES;
+  return `<div class="return-row${shaky ? ' shaky' : ''}">
+    <div><b>${tr('유형 변화', 'Type change')}${shaky ? ` <span class="shaky-tag">${tr('부정확', 'Unreliable')}</span>` : ''}</b>
+      <span class="faint">${tr(`예전 ${half}판 → 최근 ${sorted.length - half}판`, `Older ${half} games → recent ${sorted.length - half}`)}${shaky ? tr(` · 양쪽 모두 ${SHAKY_GAMES}판을 넘어야 믿을 만해요. 지금 차이는 우연일 수 있어요`, ` · Needs more than ${SHAKY_GAMES} games on each side to be reliable; this difference may be chance`) : ''}</span></div>
     <div class="type-change"><span class="type-code small">${a.code}</span> → <span class="type-code small">${b.code}</span>
-      <span class="faint">${same ? tr('유형은 그대로예요', 'Same type') : esc(tr(`${b.info.name}(으)로 바뀌었어요`, `Now the ${b.info.name}`))}</span></div>
+      <span class="faint">${same ? tr('유형은 그대로예요', 'Same type') : shaky ? esc(tr(`${b.info.name}(으)로 바뀐 것처럼 보여요`, `Looks like the ${b.info.name}`)) : esc(tr(`${b.info.name}(으)로 바뀌었어요`, `Now the ${b.info.name}`))}</span></div>
     ${shifts ? `<div class="chips">${shifts}</div>` : ''}
   </div>`;
 }

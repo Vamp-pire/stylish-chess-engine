@@ -151,9 +151,13 @@ const glyph = (m: MoveAnalysis) => {
   if (m.risk === 'trap') return '<span class="glyph g-risk">⚑</span>';
   if (m.quality === 'blunder') return '<span class="glyph g-blunder">??</span>';
   if (m.quality === 'mistake') return '<span class="glyph g-mistake">?</span>';
-  if (m.quality === 'inaccuracy') return '<span class="glyph g-inaccuracy">?!</span>';
+  // 부정확(?!)은 표시하지 않는다: 깊이 10 판정이 정식 Stockfish(깊이 18)와 36%만 일치 (엔진 오차가 이 등급의 폭과 비슷함)
   return '';
 };
+/** 정확도 설명: Lichess와 같은 계산식이지만 분석 깊이가 달라 값이 다르다 */
+const ACCURACY_NOTE = () => tr('Lichess와 같은 방식으로 계산하지만 분석 깊이가 달라서, 같은 게임 29판(백·흑 58건) 비교에서 Lichess보다 평균 6점쯤 높게 나왔어요. Lichess·Chess.com 정확도와 직접 비교하지는 마세요.', 'Computed like Lichess, but at a different engine depth: on 29 games (58 sides) it came out about 6 points higher than Lichess on average. Don\'t compare it directly with Lichess or Chess.com accuracy.');
+/** 부정확 등급 설명: 판정이 흔들리는 등급이라 참고용 */
+const INACCURACY_NOTE = () => tr('부정확은 참고용이에요. 분석 깊이가 얕을수록(종합 분석은 깊이 10) 엔진 오차가 이 등급의 폭과 비슷해져서, 실수·블런더보다 판정이 많이 흔들려요.', 'Inaccuracy is for reference only: at shallow depths (combined analysis uses depth 10), engine noise is about as large as this grade, so it is much less certain than mistakes or blunders.');
 const styleColor = (k: StyleKey | 'neutral') => (k === 'neutral' ? 'var(--text-3)' : STYLES[k].color);
 const styleLabel = (k: StyleKey | 'neutral') => (k === 'neutral' ? tr('평범한 수', 'Ordinary move') : STYLES[k].label);
 const playerName = (h: Record<string, string>, c: 'w' | 'b') => h[c === 'w' ? 'White' : 'Black'] && h[c === 'w' ? 'White' : 'Black'] !== '?' ? h[c === 'w' ? 'White' : 'Black'] : c === 'w' ? tr('백', 'White') : tr('흑', 'Black');
@@ -962,7 +966,7 @@ function updateCard() {
   const g = state.game, el = $('#card'); if (!g || !el) return;
   if (g.ply < 0) {
     el.innerHTML = `<div><div class="section-title">${tr('시작 국면', 'Starting position')}</div><p class="muted">${tr('수 목록에서 수를 누르거나 ← → 키로 이동하세요. 각 수의 스타일, 판단 근거, Stockfish 최선 수를 보여줍니다.', 'Click a move in the list or use the ← → keys. Each move shows its styles, the reasons, and Stockfish\'s best move.')}</p>
-      <p class="faint">${tr('색 점은 그 수의 대표 스타일, 기호는 품질(?! 부정확, ? 실수, ?? 블런더)과 위험 판정(! 건전한 희생, !? 무리한 희생, ⚂ 도박수, ⚑ 함정수)입니다.', 'The colored dot is the move\'s main style; symbols show quality (?! inaccuracy, ? mistake, ?? blunder) and risk (! sound sacrifice, !? speculative sacrifice, ⚂ gamble, ⚑ trap).')}</p></div>`;
+      <p class="faint">${tr('색 점은 그 수의 대표 스타일, 기호는 품질(? 실수, ?? 블런더)과 위험 판정(! 건전한 희생, !? 무리한 희생, ⚂ 도박수, ⚑ 함정수)입니다.', 'The colored dot is the move\'s main style; symbols show quality (? mistake, ?? blunder) and risk (! sound sacrifice, !? speculative sacrifice, ⚂ gamble, ⚑ trap).')}</p></div>`;
     return;
   }
   const p = g.plies[g.ply], m = g.results[g.ply];
@@ -1001,7 +1005,7 @@ function updateCard() {
     <div class="mc-head">
       <span class="mc-num">${m.moveNumber}${m.color === 'w' ? '.' : '...'}</span>
       <span class="mc-san">${esc(m.san)}</span>
-      ${m.quality ? `<span class="pill q-${m.quality}">${QUALITY_LABEL[m.quality]}</span>` : ''}
+      ${m.quality ? `<span class="pill q-${m.quality}"${m.quality === 'inaccuracy' ? ` title="${esc(INACCURACY_NOTE())}"` : ''}>${QUALITY_LABEL[m.quality]}</span>` : ''}
       ${m.forced ? `<span class="chip" title="${tr('선택의 여지가 거의 없던 수라 플레이어 평가에서 제외', 'Hardly any choice, so excluded from player stats')}">${tr('강제된 수', 'Forced')}</span>` : ''}
       ${m.humanP != null ? `<span class="chip" title="${tr('같은 레이팅의 사람이 이 국면에서 이 수를 둘 확률 (Maia3 예측)', 'How likely a human at the same rating is to play this move here (Maia3)')}">${tr('사람 선택률', 'Human pick rate')} ${Math.round(m.humanP * 100)}%</span>` : ''}
     </div>
@@ -1072,7 +1076,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
     }).join('')
     : p.top.map((k) => `<div class="sbar" title="${esc(HOW[k])}"><span>${STYLES[k].label}</span><div class="track"><i style="width:${p.avg[k]}%;background:${STYLES[k].color}"></i></div><span class="val">${p.avg[k]}</span></div>`).join('');
   const qOrder: QualityKey[] = ['best', 'good', 'inaccuracy', 'mistake', 'blunder'];
-  const qColors: Record<QualityKey, string> = { best: 'var(--good)', good: '#8fd1ae', inaccuracy: 'var(--warn)', mistake: '#e07a2e', blunder: 'var(--bad)' };
+  const qColors: Record<QualityKey, string> = { best: 'var(--good)', good: '#8fd1ae', inaccuracy: 'color-mix(in srgb, var(--warn) 40%, var(--border))', mistake: '#e07a2e', blunder: 'var(--bad)' };
   const qTotal = qOrder.reduce((s, k) => s + p.quality[k], 0) || 1;
   const risks = RISK_KINDS.filter((k) => p.risk[k]?.count)
     .map((k) => `<span class="chip" title="${esc(RISK_HELP[k]?.() ?? '')}">${RISK_LABEL[k]} ${tr(`${p.risk[k].count}회`, `×${p.risk[k].count}`)}${k !== 'soundSacrifice' ? ` · ${tr('적중', 'worked')} ${p.risk[k].success}` : ''}</span>`).join('');
@@ -1085,7 +1089,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
       ${typeSection(p, name)}
       ${o.extra ?? ''}
       <div class="stats">
-        <div class="stat"><b>${p.accuracy}%</b><span>${tr('정확도', 'Accuracy')}</span></div>
+        <div class="stat" title="${esc(ACCURACY_NOTE())}"><b>${p.accuracy}%</b><span>${tr('정확도 (Stylish 기준)', 'Accuracy (Stylish)')}</span></div>
         <div class="stat"><b>${p.acpl}</b><span>${tr('평균 손실(cp)', 'Avg loss (cp)')}</span></div>
         <div class="stat"><b>${riskTotal(p)}</b><span>${tr('희생·함정·도박', 'Sacrifices · traps · gambles')}</span></div>
       </div>
@@ -1104,7 +1108,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
       ${timeSection(p.time)}
       <div><div class="section-title">${tr('수의 품질', 'Move quality')}</div>
         <div class="qbar">${qOrder.map((k) => `<i style="width:${(p.quality[k] / qTotal) * 100}%;background:${qColors[k]}"></i>`).join('')}</div>
-        <div class="qlegend">${qOrder.map((k) => `<span><span class="dot" style="background:${qColors[k]}"></span> ${QUALITY_LABEL[k]} ${p.quality[k]}</span>`).join('')}</div>
+        <div class="qlegend">${qOrder.map((k) => `<span${k === 'inaccuracy' ? ` class="faint" title="${esc(INACCURACY_NOTE())}"` : ''}><span class="dot" style="background:${qColors[k]}"></span> ${QUALITY_LABEL[k]} ${p.quality[k]}</span>`).join('')}</div>
       </div>
       ${o.tail ?? ''}
       </details>

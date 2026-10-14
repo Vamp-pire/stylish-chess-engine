@@ -126,12 +126,44 @@ export interface AxisResult {
 }
 export interface ChessType { code: string; info: TypeInfo; axes: AxisResult[]; counted: number; reliable: boolean }
 
+// ───────────── 판이 적을 때 가운데로 당기기 ─────────────
+// 같은 사람의 앞 5판/뒤 5판 유형 축 상관(반분 신뢰도, 보정 3,604명). 낮을수록 판이 적을 때 우연이 크다
+const AXIS_RELIABILITY_5 = { AP: 0.15, WS: 0.32, IR: 0.20, OE: 0.56 } as const;
+/** 한 판에서 평가하는 수(이론·강제 제외) 대략값. 브라우저 확인 6판 124수·4판 93수 → 약 22 (추정치) */
+const COUNTED_PER_GAME = 22;
+
+/** 판 수 n에서의 신뢰도 (스피어만-브라운: 5판 신뢰도 → 1판 → n판) */
+export function axisReliability(key: AxisKey, counted: number) {
+  const r5 = AXIS_RELIABILITY_5[key];
+  const r1 = r5 / (5 - 4 * r5);
+  const n = Math.max(counted / COUNTED_PER_GAME, 0.1);
+  return (n * r1) / (1 + (n - 1) * r1);
+}
+
+/** 표준정규 누적분포의 역함수 (이분법, 0 < p < 1) */
+function normInv(p: number) {
+  let lo = -6, hi = 6;
+  for (let i = 0; i < 50; i++) { const mid = (lo + hi) / 2; if (normCdf(mid) < p) lo = mid; else hi = mid; }
+  return (lo + hi) / 2;
+}
+
+/**
+ * 관측한 백분위를 신뢰도만큼 가운데(50%)로 당긴다 (켈리 공식: 참값 추정 = 평균 + 신뢰도 × (관측 − 평균)).
+ * 판이 적으면 우연히 한쪽으로 치우친 값이 많으므로, 유형 글자는 그대로 두되 막대와 '애매' 표시가 그만큼 신중해진다.
+ */
+export function shrinkPct(pct: number, key: AxisKey, counted: number) {
+  const p = Math.min(0.999, Math.max(0.001, pct));
+  return normCdf(normInv(p) * axisReliability(key, counted));
+}
+
 /** 프로필 → 4글자 유형. Maia 기록이 없는 프로필이면 null */
 export function chessTypeOf(p: PlayerProfile, cal: Calibration = calibFor(p)): ChessType | null {
   const m = metricsOf(p);
   if (!m) return null;
   const axes = AXIS_KEYS.map((key, i): AxisResult => {
-    const pct = percentile(axisValue(m, ratingOf(p), key, cal), cal.quantiles[key]);
+    const raw = percentile(axisValue(m, ratingOf(p), key, cal), cal.quantiles[key]);
+    // 정확히 가운데면 글자가 바뀌지 않게 원래 쪽을 유지한다
+    const pct = raw === 0.5 ? raw : shrinkPct(raw, key, p.counted);
     const first = pct >= 0.5;
     return { key, letter: TYPE_DATA.axes[i].letters[first ? 0 : 1], strength: Math.round((first ? pct : 1 - pct) * 100), pct: Math.round(pct * 100) };
   });

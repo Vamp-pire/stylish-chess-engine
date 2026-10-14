@@ -3,3 +3,4 @@ dist
 _old
 .vercel
 .claude
+public/ort-gpu
