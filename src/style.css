@@ -330,7 +330,7 @@ button.chip { cursor: pointer; }
 .game-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .game-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .game-table tr:last-child td { border-bottom: 0; }
-.game-table .opening-cell { max-width: 260px; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
+.game-table .opening-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
 .res-win { color: var(--good); font-weight: 700; }
 .res-loss { color: var(--bad); font-weight: 700; }
 .res-draw { color: var(--text-2); font-weight: 700; }
