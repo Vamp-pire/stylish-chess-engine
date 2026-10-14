@@ -225,3 +225,20 @@ th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: l
   .id-form input[name="user"] { flex: none; }
   .hero-art { max-width: 280px; }
 }
+
+/* ── 첫 화면: 결과 예시 카드 ── */
+.result-preview .rp-card { max-width: 520px; margin: 16px auto 0; padding: 20px; border-radius: 18px; background: var(--card, #fff); box-shadow: 0 10px 30px rgba(0,0,0,.08); border: 1px solid var(--line, rgba(0,0,0,.06)); }
+.rp-head { display: flex; gap: 14px; align-items: center; }
+.rp-head img { border-radius: 14px; }
+.rp-code { display: block; font-size: 30px; font-weight: 800; letter-spacing: .05em; }
+.rp-name { color: var(--muted, #666); font-weight: 700; }
+.rp-axes { display: grid; gap: 8px; margin: 16px 0; }
+.rp-axis { display: grid; grid-template-columns: 92px 1fr 92px; gap: 8px; align-items: center; font-size: 13px; }
+.rp-axis span:last-child { text-align: right; }
+.rp-track { position: relative; height: 8px; border-radius: 99px; background: rgba(0,0,0,.08); }
+.rp-track i { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: #26875d; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+.rp-rows { display: grid; gap: 6px; margin: 0; }
+.rp-rows div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: 10px; background: rgba(0,0,0,.04); font-size: 14px; }
+.rp-rows dt { color: var(--muted, #666); }
+.rp-rows dd { margin: 0; font-weight: 700; text-align: right; }
+@media (max-width: 480px) { .rp-axis { grid-template-columns: 70px 1fr 70px; font-size: 12px; } }

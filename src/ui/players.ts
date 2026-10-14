@@ -97,3 +97,37 @@ export function combinedProfile(p: SavedPlayer): PlayerProfile | null {
 export function gamesOf(p: SavedPlayer): SavedGame[] {
   return Object.values(p.games).sort((a, b) => (b.date ?? b.savedAt) - (a.date ?? a.savedAt));
 }
+
+// ───────────── 기록 옮기기 (다른 기기·브라우저로) ─────────────
+
+/** 이 브라우저에 저장된 Stylish 기록 키: 플레이어 성향, 연습 과제, 직접 입력한 레이팅 */
+const BACKUP_KEYS = ['stylish.players.v1', 'stylish.practice.v1', 'stylish.rating.v1'];
+
+export function exportRecords(): string {
+  const data: Record<string, unknown> = {};
+  for (const k of BACKUP_KEYS) { try { const v = localStorage.getItem(k); if (v) data[k] = JSON.parse(v); } catch { /* 무시 */ } }
+  return JSON.stringify({ app: 'stylish', version: 1, exportedAt: new Date().toISOString(), data });
+}
+
+/** 가져오기: 기존 기록과 합친다 (같은 판은 가져온 것으로). 합친 플레이어 수를 돌려준다 */
+export function importRecords(text: string): number {
+  const parsed = JSON.parse(text) as { app?: string; data?: Record<string, unknown> };
+  if (parsed.app !== 'stylish' || !parsed.data) throw new Error('Stylish 기록 파일이 아닙니다');
+  let players = 0;
+  for (const k of BACKUP_KEYS) {
+    const incoming = parsed.data[k] as Record<string, unknown> | undefined;
+    if (!incoming || typeof incoming !== 'object') continue;
+    let current: Record<string, unknown> = {};
+    try { current = JSON.parse(localStorage.getItem(k) ?? '{}'); } catch { /* 빈 것으로 */ }
+    if (k === KEY) {
+      const cur = current as Store, inc = incoming as Store;
+      for (const [pk, p] of Object.entries(inc)) {
+        cur[pk] = cur[pk] ? { ...cur[pk], ...p, games: { ...cur[pk].games, ...p.games } } : p;
+        players++;
+      }
+      current = cur;
+    } else current = { ...current, ...incoming };
+    localStorage.setItem(k, JSON.stringify(current));
+  }
+  return players;
+}

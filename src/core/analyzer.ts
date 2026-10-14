@@ -51,7 +51,14 @@ export interface AnalyzeOptions {
   human?: HumanModel | null;
   /** 마무리 보정(경계 판정 재확인)을 끈다. 기본은 켬 */
   noRefine?: boolean;
+  /** 빠른 분석: 먼저 얕게 훑어 승부가 기운 국면·오프닝 이론 국면은 얕은 결과를 그대로 쓰고, 나머지만 깊게 */
+  scout?: boolean;
+  /** 둔 수가 후보에 없을 때 따로 분석하지 않고, 수 둔 뒤 국면의 분석을 그대로 쓴다 */
+  reusePlayed?: boolean;
 }
+
+/** 얕은 탐색 깊이와 '승부가 기운 국면' 기준 (둘 차례 쪽 기대 점수) */
+export const SCOUT_DEPTH = 7, DECIDED_LO = 0.06, DECIDED_HI = 0.94;
 
 export interface MoveAnalysis extends StyleResult, PlyClock {
   ply: number;
@@ -214,7 +221,17 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
 
   // 모든 국면 분석을 한꺼번에 요청한다. 엔진 풀이면 여러 엔진이 나눠서 동시에 처리하고,
   // 단일 엔진이면 차례대로 처리된다. 강제된 국면은 얕게.
-  const pending = fens.map((fen) => evalLines(engine, fen, isForcedPosition(fen) ? Math.max(8, depth - 4) : depth));
+  const fullDepth = (fen: string) => (isForcedPosition(fen) ? Math.max(8, depth - 4) : depth);
+  const pending = fens.map((fen) => {
+    if (!opts.scout) return evalLines(engine, fen, fullDepth(fen));
+    // 얕게 먼저: 승부가 기운 국면(무엇을 둬도 기대 점수가 거의 안 변함)과 오프닝 이론 국면은 그대로 쓴다
+    return evalLines(engine, fen, Math.min(SCOUT_DEPTH, fullDepth(fen))).then((shallow) => {
+      const e = shallow[0] ? expectedScore(shallow[0]) : 0.5;
+      const decided = e < DECIDED_LO || e > DECIDED_HI;
+      const inBook = !!opts.book?.lookup(fen);
+      return decided || inBook || !shallow[0]?.pv.length ? shallow : evalLines(engine, fen, fullDepth(fen));
+    });
+  });
   pending.forEach((p) => p.catch(() => {})); // 중단 시 처리되지 않은 거부 방지
 
   // 사람 수 예측도 함께 요청한다 (국면마다 둘 차례인 쪽의 레이팅 기준). 실패한 국면은 null
@@ -246,7 +263,7 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
     humans[i] = humanBefore; humans[i + 1] = humanAfter;
     if (!humanBefore || !humanAfter) humanUsed = false;
     const res = await analyzeMove({
-      move: m, prev: i > 0 ? history[i - 1] : null, ply: i,
+      move: m, prev: i > 0 ? history[i - 1] : null, ply: i, reusePlayed: opts.reusePlayed,
       before: lines[i], after: lines[i + 1], engine, depth, searcher,
       humanBefore, humanAfter, oppElo: elo[m.color === 'w' ? 'b' : 'w'],
     });
@@ -329,6 +346,8 @@ export interface MoveInput {
   move: Move; prev: Move | null; ply: number;
   before: EngineLine[]; after: EngineLine[];
   engine: Engine; depth: number; searcher: Searcher;
+  /** 둔 수가 후보에 없으면 따로 분석하지 않고 수 둔 뒤 국면 분석을 쓴다 */
+  reusePlayed?: boolean;
   /** 수 두기 전(둔 쪽)·후(상대) 국면의 사람 수 확률. 없으면 규칙 기반 */
   humanBefore?: HumanPolicy | null; humanAfter?: HumanPolicy | null;
   oppElo?: number;
@@ -355,7 +374,7 @@ export async function analyzeMove(x: MoveInput): Promise<MoveAnalysis> {
   const second = before[1] ? cap(before[1].cp) : legal > 1 ? best - 300 : best - 1000;
   const inList = before.find((l) => l.uci === uci);
   // 후보에 없으면 같은 국면·같은 깊이에서 그 수만 분석해 비교한다 (서로 다른 수평선 비교 방지)
-  const playedLine = inList ?? (await engine.analyse(B, { depth, multipv: 1, searchmoves: [uci], priority: URGENT }))[0];
+  const playedLine = inList ?? (x.reusePlayed ? undefined : (await engine.analyse(B, { depth, multipv: 1, searchmoves: [uci], priority: URGENT }))[0]);
   const played = playedLine ? cap(playedLine.cp) : cap(-after[0].cp);
   const cpLoss = before[0].uci === uci ? 0 : Math.max(0, Math.round(best - played));
   const bestGap = Math.max(0, Math.round(best - second));

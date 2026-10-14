@@ -330,7 +330,7 @@ button.chip { cursor: pointer; }
 .game-table { width: 100%; border-collapse: collapse; font-size: 14px; }
 .game-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .game-table tr:last-child td { border-bottom: 0; }
-.game-table .opening-cell { max-width: 260px; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
+.game-table .opening-cell { max-width: 180px; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); }
 .res-win { color: var(--good); font-weight: 700; }
 .res-loss { color: var(--bad); font-weight: 700; }
 .res-draw { color: var(--text-2); font-weight: 700; }
@@ -558,3 +558,34 @@ footer .footer-links a { color: inherit; }
 .tt-row { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); font-size: 14px; }
 .tt-cls { font-weight: 700; }
 .type-unsure { margin: 8px 0 0; padding: 8px 12px; border-radius: 10px; background: rgba(224, 122, 46, .12); color: var(--text); font-size: 14px; }
+
+/* ── 프로필: 요약 먼저, 나머지는 접기 ── */
+.more-details { border-top: 1px solid var(--border); padding-top: 12px; }
+.more-details > summary { cursor: pointer; font-weight: 700; color: var(--text-2); list-style: none; padding: 6px 0; }
+.more-details > summary::-webkit-details-marker { display: none; }
+.more-details > summary::before { content: '▸ '; }
+.more-details[open] > summary::before { content: '▾ '; }
+.more-details[open] { display: grid; gap: 18px; }
+.type-letter-unsure { opacity: .45; text-decoration: underline dotted; text-underline-offset: 6px; }
+.type-axis.unsure > span { opacity: .7; }
+.type-axis.unsure .type-track::after { content: '애매'; position: absolute; right: 0; top: -16px; font-size: 11px; color: var(--text-3); }
+:lang(en) .type-axis.unsure .type-track::after { content: 'close'; }
+.type-track { position: relative; }
+.row-gap { display: inline-flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ── 다시 올 이유: 이번 주·도감·친구 ── */
+.weekly-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+.weekly-stats span { display: grid; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); font-size: 13px; color: var(--text-2); min-width: 92px; }
+.weekly-stats b { font-size: 18px; color: var(--text); }
+.weekly-stats em { font-style: normal; font-size: 12px; }
+.weekly-stats em.up { color: var(--good); } .weekly-stats em.down { color: var(--bad); }
+.return-row.dex { align-items: flex-start; }
+.dex-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; width: 100%; }
+@media (max-width: 640px) { .dex-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.dex-cell { display: grid; place-items: center; gap: 2px; padding: 6px 2px; border-radius: 8px; background: var(--surface-2); color: var(--text-3); font-size: 11px; text-align: center; text-decoration: none; }
+.dex-cell b { font-size: 12px; letter-spacing: .04em; }
+.dex-cell.on { color: #fff; }
+.dex-cell.on.g-AW { background: #c2382d; } .dex-cell.on.g-AS { background: #c47a14; } .dex-cell.on.g-PW { background: #6a52cf; } .dex-cell.on.g-PS { background: #26875d; }
+.friends { display: grid; gap: 4px; width: 100%; }
+.friend { font-size: 14px; }
+.welcome-banner .btn { margin-left: auto; }

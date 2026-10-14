@@ -16,6 +16,7 @@ import { chessTypeOf, peerStats, peerGroupPct, PEER_GROUPS, PEER_METRICS, rating
 import TYPE_CALIB from './data/type-calib.json';
 const CALIB_PLAYERS = TYPE_CALIB.players;
 import { addPractice, weeklySet, practiceStats, markPractice, asQuizMove, clearPractice, WEEKLY } from './ui/practice';
+import { recordType, typeDexSection, challengeSection, setChallenge, clearChallenge, saveFriend, friendsSection, weeklySection } from './ui/retention';
 import { typeChangeSection, withRating, setRatingOverride, timeClassOf, timeTypeSection } from './ui/typeCard';
 import { decodeVs, saveVs, loadVs, clearVs, vsBanner, shareCompare } from './ui/compare';
 import { evalGraph, radar } from './ui/charts';
@@ -24,7 +25,7 @@ import type { GameAnalysis, MoveAnalysis } from './core/analyzer';
 import { buildProfile, mergeProfiles, mainTimeClass, riskTotal, type PlayerProfile } from './core/profile';
 import { fetchGames, userResult, SOURCE_LABEL, type OnlineGame, type Source } from './online/sources';
 import { cacheKey, getCached, putCached, gameHash } from './ui/cache';
-import { savePlayerGame, playerKey, listPlayers, getPlayer, deletePlayer, deleteGame, clearPlayers, combinedProfile, gamesOf, isNamed, SOURCE_NAME, type PlayerSource, type SavedPlayer, type SavedGame } from './ui/players';
+import { exportRecords, importRecords, savePlayerGame, playerKey, listPlayers, getPlayer, deletePlayer, deleteGame, clearPlayers, combinedProfile, gamesOf, isNamed, SOURCE_NAME, type PlayerSource, type SavedPlayer, type SavedGame } from './ui/players';
 import { timeSection, openingSection, trendSection, mastersSection, fmtSec, fmtClock, GROUP_AXES, groupScore } from './ui/insights';
 import { shareUrl, readSharedGame } from './ui/share';
 import { pickHighlights, drawCard, cardBlob } from './ui/highlights';
@@ -82,12 +83,29 @@ interface BatchState {
   user: string;
   games: OnlineGame[];
   results: Map<string, GameAnalysis>;
-  current: number;          // 분석 중인 게임 인덱스 (-1 = 끝)
+  current: number;          // 분석 중인 게임 중 가장 앞 인덱스 (-1 = 끝)
   progress: [number, number];
   depth: number;
   error: string | null;
   cancelled: boolean;
   run: AnalysisRun | null;
+  /** 동시에 분석 중인 판: 인덱스 → [끝낸 수, 전체 수] */
+  active: Map<number, [number, number]>;
+  runs: Set<AnalysisRun>;
+  /** 새로 분석한 판의 걸린 시간(ms) — 남은 시간 계산용 */
+  durations: number[];
+}
+
+/** 여러 판 분석 깊이: 유형 기준(보정 데이터)과 같은 깊이. 더 깊어도 유형이 정확해지지 않고 수십 배 느려진다 */
+const BATCH_DEPTH = 10;
+/** 동시에 분석하는 판 수: 한 판의 마무리 단계 동안 엔진이 놀지 않도록 다음 판을 겹쳐 돌린다 */
+const BATCH_CONCURRENCY = 2;
+/** 새로고침·탭 종료 후 이어서 분석하기 위한 대기열 */
+const PENDING_KEY = 'stylish.batch.pending.v1';
+const savePendingBatch = (b: BatchState) => { try { localStorage.setItem(PENDING_KEY, JSON.stringify({ source: b.source, user: b.user, games: b.games, at: Date.now() })); } catch { /* 무시 */ } };
+const clearPendingBatch = () => { try { localStorage.removeItem(PENDING_KEY); } catch { /* 무시 */ } };
+function loadPendingBatch(): { source: Source; user: string; games: OnlineGame[]; at: number } | null {
+  try { const v = JSON.parse(localStorage.getItem(PENDING_KEY) ?? 'null'); return v && Date.now() - v.at < 3 * 86400000 ? v : null; } catch { return null; }
 }
 
 const DEPTHS = [
@@ -186,6 +204,15 @@ function renderInputInner() {
 
   app.innerHTML = `
       ${loadVs() ? vsBanner(loadVs()!) : ''}
+      ${(() => {
+        // 다시 온 사람: 가장 최근에 저장한 온라인 아이디로 '새 게임 분석·이번 주 리포트' 안내 (API 요청은 누를 때만)
+        const last = listPlayers().filter((pl) => pl.source !== 'pgn').sort((a, b) => b.updatedAt - a.updatedAt)[0];
+        if (!last || state.batch || loadPendingBatch()) return '';
+        const days = Math.floor((Date.now() - last.updatedAt) / 86400000);
+        if (days < 1) return '';
+        return `<div class="vs-banner welcome-banner"><b>${tr(`${esc(last.name)}님, ${days}일 만이에요!`, `Welcome back, ${esc(last.name)}! It's been ${days} days.`)}</b><span>${tr('그동안 둔 게임을 분석하고 이번 주 리포트와 유형 변화를 확인해 보세요.', 'Analyze the games you played since, then check your weekly report and type change.')}</span><button type="button" class="btn primary" data-open-player="${esc(last.key)}">${tr('내 프로필 보기', 'Open my profile')}</button></div>`;
+      })()}
+      ${(() => { const pb = loadPendingBatch(); return pb && !state.batch ? `<div class="vs-banner resume-banner"><b>${tr(`${esc(pb.user)}의 ${pb.games.length}판 종합 분석이 끝나지 않았어요.`, `The combined analysis of ${pb.games.length} games for ${esc(pb.user)} didn't finish.`)}</b><span>${tr('이미 끝난 판은 저장돼 있어서 이어서 분석하면 남은 판만 분석해요.', 'Finished games are saved, so resuming only analyzes the rest.')}</span><button type="button" class="btn primary" data-resume-batch>${tr('이어서 분석하기', 'Resume')}</button><button type="button" class="ghost" data-resume-clear>${tr('지우기', 'Dismiss')}</button></div>` : ''; })()}
     <section class="hero">
       <h1>${tr('이 수, 어떤 스타일일까?', 'What style is this move?')}</h1>
       <p>${tr('기보를 넣거나 Chess.com·Lichess 아이디를 입력하면 모든 수를 공격적·도박수·포지셔널·수비적 등 19가지 스타일로 평가하고, 플레이어의 성향을 분석합니다. 계산은 전부 브라우저 안에서 이뤄집니다.', 'Paste a game or enter a Chess.com or Lichess username, and every move is rated on 19 styles such as aggressive, gamble, positional and defensive, along with the player\'s tendencies. Everything is computed in your browser.')}</p>
@@ -285,7 +312,7 @@ function renderAccountPanel(source: Source): string {
         <input class="text" id="account-user" placeholder="${SOURCE_LABEL[source]}${tr(' 아이디', ' username')}" value="${esc(a?.user ?? '')}" autocomplete="off" />
         <button class="btn primary" type="submit" ${a?.loading ? 'disabled' : ''}>${a?.loading ? tr('불러오는 중…', 'Loading…') : tr('게임 불러오기', 'Load games')}</button>
       </form>
-      ${a?.error ? `<p class="error">${esc(a.error)}</p>` : ''}
+      ${a?.error ? `<p class="error">${esc(a.error)} <button type="button" class="ghost small" data-retry-load>${tr('다시 시도', 'Try again')}</button></p>` : ''}
       ${a && a.games.length ? `
         <div class="account-tools">
           <div class="chips">${['all', ...classes].map((c) => `<button class="chip ${a.timeFilter === c ? 'chip-on' : ''}" data-tf="${c}">${c === 'all' ? tr('전체', 'All') : esc(TIME_LABEL[c] ?? c)}</button>`).join('')}</div>
@@ -297,12 +324,9 @@ function renderAccountPanel(source: Source): string {
         <div class="game-table-wrap"><table class="game-table">${rows}</table></div>
         <div class="account-foot">
           ${a.next ? `<button class="btn" id="more" ${a.loading ? 'disabled' : ''}>${tr('더 불러오기', 'Load more')}</button>` : `<span class="faint">${tr('더 이상 게임이 없습니다', 'No more games')}</span>`}
-          <div class="depth"><span class="muted">${tr('종합 분석 깊이', 'Combined analysis depth')}</span>
-            <div class="seg">${DEPTHS.map((d) => `<button data-bdepth="${d.depth}" class="${state.batchDepth === d.depth ? 'active' : ''}">${d.label}</button>`).join('')}</div>
-          </div>
           <button class="btn primary" id="batch" ${n ? '' : 'disabled'}>${tr(`선택한 ${n}판 종합 분석`, `Analyze ${n} selected games`)}</button>
         </div>
-        <p class="faint">${tr(`"분석"은 한 판을 위 분석 깊이로 자세히 봅니다. 종합 분석은 고른 판들에서 ${esc(a.user)}의 수만 모아 성향을 냅니다. 이미 분석한 판은 이 브라우저에 저장돼 바로 나옵니다.`, `"Analyze" reviews one game in detail at the depth above. A combined analysis collects only ${esc(a.user)}'s moves from the selected games to find their tendencies. Games you've analyzed before are saved in this browser and load instantly.`)}</p>`
+        <p class="faint">${tr(`"분석"은 한 판을 위 분석 깊이로 자세히 봅니다. 종합 분석은 고른 판들에서 ${esc(a.user)}의 수만 모아 성향을 냅니다. 유형 기준과 같은 조건으로 분석하고, 이미 분석한 판과 겹치는 국면은 이 브라우저에 저장돼 바로 나옵니다.`, `"Analyze" reviews one game in detail at the depth above. A combined analysis collects only ${esc(a.user)}'s moves from the selected games to find their tendencies, using the same settings as the type calibration. Games and positions you've analyzed before are saved in this browser and load instantly.`)}</p>`
       : a && !a.loading && !a.error ? `<p class="faint">${tr('표준 체스 게임이 없습니다.', 'No standard chess games found.')}</p>` : `<p class="faint">${tr(`${SOURCE_LABEL[source]} 아이디를 넣으면 최근 게임 목록을 불러옵니다. 요청은 이 브라우저에서 ${SOURCE_LABEL[source]}로 바로 갑니다.`, `Enter a ${SOURCE_LABEL[source]} username to load recent games. Requests go straight from your browser to ${SOURCE_LABEL[source]}.`)}</p>`}
     </div>`;
 }
@@ -353,7 +377,6 @@ function bindAccountPanel() {
     a.selected = new Set(visible().slice(0, 10).map((g) => g.id));
     syncSelection();
   });
-  app.querySelectorAll<HTMLButtonElement>('[data-bdepth]').forEach((b) => b.onclick = () => { state.batchDepth = Number(b.dataset.bdepth); renderInput(); });
   app.querySelectorAll<HTMLButtonElement>('[data-open]').forEach((b) => b.onclick = () => {
     const g = a.games.find((x) => x.id === b.dataset.open)!;
     startAnalysis(g.pgn, { focus: g.userColor, source: g.source, url: g.url, date: g.date });
@@ -378,46 +401,80 @@ async function loadMore() {
 
 // ───────────── 여러 판 종합 분석 ─────────────
 
-function startBatch(games: OnlineGame[]) {
-  if (!games.length || !state.account) return;
+function startBatch(games: OnlineGame[], from: { source: Source; user: string } | null = null) {
+  const owner = from ?? (state.account ? { source: state.account.source, user: state.account.user } : null);
+  if (!games.length || !owner) return;
   state.batch = {
-    source: state.account.source, user: state.account.user, games, results: new Map(),
-    current: 0, progress: [0, 1], depth: state.batchDepth, error: null, cancelled: false, run: null,
+    source: owner.source, user: owner.user, games, results: new Map(),
+    current: 0, progress: [0, 1], depth: BATCH_DEPTH, error: null, cancelled: false, run: null,
+    active: new Map(), runs: new Set(), durations: [],
   };
   state.game = null;
+  savePendingBatch(state.batch);
   render();
   runBatch(state.batch);
 }
 
 async function runBatch(b: BatchState) {
-  for (let i = 0; i < b.games.length; i++) {
-    if (b.cancelled || state.batch !== b) return;
-    b.current = i; b.progress = [0, 1];
-    updateBatch();
+  let next = 0;
+  const one = async (i: number) => {
     const g = b.games[i];
+    b.active.set(i, [0, 1]);
+    b.current = Math.min(...b.active.keys());
+    updateBatch();
     const key = cacheKey(g.pgn, b.depth);
     let result = await getCached(key);
     if (!result) {
+      const t0 = Date.now();
       // 한 판씩 보는 분석(state.run)과 별개로 돈다
-      const run = new AnalysisRun({ onProgress: (d, t) => { b.progress = [d, t]; updateBatchProgress(); }, onMove: () => {} });
-      b.run = run;
+      const run = new AnalysisRun({ onProgress: (d, t) => { b.active.set(i, [d, t]); updateBatchProgress(); }, onMove: () => {} });
+      b.runs.add(run); b.run = run;
       try { result = await run.start(g.pgn, b.depth); } catch (err) {
+        b.runs.delete(run); b.active.delete(i);
         if (b.cancelled) return;
         b.error = tr(`${i + 1}번째 게임 분석 실패: `, `Game ${i + 1} failed: `) + (err instanceof Error ? err.message : String(err));
-        continue;
+        return;
       }
+      b.runs.delete(run);
+      b.durations.push(Date.now() - t0);
       putCached(key, result);
     }
+    b.active.delete(i);
     if (b.cancelled || state.batch !== b) return;
     b.results.set(g.id, result);
     // 종합 분석은 그 아이디 쪽 성향만 저장한다
     const pg = prepareGameQuiet(g.pgn);
     if (pg) saveProfiles({ ...pg, source: g.source, url: g.url, date: g.date, save: [g.userColor] }, result);
     updateBatch();
-  }
+  };
+  const lane = async () => {
+    while (!b.cancelled && state.batch === b) {
+      const i = next++;
+      if (i >= b.games.length) return;
+      await one(i);
+    }
+  };
+  await Promise.all(Array.from({ length: BATCH_CONCURRENCY }, lane));
+  if (b.cancelled || state.batch !== b) return;
   b.current = -1;
+  clearPendingBatch();
+  const agg = batchProfile(b);
+  if (agg.profile && agg.profile.counted >= 20) recordType(playerKey(b.source, b.user), chessTypeOf(withRating(agg.profile, b.user)));
   updateBatch();
 }
+
+/** 남은 시간 (새로 분석한 판의 평균 시간 기준, 동시 분석 수 반영) */
+function batchEta(b: BatchState): number | null {
+  if (!b.durations.length) return null;
+  const avg = b.durations.reduce((s, x) => s + x, 0) / b.durations.length;
+  const activeLeft = [...b.active.values()].reduce((s, [d, t]) => s + (1 - (t ? d / t : 0)), 0);
+  const queued = b.games.length - b.results.size - b.active.size;
+  return Math.max(0, ((queued + activeLeft) * avg) / BATCH_CONCURRENCY);
+}
+const fmtEta = (ms: number) => {
+  const sec = Math.round(ms / 1000);
+  return sec < 60 ? tr(`약 ${sec}초`, `about ${sec}s`) : tr(`약 ${Math.round(sec / 60)}분`, `about ${Math.round(sec / 60)} min`);
+};
 
 /** 고른 판들에서 그 아이디의 수만 모아 프로필을 만든다 */
 function batchProfile(b: BatchState) {
@@ -465,7 +522,7 @@ function renderBatch() {
       </div>
     </div>`;
   $('#batch-back')!.onclick = () => {
-    b.cancelled = true; b.run?.cancel(); state.batch = null;
+    b.cancelled = true; b.runs.forEach((r) => r.cancel()); state.batch = null; clearPendingBatch();
     state.tab = b.source === 'chesscom' ? 'chesscom' : 'lichessUser';
     render();
   };
@@ -476,9 +533,10 @@ function updateBatchProgress() {
   const b = state.batch, el = $('#batch-progress'); if (!b || !el) return;
   const done = b.results.size;
   if (b.current < 0) { el.innerHTML = `<span class="faint">${tr(`분석 완료 · ${done}/${b.games.length}판 · 깊이 ${b.depth}`, `Done · ${done}/${b.games.length} games · depth ${b.depth}`)}</span>${b.error ? ` <span class="error">${esc(b.error)}</span>` : ''}`; return; }
-  const [d, t] = b.progress;
-  const frac = (done + (t ? d / t : 0)) / b.games.length;
-  el.innerHTML = `<span class="faint">${tr(`${b.current + 1}/${b.games.length}판 분석 중`, `Analyzing game ${b.current + 1}/${b.games.length}`)}${esc(humanNote())}</span><div class="bar"><i style="width:${frac * 100}%"></i></div>`;
+  const partial = [...b.active.values()].reduce((s, [d, t]) => s + (t ? d / t : 0), 0);
+  const frac = (done + partial) / b.games.length;
+  const eta = batchEta(b);
+  el.innerHTML = `<span class="faint">${tr(`${done}/${b.games.length}판 완료`, `${done}/${b.games.length} games done`)}${eta != null ? ` · ${tr('남은 시간', 'Time left')} ${fmtEta(eta)}` : ` · ${tr('남은 시간 계산 중…', 'Estimating time…')}`}${esc(humanNote())}</span><div class="bar"><i style="width:${frac * 100}%"></i></div>`;
 }
 
 function updateBatch() {
@@ -514,7 +572,7 @@ function updateBatch() {
       const opp = g.userColor === 'w' ? g.black : g.white;
       const res = userResult(g);
       const p = r?.profiles[g.userColor];
-      const status = r ? `<span class="faint">${tr('정확도', 'Accuracy')} ${p!.accuracy}%</span>` : i === b.current ? `<span class="faint">${tr('분석 중…', 'Analyzing…')}</span>` : `<span class="faint">${tr('대기', 'Waiting')}</span>`;
+      const status = r ? `<span class="faint">${tr('정확도', 'Accuracy')} ${p!.accuracy}%</span>` : b.active.has(i) ? `<span class="faint">${tr('분석 중…', 'Analyzing…')}</span>` : `<span class="faint">${tr('대기', 'Waiting')}</span>`;
       return `<tr>
         <td class="faint">${fmtDate(g.date)}</td>
         <td><span class="side-dot ${g.userColor}"></span></td>
@@ -690,7 +748,7 @@ function renderReview() {
   });
   $('#new')!.onclick = () => {
     state.run?.cancel(); state.game = null;
-    if (state.batch) { state.batch.cancelled = true; state.batch.run?.cancel(); state.batch = null; }
+    if (state.batch) { state.batch.cancelled = true; state.batch.runs.forEach((r) => r.cancel()); state.batch = null; clearPendingBatch(); }
     render();
   };
   $('#to-batch')?.addEventListener('click', () => { state.run?.cancel(); state.game = null; render(); });
@@ -1017,7 +1075,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
   const qColors: Record<QualityKey, string> = { best: 'var(--good)', good: '#8fd1ae', inaccuracy: 'var(--warn)', mistake: '#e07a2e', blunder: 'var(--bad)' };
   const qTotal = qOrder.reduce((s, k) => s + p.quality[k], 0) || 1;
   const risks = RISK_KINDS.filter((k) => p.risk[k]?.count)
-    .map((k) => `<span class="chip">${RISK_LABEL[k]} ${tr(`${p.risk[k].count}회`, `×${p.risk[k].count}`)}${k !== 'soundSacrifice' ? ` · ${tr('적중', 'worked')} ${p.risk[k].success}` : ''}</span>`).join('');
+    .map((k) => `<span class="chip" title="${esc(RISK_HELP[k]?.() ?? '')}">${RISK_LABEL[k]} ${tr(`${p.risk[k].count}회`, `×${p.risk[k].count}`)}${k !== 'soundSacrifice' ? ` · ${tr('적중', 'worked')} ${p.risk[k].success}` : ''}</span>`).join('');
   const sliceHtml = (title: string, s: { count: number; top: StyleKey[] }) =>
     `<div class="slice"><b>${title} (${tr(`${s.count}수`, `${s.count} moves`)})</b>${s.count ? s.top.slice(0, 2).map((k) => STYLES[k].label).join(', ') || '-' : '-'}</div>`;
 
@@ -1037,6 +1095,7 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
       </div>
       ${peer ? `<p class="faint chart-note">${tr(`레이팅 ${ratingOf(p)} 전후 플레이어 ${CALIB_PLAYERS}명과 비교했어요. 그래프의 점선과 막대 가운데가 같은 레이팅 평균이에요. 마우스를 올리면 각 항목 설명이 나와요.`, `Compared with ${CALIB_PLAYERS} players around ${ratingOf(p)}. The dashed line and the middle of each bar are the average at that rating. Hover for what each item means.`)}</p>` : ''}
       ${mastersSection(p)}
+      <details class="more-details"${detailsOpen() ? ' open' : ''}><summary>${tr('자세히 보기 — 위험한 수·오프닝·단계별·형세별·시간·수의 품질', 'More — risky moves, opening, phases, situations, time, move quality')}</summary>
       ${p.choiceTop.length ? `<div><div class="section-title">${tr('비슷하게 좋은 수가 여럿일 때 더 자주 고른 쪽', 'When several moves were about equally good, you leaned toward')}</div><div class="chips">${p.choiceTop.map((k) => `<span class="chip" title="${esc(tr(`다른 후보 수보다 '${STYLES[k].label}' 점수가 평균 ${p.choice![k]}점 높은 수를 골랐어요`, `Your picks scored ${p.choice![k]} points higher on '${STYLES[k].label}' than the alternatives on average`))}"><span class="dot" style="background:${STYLES[k].color}"></span>${STYLES[k].label}</span>`).join('')}</div></div>` : ''}
       ${risks ? `<div><div class="section-title">${tr('위험한 수', 'Risky moves')}</div><div class="chips">${risks}</div></div>` : ''}
       ${openingHtml}
@@ -1048,12 +1107,49 @@ function profileCard(p: PlayerProfile, c: 'w' | 'b' | null, h: Record<string, st
         <div class="qlegend">${qOrder.map((k) => `<span><span class="dot" style="background:${qColors[k]}"></span> ${QUALITY_LABEL[k]} ${p.quality[k]}</span>`).join('')}</div>
       </div>
       ${o.tail ?? ''}
+      </details>
     </div>`;
 }
+
+/** '자세히 보기'를 열어 둔 사람은 다음에도 열린 채로 */
+const DETAILS_KEY = 'stylish.details.open';
+const detailsOpen = () => { try { return localStorage.getItem(DETAILS_KEY) === '1'; } catch { return false; } };
+document.addEventListener('toggle', (e) => {
+  const d = e.target as HTMLElement;
+  if (d instanceof HTMLDetailsElement && d.classList.contains('more-details')) { try { localStorage.setItem(DETAILS_KEY, d.open ? '1' : '0'); } catch { /* 무시 */ } }
+}, true);
+
+/** 위험한 수 종류 설명 (칩에 마우스를 올리면) */
+const RISK_HELP: Record<string, () => string> = {
+  soundSacrifice: () => tr('물질을 내주지만 엔진 평가는 유지되는 희생', 'Gives up material, but the engine evaluation holds'),
+  speculative: () => tr('엔진상 손해지만 실전에서 통할 수 있는 희생', 'Loses against perfect defense but can work in practice'),
+  trap: () => tr('손해 없는 수인데, 같은 레이팅 상대가 실제로 잘 걸려드는 응수가 있는 수', 'A no-loss move with a reply that opponents at this rating often fall for'),
+  gamble: () => tr('객관적으로는 손해지만, 상대의 실제 응수 확률로 보면 이득인 수', 'Objectively worse, but profitable given how often opponents actually go wrong'),
+};
 
 // ───────────── 프로필 메뉴 (저장된 플레이어 성향) ─────────────
 
 const RES_SHORT = { get win() { return tr('승', 'W'); }, get loss() { return tr('패', 'L'); }, get draw() { return tr('무', 'D'); } };
+
+/** 기록 내보내기·가져오기 버튼 (가져오기만: 기록이 없을 때) */
+function backupButtons(importOnly = false) {
+  return `${importOnly ? '' : `<button class="ghost" id="export-records">${tr('기록 내보내기', 'Export records')}</button>`}
+    <label class="btn ghost">${tr('기록 가져오기', 'Import records')}<input type="file" accept="application/json,.json" id="import-records" hidden /></label>`;
+}
+function wireBackup() {
+  $('#export-records')?.addEventListener('click', () => {
+    const url = URL.createObjectURL(new Blob([exportRecords()], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `stylish-records-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  $<HTMLInputElement>('#import-records')?.addEventListener('change', async (e) => {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (!f) return;
+    try { const n = importRecords(await f.text()); alert(tr(`플레이어 ${n}명의 기록을 가져왔어요.`, `Imported records for ${n} players.`)); renderPlayers(); }
+    catch (err) { alert(tr('기록 파일을 읽지 못했어요: ', 'Could not read the record file: ') + (err instanceof Error ? err.message : String(err))); }
+  });
+}
 
 function renderPlayers() {
   const p = state.playerKey ? getPlayer(state.playerKey) : null;
@@ -1077,10 +1173,11 @@ function renderPlayers() {
         ${state.storageFull ? `<p class="error">${tr('브라우저 저장 공간이 가득 차서 일부 기록을 저장하지 못했습니다. 안 쓰는 플레이어를 지워 주세요.', 'Browser storage is full, so some records were not saved. Please delete players you no longer need.')}</p>` : ''}
         ${players.length ? `
           <div class="game-table-wrap"><table class="game-table players-table">${rows}</table></div>
-          <div class="account-foot"><span class="faint">${tr('기록은 이 브라우저(localStorage)에만 저장되며 다른 기기와 공유되지 않습니다.', 'Records are stored only in this browser (localStorage) and are not shared with other devices.')}</span><button class="ghost danger" id="clear-players">${tr('전체 삭제', 'Delete all')}</button></div>`
-        : `<p class="muted">${tr('아직 저장된 플레이어가 없습니다. 기보를 분석하거나 Chess.com·Lichess 아이디로 게임을 분석하면 여기에 쌓입니다.', 'No saved players yet. Analyze a game or load games by Chess.com or Lichess username and they will appear here.')}</p><button class="btn primary" id="go-analyze">${tr('분석하러 가기', 'Go analyze')}</button>`}
+          <div class="account-foot"><span class="faint">${tr('기록은 이 브라우저에만 저장돼요. 다른 기기에서 보려면 기록 파일로 내보내고 그 기기에서 가져오세요.', 'Records are stored only in this browser. To see them on another device, export a record file and import it there.')}</span><span class="row-gap">${backupButtons()}<button class="ghost danger" id="clear-players">${tr('전체 삭제', 'Delete all')}</button></span></div>`
+        : `<p class="muted">${tr('아직 저장된 플레이어가 없습니다. 기보를 분석하거나 Chess.com·Lichess 아이디로 게임을 분석하면 여기에 쌓입니다.', 'No saved players yet. Analyze a game or load games by Chess.com or Lichess username and they will appear here.')}</p><button class="btn primary" id="go-analyze">${tr('분석하러 가기', 'Go analyze')}</button><div class="row-gap" style="margin-top:12px">${backupButtons(true)}</div>`}
       </div>`;
     app.querySelectorAll<HTMLTableRowElement>('tr[data-player]').forEach((tr) => tr.onclick = () => { state.playerKey = tr.dataset.player!; renderPlayers(); window.scrollTo({ top: 0 }); });
+    wireBackup();
     $('#clear-players')?.addEventListener('click', () => { if (confirm(tr('저장된 모든 플레이어 기록을 지울까요?', 'Delete all saved player records?'))) { clearPlayers(); clearPractice(); state.storageFull = false; renderPlayers(); } });
     $('#go-analyze')?.addEventListener('click', () => setView('analyze'));
     return;
@@ -1143,8 +1240,19 @@ function returnCard(p: SavedPlayer, games: SavedGame[]) {
   const set = weeklySet(p.key);
   const change = typeChangeSection(games.map((g) => ({ date: g.date ?? g.savedAt, profile: g.profile })));
   const online = p.source === 'lichess' || p.source === 'chesscom';
+  // 유형 도감·챌린지용: 전체 판 유형, 최근 10판 유형
+  const all = combinedProfile(p);
+  const allType = all && all.counted >= 20 ? chessTypeOf(withRating(all, p.name)) : null;
+  recordType(p.key, allType);
+  const recentGames = [...games].sort((a, b) => (b.date ?? b.savedAt) - (a.date ?? a.savedAt)).slice(0, 10);
+  const recentP = mergeProfiles(recentGames.map((g) => g.profile));
+  const recentType = recentP && recentP.counted >= 20 ? chessTypeOf(withRating(recentP, p.name)) : null;
   return `<div class="card card-pad return-card">
+    ${weeklySection(games)}
     ${change}
+    ${challengeSection(p.key, recentType)}
+    ${typeDexSection(p.key)}
+    ${friendsSection(allType)}
     <div class="return-row">
       <div><b>${tr('이번 주 연습 과제', "This week's practice")}</b>
         <span class="faint">${st.total ? tr(`내 게임에서 놓친 기회로 만든 문제 · 이번 주 ${Math.min(st.solvedThisWeek, WEEKLY)}/${WEEKLY} 완료 · 남은 문제 ${st.unsolved}개`, `Problems from chances you missed · ${Math.min(st.solvedThisWeek, WEEKLY)}/${WEEKLY} done this week · ${st.unsolved} unsolved`) : tr('게임을 분석하면 놓친 기회가 연습 문제로 쌓여요.', 'Analyze games and your missed chances become practice problems.')}</span></div>
@@ -1210,6 +1318,14 @@ document.addEventListener('click', (e) => {
   const cmp = (e.target as HTMLElement).closest<HTMLElement>('[data-compare-type]');
   if (cmp) shareCompare(JSON.parse(cmp.dataset.compareType!), cmp);
   if ((e.target as HTMLElement).closest('[data-vs-clear]')) { clearVs(); (e.target as HTMLElement).closest('.vs-banner')?.remove(); }
+  if ((e.target as HTMLElement).closest('[data-retry-load]')) (document.querySelector('.account-form button[type=submit], form button[type=submit]') as HTMLButtonElement | null)?.click();
+  const chal = (e.target as HTMLElement).closest<HTMLElement>('[data-challenge]');
+  if (chal && state.playerKey) { const [axis, toward, pct] = chal.dataset.challenge!.split(':').map(Number); setChallenge(state.playerKey, axis, toward as 0 | 1, pct); renderPlayers(); }
+  if ((e.target as HTMLElement).closest('[data-challenge-clear]') && state.playerKey) { clearChallenge(state.playerKey); renderPlayers(); }
+  const op = (e.target as HTMLElement).closest<HTMLElement>('[data-open-player]');
+  if (op) { setView('players'); state.playerKey = op.dataset.openPlayer!; renderPlayers(); }
+  if ((e.target as HTMLElement).closest('[data-resume-batch]')) { const pb = loadPendingBatch(); if (pb) startBatch(pb.games, { source: pb.source, user: pb.user }); }
+  if ((e.target as HTMLElement).closest('[data-resume-clear]')) { clearPendingBatch(); (e.target as HTMLElement).closest('.resume-banner')?.remove(); }
   const img = (e.target as HTMLElement).closest<HTMLElement>('[data-type-image]');
   if (img) openResultImage(JSON.parse(img.dataset.typeImage!));
   // 레이팅 직접 입력
@@ -1244,7 +1360,7 @@ function readEntryQuery() {
   }
   // 친구가 보낸 비교 신청: 이 탭에서 기억해 두고, 내 결과가 나오면 나란히 보여준다
   const vs = q.get('vs') ? decodeVs(q.get('vs')!) : null;
-  if (vs) { saveVs(vs); if (!q.get('source')) state.tab = 'lichessUser'; }
+  if (vs) { saveVs(vs); saveFriend(vs); if (!q.get('source')) state.tab = 'lichessUser'; }
   const source = q.get('source'), user = q.get('user')?.trim();
   if ((source === 'lichess' || source === 'chesscom') && user) {
     state.tab = source === 'chesscom' ? 'chesscom' : 'lichessUser';

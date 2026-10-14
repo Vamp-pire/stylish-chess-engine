@@ -32,9 +32,12 @@ export function typeSection(p: PlayerProfile, name = ''): string {
   if (!t) return '';
   const g = t.code.slice(0, 2);
   const group = groupOf(t.code);
+  // 축 값이 가운데(40~60%)에 가까우면 한두 판으로도 글자가 바뀔 수 있다: 그 글자는 흐리게, 막대에 '애매' 표시
+  const unsure = t.axes.map((a) => a.pct >= 40 && a.pct <= 60);
+  const codeHtml = [...t.code].map((c, i) => (unsure[i] ? `<span class="type-letter-unsure" title="${tr('아직 애매한 축이에요', 'This axis is still close to the middle')}">${c}</span>` : c)).join('');
   const bars = t.axes.map((a, i) => {
     const ax = TYPE_DATA.axes[i];
-    return `<div class="type-axis">
+    return `<div class="type-axis${unsure[i] ? ' unsure' : ''}">
       <span class="${a.letter === ax.letters[0] ? 'on' : ''}">${ax.letters[0]} ${esc(ax.names[0])}</span>
       <div class="type-track"><i style="left:${100 - a.pct}%"></i><b style="left:50%"></b></div>
       <span class="${a.letter === ax.letters[1] ? 'on' : ''}">${esc(ax.names[1])} ${ax.letters[1]}</span>
@@ -48,13 +51,14 @@ export function typeSection(p: PlayerProfile, name = ''): string {
       <a href="/types/${t.code}" target="_blank" rel="noopener"><img class="type-thumb" src="/img/types/${t.code}-square.png" alt="${t.code} ${esc(t.info.name)}" width="600" height="600" /></a>
       <div>
         <div class="type-head">
-          <span class="type-code">${t.code}</span>
+          <span class="type-code">${codeHtml}</span>
           <span class="type-name">${esc(t.info.name)}<small>${getLang() === 'en' ? esc(group.name) : `${esc(t.info.en)} · ${esc(group.name)}`}</small></span>
         </div>
         <p class="type-tagline">${esc(t.info.tagline)}</p>
       </div>
     </div>
     <div class="type-axes">${bars}</div>
+    ${unsure.some(Boolean) ? `<p class="faint type-note">${tr('흐린 글자는 가운데에 가까운 축이에요. 판을 더 분석하면 정해져요.', 'Faded letters are axes close to the middle. More games will settle them.')}</p>` : ''}
     <p class="faint type-note">${p.rating ? tr(`레이팅 ${ratingOf(p)} 전후 플레이어들과 비교한 결과예요${ratingOverride(name) ? ' (직접 입력)' : p.ratingConverted ? ' (Chess.com 레이팅을 Lichess 기준으로 환산)' : ''}.`, `Compared with players rated around ${ratingOf(p)}${ratingOverride(name) ? ' (entered by you)' : p.ratingConverted ? ' (Chess.com rating converted to the Lichess scale)' : ''}.`) : tr('레이팅 정보가 없어 1500 전후 플레이어들과 비교한 결과예요.', 'No rating found, so compared with players around 1500.')}
       ${name ? `<span class="rating-edit"><input type="number" min="400" max="3000" step="10" inputmode="numeric" data-rating-input="${esc(name)}" value="${ratingOverride(name) ?? ''}" placeholder="${tr('레이팅 직접 입력', 'Enter rating')}" aria-label="${tr('레이팅 직접 입력', 'Enter rating')}" /><button type="button" class="secondary small" data-rating-save="${esc(name)}">${tr('적용', 'Apply')}</button>${ratingOverride(name) ? `<button type="button" class="ghost small" data-rating-clear="${esc(name)}">${tr('기보 레이팅으로', 'Use game rating')}</button>` : ''}</span>` : ''}</p>
     ${note}
