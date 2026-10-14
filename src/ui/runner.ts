@@ -6,6 +6,7 @@ import type { GameAnalysis, MoveAnalysis } from '../core/analyzer';
 import type { FromWorker, ToWorker } from '../workers/protocol';
 import AnalysisWorker from '../workers/analysis.worker?worker';
 import { getHumanModel } from '../human/browser';
+import { positionKey, getPosition, putPosition } from '../engine/positionCache';
 
 export interface RunCallbacks {
   onProgress(done: number, total: number): void;
@@ -38,7 +39,13 @@ export class AnalysisRun {
         switch (msg.type) {
           case 'engine': {
             // 이 분석의 요청임을 표시해 두면 취소할 때 대기열에서 한꺼번에 버릴 수 있다
-            const lines = await engine.analyse(msg.fen, msg.opts, this.id).catch(() => null);
+            // 같은 국면·같은 조건은 캐시에서 (같은 사람 게임의 겹치는 오프닝, 다시 분석할 때)
+            const key = positionKey(msg.fen, msg.opts ?? {});
+            let lines = await getPosition(key);
+            if (!lines) {
+              lines = await engine.analyse(msg.fen, msg.opts, this.id).catch(() => null);
+              if (lines?.length) putPosition(key, lines);
+            }
             if (lines && !this.cancelled) send({ type: 'engineResult', id: msg.id, lines });
             break;
           }

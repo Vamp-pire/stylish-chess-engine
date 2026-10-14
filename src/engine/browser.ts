@@ -17,13 +17,14 @@ async function createWorkerEngine(base: string): Promise<UciEngine> {
   return engine;
 }
 
-/** 엔진 개수: 코어 수 - 1 (화면 처리 몫), 최대 4. 휴대폰·메모리 적은 기기는 2 */
+/** 엔진 개수: 코어 수 - 1 (8코어 이상은 - 2, 화면·분석 Worker 몫), 최대 6. 휴대폰·메모리 적은 기기는 2.
+ *  8코어에서 측정(국면 32개, 깊이 12): 4개 5.4~7.0초, 6개 4.4초, 7개 4.5초 → 6개까지가 이득 */
 export function poolSize() {
   const cores = navigator.hardwareConcurrency || 2;
   const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
   // 창 폭이 아니라 입력 장치로 판단한다 (PC에서 창을 좁게 써도 엔진을 줄이지 않도록)
   const mobile = matchMedia('(pointer: coarse)').matches || memory <= 4;
-  return Math.max(1, Math.min(mobile ? 2 : 4, cores - 1));
+  return Math.max(1, Math.min(mobile ? 2 : 6, cores <= 6 ? cores - 1 : cores - 2));
 }
 
 export async function createBrowserEngine(base = '/engine/'): Promise<{ engine: EnginePool }> {
