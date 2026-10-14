@@ -155,12 +155,14 @@ const glyph = (m: MoveAnalysis) => {
   // 부정확(?!)은 표시하지 않는다: 깊이 10 판정이 정식 Stockfish(깊이 18)와 36%만 일치 (엔진 오차가 이 등급의 폭과 비슷함)
   return '';
 };
-/** 이론 수 카드: 이 오프닝의 (그 색) 스타일 */
+/** 이론 수 카드: 이 오프닝의 (그 색) 스타일. 이론 수는 대부분 기물 전개라, 다른 오프닝보다 두드러진 점만 보여준다 */
 function openingStyleHtml(o: OpeningSideStyle | null) {
   if (!o) return '';
-  const top = (Object.keys(o.scores) as StyleKey[]).filter((k) => o.scores[k] >= 20).sort((a, b) => o.scores[b] - o.scores[a]).slice(0, 3);
-  if (!top.length && !o.riskRate) return '';
-  return `<div><div class="section-title">${tr('이 오프닝의 스타일 (이쪽, 미리 분석)', "This opening's style (this side, pre-analyzed)")}</div><div class="chips">${top.map((k) => `<span class="chip"><span class="dot" style="background:${STYLES[k].color}"></span>${STYLES[k].label}</span>`).join('')}${o.riskRate > 0 ? `<span class="chip">${tr('희생·갬빗 포함', 'Includes sacrifices or gambits')}</span>` : ''}</div></div>`;
+  const chips = [
+    ...(o.gambit ? [`<span class="chip" title="${tr('폰 등을 내주고 빠른 전개·공격을 얻는 오프닝', 'An opening that gives material for development or attack')}">🎲 ${tr('갬빗', 'Gambit')}</span>`] : []),
+    ...o.distinct.map((k) => `<span class="chip"><span class="dot" style="background:${STYLES[k].color}"></span>${tr(`더 ${STYLES[k].label}`, `More ${STYLES[k].label.toLowerCase()}`)}</span>`),
+  ];
+  return `<div><div class="section-title">${tr('이 오프닝의 스타일 (이쪽, 다른 오프닝과 비교)', "This opening's style (this side, vs other openings)")}</div><div class="chips">${chips.join('') || `<span class="chip">${tr('무난한 전개 위주', 'Mostly standard development')}</span>`}</div></div>`;
 }
 /** 정확도 설명: Lichess와 같은 계산식이지만 분석 깊이가 달라 값이 다르다 */
 const ACCURACY_NOTE = () => tr('Lichess와 같은 방식으로 계산하지만 분석 깊이가 달라서, 같은 게임 29판(백·흑 58건) 비교에서 Lichess보다 평균 6점쯤 높게 나왔어요. Lichess·Chess.com 정확도와 직접 비교하지는 마세요.', 'Computed like Lichess, but at a different engine depth: on 29 games (58 sides) it came out about 6 points higher than Lichess on average. Don\'t compare it directly with Lichess or Chess.com accuracy.');
@@ -1005,7 +1007,7 @@ function updateCard() {
     </div>` : '';
   const varButtons = [
     m.trapLine ? `<button class="btn small" data-var="trap">${m.risk === 'gamble' ? '🎲' : '🪤'} ${tr(`상대가 ${esc(m.trapLine.replySan)}를 뒀다면`, `If the opponent played ${esc(m.trapLine.replySan)}`)} ▶</button>` : '',
-    !m.deep.isBest && m.bestPvSan.length ? `<button class="btn small" data-var="best">${tr('최선 수순 보기', 'Show best line')} ▶</button>` : '',
+    !m.book && !m.deep.isBest && m.bestPvSan.length ? `<button class="btn small" data-var="best">${tr('최선 수순 보기', 'Show best line')} ▶</button>` : '',
     m.playedPvSan.length ? `<button class="btn small" data-var="played">${tr('이후 예상 수순', 'Expected continuation')} ▶</button>` : '',
   ].join('');
 

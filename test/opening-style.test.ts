@@ -36,5 +36,6 @@ describe('오프닝 이론 구간', () => {
     const rated = g.moves.filter((m) => m.color === 'w' && !m.book);
     expect(Object.values(w.quality).reduce((s, x) => s + x, 0)).toBe(rated.filter((m) => m.quality).length);
     expect(g.openingStyle?.w?.scores.aggressive).toBe(90);
+    expect(g.openingStyle?.w?.distinct[0]).toBe('aggressive');
   });
 });

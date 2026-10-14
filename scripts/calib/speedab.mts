@@ -15,7 +15,7 @@ const outFile = process.argv[5];
 const DEPTH = 10;
 export const CONFIGS: Record<string, AnalyzeOptions> = {
   // base2: 같은 설정 재분석 = 엔진 상태(해시)에 따른 원래 흔들림. 옵션 차이는 이것과 비교해서 본다
-  base: {}, base2: {}, scout: { scout: true }, reuse: { reusePlayed: true }, both: { scout: true, reusePlayed: true },
+  base: { reusePlayed: false }, base2: { reusePlayed: false }, scout: { scout: true, reusePlayed: false }, reuse: { reusePlayed: true }, both: { scout: true, reusePlayed: true },
 };
 
 interface Player { id: string; band: number; cls?: string; games: string[] }

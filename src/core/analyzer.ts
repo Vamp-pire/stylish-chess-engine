@@ -53,7 +53,10 @@ export interface AnalyzeOptions {
   noRefine?: boolean;
   /** 빠른 분석: 먼저 얕게 훑어 승부가 기운 국면·오프닝 이론 국면은 얕은 결과를 그대로 쓰고, 나머지만 깊게 */
   scout?: boolean;
-  /** 둔 수가 후보에 없을 때 따로 분석하지 않고, 수 둔 뒤 국면의 분석을 그대로 쓴다 */
+  /**
+   * 둔 수가 후보에 없을 때 따로 분석하지 않고, 수 둔 뒤 국면의 분석을 그대로 쓴다. 기본 켬(false로 끔).
+   * A/B 158명: 시간 91%, 결과 차이는 같은 설정 재분석의 흔들림과 구분 안 됨 (유형 일치 69.6% vs 70.3%)
+   */
   reusePlayed?: boolean;
 }
 
@@ -275,7 +278,7 @@ export async function analyzeGame(pgn: string, engine: Engine, opts: AnalyzeOpti
     humans[i] = humanBefore; humans[i + 1] = humanAfter;
     if (i >= theoryPlies && (!humanBefore || !humanAfter)) humanUsed = false;
     const res = await analyzeMove({
-      move: m, prev: i > 0 ? history[i - 1] : null, ply: i, reusePlayed: opts.reusePlayed,
+      move: m, prev: i > 0 ? history[i - 1] : null, ply: i, reusePlayed: opts.reusePlayed ?? true,
       before: lines[i], after: lines[i + 1], engine, depth, searcher,
       humanBefore, humanAfter, oppElo: elo[m.color === 'w' ? 'b' : 'w'],
     });
