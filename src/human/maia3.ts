@@ -68,8 +68,8 @@ export function decodeMaia3(fen: string, logits: Float32Array, offset = 0): Huma
 const BATCH = 16;
 
 /** onnxruntime 세션으로 HumanModel을 만든다 */
-export async function createMaia3(ort: typeof Ort, model: Uint8Array): Promise<HumanModel> {
-  const session = await ort.InferenceSession.create(model);
+export async function createMaia3(ort: typeof Ort, model: Uint8Array, options?: Ort.InferenceSession.SessionOptions): Promise<HumanModel> {
+  const session = await ort.InferenceSession.create(model, options);
   return {
     async predict(queries) {
       const out: HumanPolicy[] = [];

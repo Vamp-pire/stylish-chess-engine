@@ -255,6 +255,31 @@ const axesCardsIn = (lang) => `<div class="axes">${axesIn(lang).map((a) => `<div
 <p><b>${a.letters[0]}</b> ${esc(a.desc[0])}</p><p><b>${a.letters[1]}</b> ${esc(a.desc[1])}</p></div>`).join('')}</div>`;
 const axesCards = axesCardsIn('ko');
 
+
+/** 첫 화면: 기다리기 전에 어떤 결과를 받는지 보여주는 예시 카드 (실제 분석 결과 화면을 줄인 모양) */
+function resultPreview(lang) {
+  const en = lang === 'en';
+  const t = data.types.find((x) => x.code === 'PSIO');
+  const name = en ? EN.types.PSIO.name ?? t.en : t.name;
+  const axes = data.axes.map((a, i) => {
+    const names = en ? EN.axes[i].names : a.names;
+    const pct = [32, 24, 41, 71][i];
+    return `<div class="rp-axis"><span>${a.letters[0]} ${esc(names[0])}</span><div class="rp-track"><i style="left:${100 - pct}%"></i></div><span>${esc(names[1])} ${a.letters[1]}</span></div>`;
+  }).join('');
+  const rows = en
+    ? [['Accuracy', '88.4%'], ['Stands out', 'Solid · top 12% at your rating'], ['Most like', 'Anatoly Karpov 82%'], ['Risky moves', '2 traps, 1 sound sacrifice']]
+    : [['정확도', '88.4%'], ['두드러진 점', '안정적 · 같은 레이팅 중 상위 12%'], ['닮은 선수', '아나톨리 카르포프 82%'], ['위험한 수', '함정수 2회, 건전한 희생 1회']];
+  return `<section class="block result-preview">
+<h2>${en ? 'What you get' : '이런 결과를 받아요'}</h2>
+<p class="section-lead">${en ? 'An example of the result card after analyzing about 10 games (numbers are illustrative).' : '최근 10판 정도를 분석하면 나오는 결과 예시예요 (숫자는 예시).'}</p>
+<div class="rp-card g-PS">
+<div class="rp-head"><img src="${IMG(lang, 'PSIO-square.png')}" alt="" width="96" height="96" loading="lazy" /><div><b class="rp-code">PSIO</b><span class="rp-name">${esc(name)}</span></div></div>
+<div class="rp-axes">${axes}</div>
+<dl class="rp-rows">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+</div>
+</section>`;
+}
+
 // ── 첫 화면 ──
 write('/', page({
   path: '/', wide: true,
@@ -278,6 +303,7 @@ ${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<img class="art-${i}" src="/im
 <div><b>Stockfish + Maia3</b><span>엔진 정확도에 사람 기준 판단까지</span></div>
 <div><b>무료 · 설치 없음</b><span>분석은 내 브라우저 안에서만</span></div>
 </section>
+${resultPreview('ko')}
 <section class="block">
 <h2>16가지 체스 유형</h2>
 <p class="section-lead">네 글자는 각각 무엇을 노리는지, 위험을 어떻게 대하는지, 누가 판을 끌고 가는지, 얼마나 남다른 수를 두는지를 뜻해요. 유형을 눌러 자세히 보세요.</p>
@@ -500,6 +526,7 @@ ${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<img class="art-${i}" src="${I
 <div><b>Stockfish + Maia3</b><span>Engine accuracy plus human judgment</span></div>
 <div><b>Free, no install</b><span>Runs only in your browser</span></div>
 </section>
+${resultPreview('en')}
 <section class="block">
 <h2>The 16 chess types</h2>
 <p class="section-lead">The four letters describe what you aim for, how you treat risk, who drives the game, and how unusual your moves are. Tap a type to learn more.</p>
