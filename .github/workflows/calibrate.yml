@@ -31,12 +31,22 @@ jobs:
         with:
           node-version: 22
       - name: Download part of the Lichess database
+        # 입력값은 셸 코드에 바로 넣지 않고 환경 변수로 받아 형식을 확인한다 (명령 주입 방지)
+        env:
+          MONTH: ${{ inputs.month }}
+          GIGABYTES: ${{ inputs.gigabytes }}
         run: |
-          BYTES=$(( ${{ inputs.gigabytes }} * 1000000000 ))
-          curl -sSf -r 0-$BYTES -o part.pgn.zst "https://database.lichess.org/standard/lichess_db_standard_rated_${{ inputs.month }}.pgn.zst"
+          [[ "$MONTH" =~ ^[0-9]{4}-[0-9]{2}$ ]] || { echo "month 형식 오류"; exit 1; }
+          [[ "$GIGABYTES" =~ ^[0-9]{1,2}$ ]] || { echo "gigabytes 형식 오류"; exit 1; }
+          BYTES=$(( GIGABYTES * 1000000000 ))
+          curl -sSf -r 0-$BYTES -o part.pgn.zst "https://database.lichess.org/standard/lichess_db_standard_rated_${MONTH}.pgn.zst"
           ls -la part.pgn.zst
       - name: Pick and anonymize players
-        run: node --max-old-space-size=12000 scripts/calib/collect.mjs part.pgn.zst games.jsonl.gz ${{ inputs.per_band }} 10
+        env:
+          PER_BAND: ${{ inputs.per_band }}
+        run: |
+          [[ "$PER_BAND" =~ ^[0-9]{1,4}$ ]] || { echo "per_band 형식 오류"; exit 1; }
+          node --max-old-space-size=12000 scripts/calib/collect.mjs part.pgn.zst games.jsonl.gz "$PER_BAND" 10
       - uses: actions/upload-artifact@v4
         with:
           name: games

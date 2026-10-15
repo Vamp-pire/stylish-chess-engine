@@ -31,11 +31,15 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Analyze shard
+        # 입력값은 환경 변수로 받아 형식을 확인한다 (명령 주입 방지)
+        env:
+          PLAYERS_PER_SHARD: ${{ inputs.players_per_shard }}
         run: |
+          [[ "$PLAYERS_PER_SHARD" =~ ^[0-9]{1,4}$ ]] || { echo "players_per_shard 형식 오류"; exit 1; }
           SHARDS=$((JOBS * PROCS))
           for k in $(seq 0 $((PROCS - 1))); do
             s=$((${{ matrix.job }} * PROCS + k))
-            npx tsx scripts/calib/speedab.mts $s $SHARDS ${{ inputs.players_per_shard }} out-$s.jsonl > log-$s.txt 2>&1 &
+            npx tsx scripts/calib/speedab.mts $s $SHARDS "$PLAYERS_PER_SHARD" out-$s.jsonl > log-$s.txt 2>&1 &
           done
           wait
           tail -n 3 log-*.txt

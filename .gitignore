@@ -4,3 +4,8 @@ _old
 .vercel
 .claude
 public/ort-gpu
+
+# 비밀 값 파일은 절대 올리지 않는다
+.env
+.env.*
+*.pem
