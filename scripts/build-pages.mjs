@@ -4,12 +4,13 @@
 // 검색엔진과 광고 심사가 읽을 수 있도록 자바스크립트 없이 보이는 HTML로 만든다. 내용은 src/data/chess-types.json
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { UPDATES } from './updates.mjs';
+import { compatPairs, compatPath, compatBody, compatLinks, openingBlock } from './pages-compat.mjs';
 
 const SITE = (process.env.SITE_URL ?? 'https://stylish-chess-engine.pages.dev').replace(/\/$/, '');
 const ADSENSE = 'ca-pub-8762647584529985';
 const CONTACT_FORM = 'https://forms.gle/d9PbZSYZKkzpykgq8';
 const REPO = 'https://github.com/Vamp-pire/stylish-chess-engine';
-const UPDATED = '2026-10-14';
+const UPDATED = '2026-10-15';
 const SEARCH_CONSOLE = 'T4-fwXM8oe_n6an574Sidq3X6cvTdKS9b5MsTB0bvgw';
 const PRETENDARD = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css';
 const GROUP_ORDER = ['AW', 'AS', 'PW', 'PS'];
@@ -393,6 +394,11 @@ ${(examples[t.code] ?? []).length ? `<h2>실제 ${esc(t.name)} 플레이어의 �
 <p>Stylish 기준을 만들 때 분석한 Lichess 플레이어(이름은 지움) 중 <b>${t.code}</b>로 판정된 사람들의 실제 게임에서 골랐어요. 흔한 되잡기나 누구나 두는 수는 빼고, 이 유형의 성향이 가장 잘 드러나는 수를 골랐어요.</p>
 <div class="examples">${examples[t.code].map((e) => exampleCard(e, t)).join('')}</div>` : ''}
 <h2>실력을 올리는 방법</h2>${list(t.tips)}
+<h2>${esc(t.name)}에게 어울리는 오프닝</h2>
+${openingBlock({ code: t.code, lang: 'ko', esc })}
+<h2>다른 유형과의 궁합</h2>
+<p>유형을 고르면 서로 어떻게 부딪히는지, 상대할 때 어디를 노리면 좋은지 볼 수 있어요.</p>
+${compatLinks({ t, types: data.types, lang: 'ko', esc, P })}
 <h2>정반대 유형</h2>
 <a class="opp-card g-${opp.code.slice(0, 2)}" href="/types/${opp.code}"><img src="/img/types/${opp.code}-square.png" alt="" width="600" height="600" loading="lazy" /><span><b>${opp.code} ${esc(opp.name)}</b>${esc(opp.tagline)}. 모든 글자가 반대인 유형이라, 이 유형을 상대할 때는 내 방식이 가장 잘 통하거나 가장 안 통할 수 있습니다.</span></a>
 <h2>같은 ${esc(group.name)} 유형</h2>
@@ -477,6 +483,12 @@ write('/privacy', page({
 <li><b>Chess.com·Lichess</b>: 아이디로 게임을 불러올 때, 방문자의 브라우저가 입력한 아이디로 해당 사이트의 공개 API에 직접 요청합니다. 각 사이트의 개인정보처리방침이 적용됩니다.</li>
 <li><b>Cloudflare</b>: 사이트 호스팅 업체로, 서비스 제공과 보안을 위해 접속 기록(IP 주소, 브라우저 정보 등)을 처리할 수 있습니다.</li>
 <li><b>Cloudflare Web Analytics</b>: 방문자 수와 많이 본 페이지 같은 통계를 보기 위해 사용합니다. 쿠키를 쓰지 않으며 개인을 식별할 수 있는 정보를 모으지 않습니다.</li>
+<li><b>Supabase (그룹 유형 지도·기기 동기화를 쓸 때만)</b>: 이 두 기능을 쓰면 서울에 있는 Supabase 데이터베이스에 아래 정보가 저장됩니다. 가입은 없고, 브라우저마다 무작위 익명 ID가 만들어집니다.
+<ul>
+<li><b>그룹 유형 지도</b>: 그룹 이름, 그룹에 넣은 체스 아이디(또는 직접 정한 닉네임)·사이트·4글자 유형·축 백분위·평가한 수. 그룹 링크를 아는 사람은 누구나 볼 수 있습니다. '나가기'를 누르면 바로 지워지고, 만든 지 7일이 지났는데 아무도 없는 그룹은 자동으로 지워집니다.</li>
+<li><b>기기 동기화</b>: 이 브라우저에 저장된 기록(플레이어 성향·연습 과제·직접 입력한 레이팅). 동기화 코드 자체는 저장하지 않고 암호화한 값(해시)으로만 찾습니다. 마지막으로 쓴 지 30일이 지나면 자동으로 지워집니다.</li>
+</ul></li>
+<li><b>Cloudflare Turnstile</b>: 위 두 기능을 처음 쓸 때 사람인지 확인합니다(대부분 보이지 않게 자동 통과). Cloudflare의 개인정보처리방침(<a href="https://www.cloudflare.com/privacypolicy/">cloudflare.com/privacypolicy</a>)이 적용됩니다.</li>
 <li><b>Microsoft Clarity</b>: 사이트를 더 쓰기 편하게 고치기 위해, 페이지에서의 클릭·스크롤·이동 같은 이용 행태를 익명으로 기록하고 분석합니다. 이를 위해 쿠키를 사용합니다. 입력한 글자(아이디 등)는 기록하지 않도록 가려지며, Microsoft의 개인정보처리방침(<a href="https://privacy.microsoft.com/privacystatement">privacy.microsoft.com</a>)이 적용됩니다. 브라우저에서 쿠키를 차단하면 수집되지 않습니다.</li>
 <li><b>Google Forms</b>: 문의 양식을 이용하면 입력한 내용이 Google Forms에 저장됩니다. 연락처는 선택 항목입니다.</li>
 </ul>
@@ -610,6 +622,11 @@ ${(examples[t.code] ?? []).length ? `<h2>Real moves by ${esc(t.name)} players</h
 <p>Picked from real games of Lichess players (names removed) that Stylish classified as <b>${t.code}</b> when building its cutoffs. Routine recaptures and moves everyone plays were skipped in favor of moves that show the style most clearly.</p>
 <div class="examples">${examples[t.code].map((e) => exampleCard(e, t, 'en')).join('')}</div>` : ''}
 <h2>How to improve</h2>${list(t.tips)}
+<h2>Openings that suit the ${esc(t.name)}</h2>
+${openingBlock({ code: t.code, lang: 'en', esc })}
+<h2>Matchups with other types</h2>
+<p>Pick a type to see how you clash and where to press when you face them.</p>
+${compatLinks({ t, types: data.types.map((x) => typeIn(x, 'en')), lang: 'en', esc, P })}
 <h2>The opposite type</h2>
 <a class="opp-card g-${opp.code.slice(0, 2)}" href="/en/types/${opp.code}"><img src="${IMG('en', `${opp.code}-square.png`)}" alt="" width="600" height="600" loading="lazy" /><span><b>${opp.code} The ${esc(opp.name)}</b>${esc(opp.tagline)}. Every letter is reversed, so against this type your style either works best or not at all.</span></a>
 <h2>Other ${esc(group.name)}</h2>
@@ -691,6 +708,12 @@ write('/en/privacy', page({
 <li><b>Chess.com and Lichess</b>: when you load games by username, your browser sends that username directly to the site's public API. Their privacy policies apply.</li>
 <li><b>Cloudflare</b>: our hosting provider may process access logs (IP address, browser information, etc.) to provide the service and for security.</li>
 <li><b>Cloudflare Web Analytics</b>: used to see statistics such as visitor counts and popular pages. It does not use cookies and does not collect personally identifiable information.</li>
+<li><b>Supabase (only when you use group type maps or device sync)</b>: these two features store the data below in a Supabase database in Seoul. There is no sign-up; each browser gets a random anonymous ID.
+<ul>
+<li><b>Group type maps</b>: the group name, and the chess ID (or a nickname you choose), site, four-letter type, axis percentiles and rated-move count you add to a group. Anyone with the group link can see them. 'Leave' deletes your entry immediately, and groups with no members 7 days after creation are deleted automatically.</li>
+<li><b>Device sync</b>: the records stored in this browser (player tendencies, practice problems, ratings you entered). The sync code itself is not stored, only a hashed value used to find your data. It is deleted automatically 30 days after last use.</li>
+</ul></li>
+<li><b>Cloudflare Turnstile</b>: checks that you are human the first time you use those features (usually invisible). Cloudflare's privacy policy (<a href="https://www.cloudflare.com/privacypolicy/">cloudflare.com/privacypolicy</a>) applies.</li>
 <li><b>Microsoft Clarity</b>: to make the site easier to use, we record and analyze how pages are used (clicks, scrolling, navigation) anonymously. It uses cookies. Text you type (such as usernames) is masked, and Microsoft's privacy statement (<a href="https://privacy.microsoft.com/privacystatement">privacy.microsoft.com</a>) applies. Blocking cookies in your browser stops this collection.</li>
 <li><b>Google Forms</b>: if you use the contact form, what you enter is stored in Google Forms. Contact details are optional.</li>
 </ul>
@@ -729,8 +752,23 @@ ${body}
   }));
 }
 
+// ── 유형 궁합 (136쌍 × 한·영) ──
+const COMPAT = compatPairs(data.types);
+for (const lang of ['ko', 'en']) {
+  for (const [a, b] of COMPAT) {
+    const A = typeIn(a, lang), B = typeIn(b, lang);
+    const path = compatPath(a, b);
+    write(P(lang, path), page({
+      path, active: 'types', lang, image: IMG(lang, `${a.code}.png`),
+      title: lang === 'en' ? `${a.code} ${A.name} vs ${b.code} ${B.name}: chess type matchup | Stylish` : `${a.code} ${A.name} vs ${b.code} ${B.name} — 체스 유형 궁합 | Stylish`,
+      description: lang === 'en' ? `How the ${A.name} (${a.code}) and the ${B.name} (${b.code}) play against each other, axis by axis, and where each should press.` : `${a.code} ${A.name}와 ${b.code} ${B.name}가 만나면 어떻게 부딪히는지, 축별 차이와 서로를 상대하는 법.`,
+      body: compatBody({ A, B, axes: axesIn(lang), lang, esc, P, IMG, idForm: (l) => idForm(l === 'en' ? 'Find my type' : '내 유형 알아보기', l) }),
+    }));
+  }
+}
+
 // ── 사이트맵·robots ──
-const koPaths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/app', '/about', '/updates', '/contact', '/privacy'];
+const koPaths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), ...COMPAT.map(([a, b]) => compatPath(a, b)), '/app', '/about', '/updates', '/contact', '/privacy'];
 const paths = [...koPaths, ...koPaths.filter((p) => p !== '/app').map((p) => P('en', p))];
 writeFileSync(new URL('sitemap.xml', DIST), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

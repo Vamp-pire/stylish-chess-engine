@@ -2,6 +2,47 @@
 // 방문자에게 보이는 글이라 개발 용어 대신 무엇이 달라졌는지만 쓴다.
 export const UPDATES = [
   {
+    date: '2026-10-15',
+    ko: [
+      ['친구·커뮤니티와 함께', [
+        '<b>그룹 유형 지도</b>가 생겼어요. 그룹을 만들어 코드나 링크로 공유하면, 들어온 사람들의 유형이 16칸 지도와 축별 인원으로 보여요. 내 유형은 종합 분석할 때마다 자동으로 갱신되고, 이름은 체스 아이디 대신 닉네임으로 바꿀 수 있어요.',
+        '<b>링크 미리보기</b>: 친구 비교 링크, 그룹 링크, 내 고정 주소를 카톡·디스코드에 붙이면 유형 카드가 미리보기로 떠요.',
+      ]],
+      ['내 기록 이어 보기', [
+        '<b>기기 동기화</b>: 동기화 코드 하나로 휴대폰과 PC에서 같은 기록을 볼 수 있어요. 가입은 필요 없고, 마지막으로 쓴 지 30일이 지나면 서버에서 자동으로 지워져요.',
+        '<b>내 고정 주소</b>: <code>/u/lichess/아이디</code>를 즐겨찾기 해 두면, 열 때마다 새로 둔 게임만 바로 분석해요.',
+        '<b>Lichess 북마클릿</b>(PC): 즐겨찾기 줄의 버튼을 누르면 보고 있던 Lichess 게임이 바로 Stylish로 와서 분석돼요.',
+        '<b>월간 결산 카드</b>: 이번 달(월초에는 지난달) 유형·정확도 변화·희생수·많이 둔 오프닝을 카드 한 장으로 받아 공유할 수 있어요.',
+      ]],
+      ['새로 읽을거리', [
+        '<b>유형 궁합</b> 136가지: 두 유형이 만나면 축마다 어떻게 부딪히는지, 서로를 상대할 때 어디를 노리면 좋은지 정리했어요. 유형 페이지 아래 \'다른 유형과의 궁합\'에서 볼 수 있어요.',
+        '<b>유형에 어울리는 오프닝</b>: 오프닝 데이터베이스를 미리 분석한 스타일로, 각 유형의 글자와 잘 맞는 백·흑 오프닝을 3개씩 골랐어요.',
+      ]],
+      ['더 안전하게', [
+        '보안 점검을 하고 보안 설정을 보강했어요. 새 기능에서 쓰는 서버는 사람 확인(Cloudflare Turnstile)을 거치고, 다른 사람의 항목은 고칠 수 없어요.',
+      ]],
+    ],
+    en: [
+      ['With friends and communities', [
+        '<b>Group type maps</b>: create a group and share its code or link, and everyone who joins shows up on a 16-cell type map with counts per axis. Your type updates automatically after each combined analysis, and you can show a nickname instead of your chess ID.',
+        '<b>Link previews</b>: compare links, group links and your permanent link now show a type card when pasted into chats like Discord.',
+      ]],
+      ['Pick up where you left off', [
+        '<b>Device sync</b>: one sync code shows the same records on your phone and PC. No sign-up; data is deleted from the server 30 days after last use.',
+        '<b>Permanent link</b>: bookmark <code>/u/lichess/your-id</code> and every visit analyzes only your new games.',
+        '<b>Lichess bookmarklet</b> (PC): click the bookmark while viewing a Lichess game to analyze it in Stylish.',
+        '<b>Monthly recap card</b>: this month\'s (or, early in the month, last month\'s) type, accuracy change, sacrifices and most-played opening on one shareable card.',
+      ]],
+      ['New to read', [
+        '<b>136 type matchups</b>: how two types clash axis by axis and where each should press. Find them under \'Matchups with other types\' on each type page.',
+        '<b>Openings that suit each type</b>: three White and three Black openings whose pre-analyzed style matches each type\'s letters.',
+      ]],
+      ['Safer', [
+        'We ran a security review and tightened settings. The new features check that you are human (Cloudflare Turnstile), and nobody can edit someone else\'s entry.',
+      ]],
+    ],
+  },
+  {
     date: '2026-10-14',
     ko: [
       ['더 빨라졌어요', [

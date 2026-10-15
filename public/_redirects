@@ -1,0 +1,6 @@
+# 짧은 주소 (Cloudflare Pages)
+# 아이디 고정 주소: 즐겨찾기해 두면 열 때마다 새 게임만 바로 분석
+/u/lichess/:id   /app?source=lichess&user=:id&pin=1   302
+/u/chesscom/:id  /app?source=chesscom&user=:id&pin=1  302
+# 그룹 유형 지도
+/g/:code         /app?g=:code                         302

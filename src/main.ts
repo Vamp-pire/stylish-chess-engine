@@ -16,6 +16,9 @@ import { chessTypeOf, peerStats, peerGroupPct, PEER_GROUPS, PEER_METRICS, rating
 import TYPE_CALIB from './data/type-calib.json';
 const CALIB_PLAYERS = TYPE_CALIB.players;
 import { addPractice, weeklySet, practiceStats, markPractice, asQuizMove, clearPractice, WEEKLY } from './ui/practice';
+import { myGroups, createGroup, getGroup, joinGroup, leaveGroup, playerType, refreshGroupsFor, groupMapHtml, type GroupInfo } from './server/groups';
+import { syncState, createSync, connectSync, syncNow, disconnectSync, autoSync } from './server/sync';
+import { monthlySection, openRecapImage, recapMonth } from './ui/monthly';
 import { recordType, typeDexSection, challengeSection, setChallenge, clearChallenge, saveFriend, friendsSection, weeklySection } from './ui/retention';
 import { typeChangeSection, withRating, setRatingOverride, timeClassOf, timeTypeSection } from './ui/typeCard';
 import { decodeVs, saveVs, loadVs, clearVs, vsBanner, shareCompare } from './ui/compare';
@@ -37,7 +40,7 @@ import { STYLES, STYLE_KEYS, RISK_KINDS, RISK_LABEL, QUALITY_LABEL, type StyleKe
 
 // ───────────── 상태 ─────────────
 
-type View = 'analyze' | 'coach' | 'guide' | 'about' | 'players';
+type View = 'analyze' | 'coach' | 'guide' | 'about' | 'players' | 'group';
 type InputTab = 'paste' | 'samples' | 'file' | 'lichess' | 'chesscom' | 'lichessUser';
 
 interface PlyInfo { san: string; color: 'w' | 'b'; from: string; to: string; fenAfter: string; moveNumber: number }
@@ -128,6 +131,8 @@ const state = {
   account: null as AccountState | null,
   /** 프로필 메뉴에서 보고 있는 플레이어 */
   playerKey: null as string | null,
+  groupCode: null as string | null, // 보고 있는 그룹 유형 지도
+  pinHint: null as { source: string; user: string } | null, // 아이디 고정 주소로 처음 왔을 때 안내
   storageFull: false,
   batch: null as BatchState | null,
   batchDepth: 10, // 여러 판 분석은 기본 빠름 (한 판 30초 안팎)
@@ -192,6 +197,7 @@ function render() {
   // 소개는 정적 페이지(/about, /en/about)로
   if (state.view === 'about') { location.href = getLang() === 'en' ? '/en/about' : '/about'; return; }
   if (state.view === 'players') { renderPlayers(); return; }
+  if (state.view === 'group' && state.groupCode) { renderGroup(state.groupCode); return; }
   if (state.game) renderReview(); else if (state.batch) renderBatch(); else renderInput();
 }
 
@@ -218,11 +224,17 @@ function renderInputInner() {
 
   app.innerHTML = `
       ${loadVs() ? vsBanner(loadVs()!) : ''}
+      ${state.pinHint ? `<div class="vs-banner"><b>${tr('이 주소를 즐겨찾기 해 두세요.', 'Bookmark this address.')}</b><span>${tr(`한 번 종합 분석을 하고 나면, 다음부터는 이 주소(${esc(pinUrl(state.pinHint.source, state.pinHint.user))})를 열 때마다 새로 둔 게임만 바로 분석해요.`, `After your first combined analysis, opening this address (${esc(pinUrl(state.pinHint.source, state.pinHint.user))}) analyzes only your new games right away.`)}</span></div>` : ''}
       ${(() => {
         // 다시 온 사람: 가장 최근에 저장한 온라인 아이디로 '새 게임 분석·이번 주 리포트' 안내 (API 요청은 누를 때만)
         const last = listPlayers().filter((pl) => pl.source !== 'pgn').sort((a, b) => b.updatedAt - a.updatedAt)[0];
         if (!last || state.batch || loadPendingBatch()) return '';
         const days = Math.floor((Date.now() - last.updatedAt) / 86400000);
+        // 월초 1주일: 지난달에 둔 게임이 있으면 결산 안내
+        const rm = recapMonth();
+        if (rm.last && gamesOf(last).some((g) => { const d = new Date(g.date ?? g.savedAt); return d.getFullYear() === rm.year && d.getMonth() === rm.month; })) {
+          return `<div class="vs-banner welcome-banner"><b>${tr(`${esc(last.name)}님, 지난달 체스 결산이 나왔어요!`, `${esc(last.name)}, your chess recap for last month is ready!`)}</b><span>${tr('지난달 유형·정확도 변화·대담한 수를 카드로 받아 보세요.', "See last month's type, accuracy change and bold moves as a card.")}</span><button type="button" class="btn primary" data-open-player="${esc(last.key)}">${tr('결산 보기', 'See recap')}</button></div>`;
+        }
         if (days < 1) return '';
         return `<div class="vs-banner welcome-banner"><b>${tr(`${esc(last.name)}님, ${days}일 만이에요!`, `Welcome back, ${esc(last.name)}! It's been ${days} days.`)}</b><span>${tr('그동안 둔 게임을 분석하고 이번 주 리포트와 유형 변화를 확인해 보세요.', 'Analyze the games you played since, then check your weekly report and type change.')}</span><button type="button" class="btn primary" data-open-player="${esc(last.key)}">${tr('내 프로필 보기', 'Open my profile')}</button></div>`;
       })()}
@@ -474,6 +486,8 @@ async function runBatch(b: BatchState) {
   clearPendingBatch();
   const agg = batchProfile(b);
   if (agg.profile && agg.profile.counted >= 20) recordType(playerKey(b.source, b.user), chessTypeOf(withRating(agg.profile, b.user)));
+  autoSync();
+  refreshGroupsFor(playerKey(b.source, b.user));
   updateBatch();
 }
 
@@ -1150,7 +1164,128 @@ function backupButtons(importOnly = false) {
   return `${importOnly ? '' : `<button class="ghost" id="export-records">${tr('기록 내보내기', 'Export records')}</button>`}
     <label class="btn ghost">${tr('기록 가져오기', 'Import records')}<input type="file" accept="application/json,.json" id="import-records" hidden /></label>`;
 }
+// ───────────── 그룹 유형 지도 ─────────────
+
+/** 프로필 목록 아래: 내 그룹 + 그룹 만들기·열기 */
+function groupsCard() {
+  const mine = myGroups();
+  return `<div class="card card-pad sync-card"><div class="section-title">${tr('내 그룹', 'My groups')}</div>
+    <p class="faint">${tr('친구·디스코드 방·커뮤니티끼리 그룹을 만들어 서로의 유형을 16칸 지도로 봐요. 내 유형은 종합 분석할 때마다 자동으로 갱신돼요.', "Make a group with friends or your community and see everyone's type on a 16-cell map. Your type updates automatically after each combined analysis.")}</p>
+    ${mine.length ? `<div class="chips">${mine.map((g) => `<button class="chip" data-open-group="${esc(g.code)}">${esc(g.name)} <span class="faint">${esc(g.code)}</span></button>`).join('')}</div>` : ''}
+    <div class="row-gap"><input id="group-name" maxlength="30" placeholder="${tr('새 그룹 이름 (예: 체갤 친구들)', 'New group name')}" aria-label="${tr('새 그룹 이름', 'New group name')}" /><button class="btn" id="group-create">${tr('그룹 만들기', 'Create group')}</button>
+    <input id="group-code" maxlength="6" placeholder="${tr('그룹 코드', 'Group code')}" aria-label="${tr('그룹 코드', 'Group code')}" /><button class="btn" id="group-open">${tr('코드로 열기', 'Open by code')}</button></div>
+    <p class="faint" id="group-msg" aria-live="polite"></p></div>`;
+}
+function openGroup(code: string) {
+  state.view = 'group'; state.groupCode = code.toUpperCase();
+  history.replaceState(null, '', `/app?g=${state.groupCode}${getLang() === 'en' ? '&lang=en' : ''}`);
+  render(); window.scrollTo({ top: 0 });
+}
+function wireGroups() {
+  const msg = (t: string) => { const el = $('#group-msg'); if (el) el.textContent = t; };
+  $('#group-create')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement; btn.disabled = true;
+    try { const code = await createGroup($<HTMLInputElement>('#group-name')?.value ?? ''); openGroup(code); }
+    catch (err) { msg(err instanceof Error ? err.message : String(err)); btn.disabled = false; }
+  });
+  $('#group-open')?.addEventListener('click', () => {
+    const c = ($<HTMLInputElement>('#group-code')?.value ?? '').trim().toUpperCase();
+    if (/^[A-Z2-9]{6}$/.test(c)) openGroup(c); else msg(tr('그룹 코드는 6자예요.', 'Group codes are 6 characters.'));
+  });
+  app.querySelectorAll<HTMLButtonElement>('[data-open-group]').forEach((b) => b.onclick = () => openGroup(b.dataset.openGroup!));
+}
+
+async function renderGroup(code: string) {
+  app.innerHTML = `<div class="hero"><h1>${tr('그룹 유형 지도', 'Group type map')}</h1><p class="faint">${tr('불러오는 중…', 'Loading…')}</p></div>`;
+  let info: GroupInfo | null = null;
+  try { info = await getGroup(code); } catch (e) {
+    app.innerHTML = `<div class="hero"><h1>${tr('그룹 유형 지도', 'Group type map')}</h1><p class="error">${esc(e instanceof Error ? e.message : String(e))}</p></div>`;
+    return;
+  }
+  if (state.view !== 'group' || state.groupCode !== code) return;
+  if (!info) {
+    app.innerHTML = `<div class="hero"><h1>${tr('그룹을 찾을 수 없어요', 'Group not found')}</h1><p>${tr('코드를 확인해 주세요. 만든 지 7일이 지났는데 아무도 없는 그룹은 지워져요.', 'Check the code. Groups with no members after 7 days are deleted.')}</p></div>`;
+    return;
+  }
+  const g = info;
+  const mine = myGroups().find((x) => x.code === code);
+  const me = g.members.find((m) => m.me);
+  const players = listPlayers().filter((p) => p.source !== 'pgn' || isNamed(p.name));
+  const link = `${location.origin}/g/${code}`;
+  const options = players.map((p) => {
+    const t = playerType(p);
+    return `<option value="${esc(p.key)}"${mine?.playerKey === p.key ? ' selected' : ''}>${esc(p.name)} (${SOURCE_NAME[p.source]})${t ? ` · ${t.code}` : tr(' · 유형 없음', ' · no type yet')}</option>`;
+  }).join('');
+  const joinForm = players.length
+    ? `<div class="row-gap"><select id="g-player" aria-label="${tr('어떤 아이디로', 'Which account')}">${options}</select>
+       <input id="g-nick" maxlength="16" value="${esc(mine?.nickname ?? '')}" placeholder="${tr('닉네임 (비우면 체스 아이디)', 'Nickname (blank = chess ID)')}" aria-label="${tr('닉네임', 'Nickname')}" />
+       <button class="btn primary" id="g-join">${me ? tr('내 항목 저장', 'Save my entry') : tr('이 그룹에 들어가기', 'Join this group')}</button>
+       ${me ? `<button class="ghost danger" id="g-leave">${tr('나가기', 'Leave')}</button>` : ''}</div>`
+    : `<p>${tr('먼저 내 아이디로 종합 분석을 해 주세요. 분석한 아이디로 그룹에 들어갈 수 있어요.', 'First run a combined analysis with your account; then you can join with it.')}</p><button class="btn primary" id="g-analyze">${tr('분석하러 가기', 'Go analyze')}</button>`;
+  app.innerHTML = `
+    <div class="hero"><h1>${esc(g.name)}</h1><p>${tr(`체스 유형 지도 · ${g.members.length}명 · 코드 ${code}`, `Chess type map · ${g.members.length} members · code ${code}`)}</p>
+      <div class="row-gap"><button class="btn" id="g-share">${tr('그룹 링크 공유', 'Share group link')}</button><span class="faint">${esc(link)}</span></div></div>
+    <div class="card card-pad">${groupMapHtml(g)}</div>
+    <div class="card card-pad sync-card"><div class="section-title">${me ? tr('내 항목', 'My entry') : tr('나도 들어가기', 'Join')}</div>
+      <p class="faint">${tr('이름은 기본으로 체스 아이디가 보이고, 원하면 닉네임으로 바꿀 수 있어요. 내 유형은 이 브라우저에서 종합 분석이 끝날 때마다 자동으로 갱신되고, 내 항목은 이 브라우저에서만 고칠 수 있어요.', 'Your chess ID is shown by default, or set a nickname. Your type updates automatically after each combined analysis in this browser, and only this browser can edit your entry.')}</p>
+      ${joinForm}<p class="faint" id="g-msg" aria-live="polite"></p></div>`;
+  const msg = (t: string) => { const el = $('#g-msg'); if (el) el.textContent = t; };
+  $('#g-share')?.addEventListener('click', async (e) => {
+    const text = tr(`${g.name} 체스 유형 지도에 들어와서 내 유형도 넣어 봐!`, `Join the ${g.name} chess type map and add your type!`);
+    try {
+      if (navigator.share) await navigator.share({ title: 'Stylish', text, url: link });
+      else { await navigator.clipboard.writeText(`${text}\n${link}`); (e.currentTarget as HTMLElement).textContent = tr('복사했어요', 'Copied'); }
+    } catch { /* 공유 창을 닫음 */ }
+  });
+  $('#g-analyze')?.addEventListener('click', () => setView('analyze'));
+  $('#g-join')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget as HTMLButtonElement; btn.disabled = true;
+    try {
+      await joinGroup(code, g.name, $<HTMLSelectElement>('#g-player')!.value, $<HTMLInputElement>('#g-nick')?.value.trim() || null);
+      renderGroup(code);
+    } catch (err) { msg(err instanceof Error ? err.message : String(err)); btn.disabled = false; }
+  });
+  $('#g-leave')?.addEventListener('click', async () => {
+    if (!confirm(tr('이 그룹에서 나갈까요?', 'Leave this group?'))) return;
+    try { await leaveGroup(code); renderGroup(code); } catch (err) { msg(err instanceof Error ? err.message : String(err)); }
+  });
+}
+
+/** 기기 동기화: 코드 하나로 여러 기기에서 같은 기록 */
+function syncCard() {
+  const st = syncState();
+  const body = st
+    ? `<p>${tr('이 기기는 동기화 코드로 연결돼 있어요. 종합 분석이 끝날 때마다 자동으로 올라가요.', 'This device is linked with a sync code. Records upload automatically after each combined analysis.')}</p>
+       <div class="sync-code"><code>${esc(st.code)}</code><button class="ghost small" id="sync-copy">${tr('복사', 'Copy')}</button></div>
+       <p class="faint">${st.lastSync ? tr(`마지막 동기화: ${new Date(st.lastSync).toLocaleString()}`, `Last synced: ${new Date(st.lastSync).toLocaleString()}`) : ''}</p>
+       <div class="row-gap"><button class="btn" id="sync-now">${tr('지금 동기화', 'Sync now')}</button><button class="ghost" id="sync-off">${tr('이 기기 연결 끊기', 'Unlink this device')}</button></div>`
+    : `<p>${tr('동기화 코드를 만들면 휴대폰과 PC 등 여러 기기에서 같은 기록을 볼 수 있어요. 가입은 필요 없어요.', 'Create a sync code to see the same records on your phone, PC and other devices. No sign-up needed.')}</p>
+       <div class="row-gap"><button class="btn primary" id="sync-create">${tr('동기화 코드 만들기', 'Create a sync code')}</button>
+       <input id="sync-input" maxlength="19" placeholder="${tr('받은 코드 입력', 'Enter a code')}" aria-label="${tr('받은 동기화 코드', 'Sync code')}" /><button class="btn" id="sync-connect">${tr('코드로 연결', 'Link with code')}</button></div>`;
+  return `<div class="card card-pad sync-card"><div class="section-title">${tr('기기 동기화', 'Sync across devices')}</div>${body}
+    <p class="faint">${tr('코드를 아는 사람은 누구나 이 기록을 볼 수 있으니 남에게 알려 주지 마세요. 마지막으로 쓴 지 30일이 지나면 서버에서 자동으로 지워져요. 코드를 잃어버리면 되찾을 수 없어요.', 'Anyone with the code can see these records, so keep it private. It is deleted from the server 30 days after last use and cannot be recovered if lost.')}</p>
+    <p class="faint" id="sync-msg" aria-live="polite"></p></div>`;
+}
+function wireSync() {
+  const msg = (t: string) => { const el = $('#sync-msg'); if (el) el.textContent = t; };
+  const busy = async (btn: HTMLButtonElement | null, fn: () => Promise<void>) => {
+    if (btn) btn.disabled = true;
+    try { await fn(); } catch (e) { msg(e instanceof Error ? (e.message === 'bad code' ? tr('코드를 다시 확인해 주세요 (16자).', 'Please check the code (16 characters).') : e.message) : String(e)); }
+    finally { if (btn) btn.disabled = false; }
+  };
+  $('#sync-create')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => { await createSync(); renderPlayers(); }));
+  $('#sync-connect')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => {
+    const n = await connectSync($<HTMLInputElement>('#sync-input')?.value ?? '');
+    renderPlayers(); msg(tr(`연결했어요. 플레이어 ${n}명의 기록을 합쳤어요.`, `Linked. Merged records for ${n} players.`));
+  }));
+  $('#sync-now')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => { const n = await syncNow(); renderPlayers(); msg(tr(`동기화했어요 (플레이어 ${n}명).`, `Synced (${n} players).`)); }));
+  $('#sync-off')?.addEventListener('click', () => { if (confirm(tr('이 기기의 연결을 끊을까요? 이 기기의 기록은 그대로 남아요.', 'Unlink this device? Records on this device stay.'))) { disconnectSync(); renderPlayers(); } });
+  $('#sync-copy')?.addEventListener('click', async (e) => { const st = syncState(); if (st) { await navigator.clipboard.writeText(st.code).catch(() => {}); (e.currentTarget as HTMLElement).textContent = tr('복사했어요', 'Copied'); } });
+}
+
 function wireBackup() {
+  wireSync();
+  wireGroups();
   $('#export-records')?.addEventListener('click', () => {
     const url = URL.createObjectURL(new Blob([exportRecords()], { type: 'application/json' }));
     const a = document.createElement('a');
@@ -1187,9 +1322,11 @@ function renderPlayers() {
         ${state.storageFull ? `<p class="error">${tr('브라우저 저장 공간이 가득 차서 일부 기록을 저장하지 못했습니다. 안 쓰는 플레이어를 지워 주세요.', 'Browser storage is full, so some records were not saved. Please delete players you no longer need.')}</p>` : ''}
         ${players.length ? `
           <div class="game-table-wrap"><table class="game-table players-table">${rows}</table></div>
-          <div class="account-foot"><span class="faint">${tr('기록은 이 브라우저에만 저장돼요. 다른 기기에서 보려면 기록 파일로 내보내고 그 기기에서 가져오세요.', 'Records are stored only in this browser. To see them on another device, export a record file and import it there.')}</span><span class="row-gap">${backupButtons()}<button class="ghost danger" id="clear-players">${tr('전체 삭제', 'Delete all')}</button></span></div>`
+          <div class="account-foot"><span class="faint">${tr('기록은 이 브라우저에만 저장돼요. 다른 기기에서 보려면 아래 동기화 코드를 쓰거나 기록 파일로 내보내세요.', 'Records are stored only in this browser. To see them on another device, use a sync code below or export a record file.')}</span><span class="row-gap">${backupButtons()}<button class="ghost danger" id="clear-players">${tr('전체 삭제', 'Delete all')}</button></span></div>`
         : `<p class="muted">${tr('아직 저장된 플레이어가 없습니다. 기보를 분석하거나 Chess.com·Lichess 아이디로 게임을 분석하면 여기에 쌓입니다.', 'No saved players yet. Analyze a game or load games by Chess.com or Lichess username and they will appear here.')}</p><button class="btn primary" id="go-analyze">${tr('분석하러 가기', 'Go analyze')}</button><div class="row-gap" style="margin-top:12px">${backupButtons(true)}</div>`}
-      </div>`;
+      </div>
+      ${groupsCard()}
+      ${syncCard()}`;
     app.querySelectorAll<HTMLTableRowElement>('tr[data-player]').forEach((tr) => tr.onclick = () => { state.playerKey = tr.dataset.player!; renderPlayers(); window.scrollTo({ top: 0 }); });
     wireBackup();
     $('#clear-players')?.addEventListener('click', () => { if (confirm(tr('저장된 모든 플레이어 기록을 지울까요?', 'Delete all saved player records?'))) { clearPlayers(); clearPractice(); state.storageFull = false; renderPlayers(); } });
@@ -1246,7 +1383,13 @@ function renderPlayers() {
     openQuiz(set.map((x) => ({ move: asQuizMove(x), game: x.game })), tr('이번 주 연습 과제', "This week's practice"), (i, ok) => { markPractice(p.key, set[i].id, ok); });
   });
   $('#update-games')?.addEventListener('click', () => updateGames(p));
+  $('[data-recap-image]')?.addEventListener('click', () => openRecapImage(gamesOf(p), p.name));
 }
+
+/** 아이디 고정 주소 (/u/사이트/아이디) */
+const pinUrl = (source: string, user: string) => `${location.origin}/u/${source === 'chesscom' ? 'chesscom' : 'lichess'}/${encodeURIComponent(user)}`;
+/** 북마클릿: Lichess 게임 화면의 주소를 Stylish 분석으로 넘긴다 (다른 사이트에서는 안내만) */
+const BOOKMARKLET = `javascript:(()=>{const u=location.href;if(!/^https:\/\/lichess\.org\/[a-zA-Z0-9]{8}/.test(u)){alert('Lichess 게임 화면에서 눌러 주세요 / Use this on a Lichess game page');return}open('${location.origin}/app?link='+encodeURIComponent(u))})()`;
 
 /** 프로필 상세 위: 다시 와서 할 일 (유형 변화, 이번 주 연습, 새 게임 분석) */
 function returnCard(p: SavedPlayer, games: SavedGame[]) {
@@ -1263,6 +1406,7 @@ function returnCard(p: SavedPlayer, games: SavedGame[]) {
   const recentType = recentP && recentP.counted >= 20 ? chessTypeOf(withRating(recentP, p.name)) : null;
   return `<div class="card card-pad return-card">
     ${weeklySection(games)}
+    ${monthlySection(games, p.name)}
     ${change}
     ${challengeSection(p.key, recentType)}
     ${typeDexSection(p.key)}
@@ -1277,6 +1421,12 @@ function returnCard(p: SavedPlayer, games: SavedGame[]) {
       <button class="btn" id="update-games">${tr('새 게임 불러오기', 'Load new games')}</button>
     </div>` : ''}
     <p class="faint" id="update-msg"></p>
+    ${online ? `<div class="return-row"><div><b>${tr('내 고정 주소', 'My permanent link')}</b>
+        <span class="faint">${tr('즐겨찾기 해 두면 열 때마다 새로 둔 게임만 바로 분석해요.', 'Bookmark it: every time you open it, only your new games are analyzed.')}</span></div>
+        <div class="row-gap"><code class="pin-url">${esc(pinUrl(p.source, p.name))}</code><button class="ghost small" data-copy="${esc(pinUrl(p.source, p.name))}">${tr('복사', 'Copy')}</button></div></div>
+      <div class="return-row bookmarklet-row"><div><b>${tr('Lichess 북마클릿 (PC)', 'Lichess bookmarklet (PC)')}</b>
+        <span class="faint">${tr('아래 버튼을 브라우저 즐겨찾기 줄로 끌어다 놓으세요. Lichess에서 게임을 보다가 누르면 그 판이 바로 Stylish로 와서 분석돼요.', 'Drag the button to your bookmarks bar. Click it while viewing a Lichess game to analyze that game in Stylish.')}</span></div>
+        <a class="btn bookmarklet" href="${esc(BOOKMARKLET)}" onclick="return false" draggable="true">♞ ${tr('Stylish로 보기', 'Open in Stylish')}</a></div>` : ''}
   </div>`;
 }
 
@@ -1336,6 +1486,8 @@ document.addEventListener('click', (e) => {
   const chal = (e.target as HTMLElement).closest<HTMLElement>('[data-challenge]');
   if (chal && state.playerKey) { const [axis, toward, pct] = chal.dataset.challenge!.split(':').map(Number); setChallenge(state.playerKey, axis, toward as 0 | 1, pct); renderPlayers(); }
   if ((e.target as HTMLElement).closest('[data-challenge-clear]') && state.playerKey) { clearChallenge(state.playerKey); renderPlayers(); }
+  const cp = (e.target as HTMLElement).closest<HTMLElement>('[data-copy]');
+  if (cp) navigator.clipboard.writeText(cp.dataset.copy!).then(() => { cp.textContent = tr('복사했어요', 'Copied'); }).catch(() => {});
   const op = (e.target as HTMLElement).closest<HTMLElement>('[data-open-player]');
   if (op) { setView('players'); state.playerKey = op.dataset.openPlayer!; renderPlayers(); }
   if ((e.target as HTMLElement).closest('[data-resume-batch]')) { const pb = loadPendingBatch(); if (pb) startBatch(pb.games, { source: pb.source, user: pb.user }); }
@@ -1372,16 +1524,30 @@ function readEntryQuery() {
     state.view = view;
     document.querySelectorAll<HTMLButtonElement>('.nav button').forEach((b) => b.classList.toggle('active', b.dataset.nav === view));
   }
+  // 그룹 유형 지도 (/g/코드 → /app?g=코드)
+  const g = q.get('g')?.trim().toUpperCase();
+  if (g && /^[A-Z2-9]{6}$/.test(g)) { state.view = 'group'; state.groupCode = g; }
   // 친구가 보낸 비교 신청: 이 탭에서 기억해 두고, 내 결과가 나오면 나란히 보여준다
   const vs = q.get('vs') ? decodeVs(q.get('vs')!) : null;
   if (vs) { saveVs(vs); saveFriend(vs); if (!q.get('source')) state.tab = 'lichessUser'; }
   const source = q.get('source'), user = q.get('user')?.trim();
+  let entry: 'list' | 'pinned' | 'link' | null = null;
   if ((source === 'lichess' || source === 'chesscom') && user) {
-    state.tab = source === 'chesscom' ? 'chesscom' : 'lichessUser';
-    state.account = { source, user, games: [], next: null, loading: true, error: null, selected: new Set(), timeFilter: 'all' };
+    // 아이디 고정 주소(/u/…): 이미 분석한 아이디면 프로필로 가서 새 게임만 바로 분석
+    const saved = q.get('pin') === '1' ? getPlayer(playerKey(source, user)) : null;
+    if (saved) { state.view = 'players'; state.playerKey = saved.key; entry = 'pinned'; }
+    else {
+      state.tab = source === 'chesscom' ? 'chesscom' : 'lichessUser';
+      state.account = { source, user, games: [], next: null, loading: true, error: null, selected: new Set(), timeFilter: 'all' };
+      state.pinHint = q.get('pin') === '1' ? { source, user } : null;
+      entry = 'list';
+    }
   }
+  // 북마클릿: Lichess 게임 화면에서 누르면 그 판을 바로 분석
+  const link = q.get('link');
+  if (!entry && link && /^https:\/\/lichess\.org\/[a-zA-Z0-9]{8}/.test(link)) { state.tab = 'lichess'; state.lichessUrl = link; entry = 'link'; }
   if (q.size) history.replaceState(null, '', location.pathname + location.hash);
-  return !!state.account;
+  return entry;
 }
 
 /** 앱 머리글·바닥글(app.html)을 현재 언어로, 언어 전환 버튼 */
@@ -1415,10 +1581,12 @@ applyChromeLang();
 
 // 엔진은 첫 화면에서 미리 띄워 둔다 (WASM 다운로드·초기화 시간 단축)
 getEngine().catch(() => {});
-const fromLanding = readEntryQuery();
+const entry = readEntryQuery();
 render();
-// 첫 화면에서 왔으면 최근 10판을 미리 골라 둔다 (버튼 한 번이면 종합 분석 → 체스 유형)
-if (fromLanding) loadMore().then(() => {
+if (entry === 'pinned') { const p = state.playerKey ? getPlayer(state.playerKey) : null; if (p) updateGames(p); }
+if (entry === 'link') onGo();
+// 첫 화면·아이디 주소에서 왔으면 최근 10판을 미리 골라 둔다 (버튼 한 번이면 종합 분석 → 체스 유형)
+if (entry === 'list') loadMore().then(() => {
   const a = state.account;
   if (a && !a.selected.size && a.games.length) { a.selected = new Set(a.games.slice(0, 10).map((g) => g.id)); renderInput(); }
 });

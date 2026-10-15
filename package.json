@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.117.3",
     "chess.js": "^1.4.0",
     "chessground": "^9.2.1",
     "onnxruntime-web": "^1.30.0"
