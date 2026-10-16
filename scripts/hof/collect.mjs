@@ -32,6 +32,7 @@ async function get(url) {
     const r = await fetch(url, { headers: { 'User-Agent': UA } });
     if (r.ok) return r.json();
     if (r.status === 429) { await sleep(5000 * (t + 1)); continue; }
+    if (r.status === 404) return null; // 그달 대국 목록이 없거나 일시적으로 안 열림 → 건너뛴다
     throw new Error(`${r.status} ${url}`);
   }
   throw new Error(`429 ${url}`);
@@ -53,7 +54,9 @@ for (const p of players) {
   const got = { bullet: [], blitz: [], rapid: [] };
   for (const url of [...archives].reverse()) {
     if (CLASSES.every((c) => got[c].length >= GAMES)) break;
-    const { games } = await get(url);
+    const month = await get(url);
+    if (!month) continue;
+    const { games } = month;
     for (const g of [...games].reverse()) {
       if (g.rules !== 'chess' || !g.rated || !g.pgn || /\[FEN /.test(g.pgn)) continue;
       const cls = timeClass(g.time_control);
