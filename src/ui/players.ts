@@ -101,7 +101,8 @@ export function gamesOf(p: SavedPlayer): SavedGame[] {
 // ───────────── 기록 옮기기 (다른 기기·브라우저로) ─────────────
 
 /** 이 브라우저에 저장된 Stylish 기록 키: 플레이어 성향, 연습 과제, 직접 입력한 레이팅 */
-const BACKUP_KEYS = ['stylish.players.v1', 'stylish.practice.v1', 'stylish.rating.v1'];
+// 오늘의 유형 맞히기 기록(연속 기록)도 함께 옮긴다
+const BACKUP_KEYS = ['stylish.players.v1', 'stylish.practice.v1', 'stylish.rating.v1', 'stylish.daily.v1'];
 
 export function exportRecords(): string {
   const data: Record<string, unknown> = {};

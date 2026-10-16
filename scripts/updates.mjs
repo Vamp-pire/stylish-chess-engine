@@ -4,6 +4,10 @@ export const UPDATES = [
   {
     date: '2026-10-16',
     ko: [
+      ['오늘의 유형 맞히기', [
+        '<b>하루 한 문제</b>: 익명 Lichess 플레이어가 실제로 둔 수 4개를 보고 그 사람의 4글자 유형을 맞혀요. 수 하나가 글자 하나의 단서이고, 기회는 4번이에요. 틀릴 때마다 그 수의 스타일 힌트가 열려요.',
+        '결과는 🟩⬜ 이모지로 복사해 공유할 수 있고(답은 안 보여요), 연속 정답 기록과 오늘 전체 참여자의 정답률·분포도 볼 수 있어요. 문제는 한국 시간 자정마다 바뀌어요. 메뉴 <b>커뮤니티 → 오늘의 유형 맞히기</b>에서 열 수 있어요.',
+      ]],
       ['메뉴 개편', [
         '맨 위 메뉴를 <b>분석 · 내 기록 · 커뮤니티 · 알아보기</b> 네 가지로 정리했어요. PC에서는 마우스를 올리거나 누르면 펼쳐지고, 휴대폰에서는 ☰ 버튼으로 열어요. 키보드(Tab·방향키·Esc)로도 쓸 수 있어요.',
         '프로필 화면 맨 아래에 숨어 있던 <b>그룹 유형 지도</b>, <b>기기 동기화·백업</b>과 <b>연습 과제</b>, <b>월간 결산</b>, <b>유형 비교</b>, <b>Lichess 북마클릿</b>을 각각 메뉴에서 바로 열 수 있어요.',
@@ -11,6 +15,10 @@ export const UPDATES = [
       ]],
     ],
     en: [
+      ['Daily type guess', [
+        '<b>One puzzle a day</b>: look at four moves an anonymous Lichess player actually played and guess their four-letter type. Each move is a clue to one letter, and you get four tries. Every wrong guess unlocks a style hint for a move.',
+        'Copy your result as 🟩⬜ emoji to share (no spoilers), and see your streak plus today\'s solve rate and distribution for everyone. A new puzzle arrives at midnight Korea time. Open it from <b>Community → Daily type guess</b>.',
+      ]],
       ['New menu', [
         'The top menu is now four groups: <b>Analyze · My records · Community · Learn</b>. Hover or click to open on PC, or use the ☰ button on phones. Keyboard (Tab, arrows, Esc) works too.',
         '<b>Group type maps</b>, <b>Sync & backup</b>, <b>Practice</b>, <b>Monthly recap</b>, <b>Compare types</b> and the <b>Lichess bookmarklet</b>, which were tucked away at the bottom of the profile page, now each open straight from the menu.',

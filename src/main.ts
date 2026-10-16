@@ -37,13 +37,14 @@ import { findMissed, openQuiz } from './ui/quiz';
 import { openModal } from './ui/modal';
 import { renderCoach, leaveCoach } from './ui/coachView';
 import { menuHtml, menuGroupOf } from './ui/menu.js';
+import { renderDaily, leaveDaily } from './ui/daily';
 import { STYLES, STYLE_KEYS, RISK_KINDS, RISK_LABEL, QUALITY_LABEL, type StyleKey, type QualityKey } from './core/styles';
 
 // ───────────── 상태 ─────────────
 
-type View = 'analyze' | 'coach' | 'guide' | 'about' | 'players' | 'group' | 'compare' | 'bookmarklet' | 'practice' | 'recap' | 'sync' | 'groups';
+type View = 'analyze' | 'coach' | 'guide' | 'about' | 'players' | 'group' | 'compare' | 'bookmarklet' | 'practice' | 'recap' | 'sync' | 'groups' | 'daily';
 /** 주소(?view=)로 바로 열 수 있는 화면 */
-const URL_VIEWS: View[] = ['coach', 'guide', 'about', 'players', 'compare', 'bookmarklet', 'practice', 'recap', 'sync', 'groups'];
+const URL_VIEWS: View[] = ['coach', 'guide', 'about', 'players', 'compare', 'bookmarklet', 'practice', 'recap', 'sync', 'groups', 'daily'];
 type InputTab = 'paste' | 'samples' | 'file' | 'lichess' | 'chesscom' | 'lichessUser';
 
 interface PlyInfo { san: string; color: 'w' | 'b'; from: string; to: string; fenAfter: string; moveNumber: number }
@@ -228,6 +229,8 @@ window.addEventListener('popstate', () => {
 function render() {
   cg?.destroy(); cg = null;
   if (state.view !== 'coach') leaveCoach();
+  if (state.view !== 'daily') leaveDaily();
+  if (state.view === 'daily') { renderDaily(app); return; }
   if (state.view === 'coach') { renderCoach(app, { openReview: openCoachReview }); return; }
   if (state.view === 'guide') { app.innerHTML = renderGuide(); return; }
   // 소개는 정적 페이지(/about, /en/about)로

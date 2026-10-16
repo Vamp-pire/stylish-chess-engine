@@ -11,7 +11,7 @@ const SITE = (process.env.SITE_URL ?? 'https://stylish-chess-engine.pages.dev').
 const ADSENSE = 'ca-pub-8762647584529985';
 const CONTACT_FORM = 'https://forms.gle/d9PbZSYZKkzpykgq8';
 const REPO = 'https://github.com/Vamp-pire/stylish-chess-engine';
-const UPDATED = '2026-10-15';
+const UPDATED = '2026-10-16';
 const SEARCH_CONSOLE = 'T4-fwXM8oe_n6an574Sidq3X6cvTdKS9b5MsTB0bvgw';
 const PRETENDARD = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css';
 const GROUP_ORDER = ['AW', 'AS', 'PW', 'PS'];
@@ -486,12 +486,13 @@ write('/privacy', page({
 <li><b>Chess.com·Lichess</b>: 아이디로 게임을 불러올 때, 방문자의 브라우저가 입력한 아이디로 해당 사이트의 공개 API에 직접 요청합니다. 각 사이트의 개인정보처리방침이 적용됩니다.</li>
 <li><b>Cloudflare</b>: 사이트 호스팅 업체로, 서비스 제공과 보안을 위해 접속 기록(IP 주소, 브라우저 정보 등)을 처리할 수 있습니다.</li>
 <li><b>Cloudflare Web Analytics</b>: 방문자 수와 많이 본 페이지 같은 통계를 보기 위해 사용합니다. 쿠키를 쓰지 않으며 개인을 식별할 수 있는 정보를 모으지 않습니다.</li>
-<li><b>Supabase (그룹 유형 지도·기기 동기화를 쓸 때만)</b>: 이 두 기능을 쓰면 서울에 있는 Supabase 데이터베이스에 아래 정보가 저장됩니다. 가입은 없고, 브라우저마다 무작위 익명 ID가 만들어집니다.
+<li><b>Supabase (그룹 유형 지도·기기 동기화·오늘의 유형 맞히기를 쓸 때만)</b>: 이 기능들을 쓰면 서울에 있는 Supabase 데이터베이스에 아래 정보가 저장됩니다. 가입은 없고, 브라우저마다 무작위 익명 ID가 만들어집니다.
 <ul>
 <li><b>그룹 유형 지도</b>: 그룹 이름, 그룹에 넣은 체스 아이디(또는 직접 정한 닉네임)·사이트·4글자 유형·축 백분위·평가한 수. 그룹 링크를 아는 사람은 누구나 볼 수 있습니다. '나가기'를 누르면 바로 지워지고, 만든 지 7일이 지났는데 아무도 없는 그룹은 자동으로 지워집니다.</li>
 <li><b>기기 동기화</b>: 이 브라우저에 저장된 기록(플레이어 성향·연습 과제·직접 입력한 레이팅). 동기화 코드 자체는 저장하지 않고 암호화한 값(해시)으로만 찾습니다. 마지막으로 쓴 지 30일이 지나면 자동으로 지워집니다.</li>
+<li><b>오늘의 유형 맞히기</b>: 문제 번호, 몇 번 만에 풀었는지, 맞혔는지 여부(전체 통계용). 익명 ID당 하루 한 번만 기록되고 90일이 지나면 자동으로 지워집니다.</li>
 </ul></li>
-<li><b>Cloudflare Turnstile</b>: 위 두 기능을 처음 쓸 때 사람인지 확인합니다(대부분 보이지 않게 자동 통과). Cloudflare의 개인정보처리방침(<a href="https://www.cloudflare.com/privacypolicy/">cloudflare.com/privacypolicy</a>)이 적용됩니다.</li>
+<li><b>Cloudflare Turnstile</b>: 위 기능들을 처음 쓸 때 사람인지 확인합니다(대부분 보이지 않게 자동 통과). Cloudflare의 개인정보처리방침(<a href="https://www.cloudflare.com/privacypolicy/">cloudflare.com/privacypolicy</a>)이 적용됩니다.</li>
 <li><b>Microsoft Clarity</b>: 사이트를 더 쓰기 편하게 고치기 위해, 페이지에서의 클릭·스크롤·이동 같은 이용 행태를 익명으로 기록하고 분석합니다. 이를 위해 쿠키를 사용합니다. 입력한 글자(아이디 등)는 기록하지 않도록 가려지며, Microsoft의 개인정보처리방침(<a href="https://privacy.microsoft.com/privacystatement">privacy.microsoft.com</a>)이 적용됩니다. 브라우저에서 쿠키를 차단하면 수집되지 않습니다.</li>
 <li><b>Google Forms</b>: 문의 양식을 이용하면 입력한 내용이 Google Forms에 저장됩니다. 연락처는 선택 항목입니다.</li>
 </ul>
@@ -711,10 +712,11 @@ write('/en/privacy', page({
 <li><b>Chess.com and Lichess</b>: when you load games by username, your browser sends that username directly to the site's public API. Their privacy policies apply.</li>
 <li><b>Cloudflare</b>: our hosting provider may process access logs (IP address, browser information, etc.) to provide the service and for security.</li>
 <li><b>Cloudflare Web Analytics</b>: used to see statistics such as visitor counts and popular pages. It does not use cookies and does not collect personally identifiable information.</li>
-<li><b>Supabase (only when you use group type maps or device sync)</b>: these two features store the data below in a Supabase database in Seoul. There is no sign-up; each browser gets a random anonymous ID.
+<li><b>Supabase (only when you use group type maps, device sync or the daily type guess)</b>: these features store the data below in a Supabase database in Seoul. There is no sign-up; each browser gets a random anonymous ID.
 <ul>
 <li><b>Group type maps</b>: the group name, and the chess ID (or a nickname you choose), site, four-letter type, axis percentiles and rated-move count you add to a group. Anyone with the group link can see them. 'Leave' deletes your entry immediately, and groups with no members 7 days after creation are deleted automatically.</li>
 <li><b>Device sync</b>: the records stored in this browser (player tendencies, practice problems, ratings you entered). The sync code itself is not stored, only a hashed value used to find your data. It is deleted automatically 30 days after last use.</li>
+<li><b>Daily type guess</b>: the puzzle number, how many tries you took and whether you solved it (for global stats). One record per anonymous ID per day, deleted automatically after 90 days.</li>
 </ul></li>
 <li><b>Cloudflare Turnstile</b>: checks that you are human the first time you use those features (usually invisible). Cloudflare's privacy policy (<a href="https://www.cloudflare.com/privacypolicy/">cloudflare.com/privacypolicy</a>) applies.</li>
 <li><b>Microsoft Clarity</b>: to make the site easier to use, we record and analyze how pages are used (clicks, scrolling, navigation) anonymously. It uses cookies. Text you type (such as usernames) is masked, and Microsoft's privacy statement (<a href="https://privacy.microsoft.com/privacystatement">privacy.microsoft.com</a>) applies. Blocking cookies in your browser stops this collection.</li>

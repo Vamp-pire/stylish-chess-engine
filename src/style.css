@@ -621,3 +621,35 @@ footer .footer-links a { color: inherit; }
 .bookmarklet-card .steps { margin: 0 0 16px; padding-left: 20px; display: grid; gap: 8px; }
 kbd { padding: 1px 6px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; background: var(--surface-2); font-family: var(--mono); font-size: 12px; }
 .topbar .mm { margin-left: auto; }
+
+/* ── 오늘의 유형 맞히기 ── */
+.dg { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); gap: 16px; align-items: start; }
+.dg-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+.dg-tabs button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); cursor: pointer; font-weight: 600; color: var(--text-2); }
+.dg-tabs button small { font-size: 11px; color: var(--text-3); font-weight: 500; }
+.dg-tabs button.active { border-color: var(--accent); color: var(--text); background: var(--accent-soft); }
+.dg-board { max-width: 520px; margin: 0 auto; }
+.dg-board .cg { width: 100%; aspect-ratio: 1; position: relative; }
+.dg-move { margin: 12px 0 6px; }
+.dg-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 14px; }
+.dg-hint .faint { flex-basis: 100%; }
+.dg-rows { display: grid; gap: 6px; margin-bottom: 14px; }
+.dg-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 10px; background: var(--surface-2); }
+.dg-row code { font-family: var(--mono); font-size: 18px; font-weight: 700; letter-spacing: .12em; }
+.dg-row span { font-size: 18px; letter-spacing: 2px; }
+.dg-guess { display: grid; gap: 12px; }
+.dg-axis { display: grid; gap: 4px; }
+.dg-axis .seg { display: grid; grid-template-columns: 1fr 1fr; }
+.dg-axis .seg button { padding: 10px 8px; font-size: 16px; font-weight: 700; }
+.dg-axis .seg small { font-size: 12px; font-weight: 500; color: var(--text-3); margin-left: 4px; }
+.dg-done { display: grid; gap: 10px; text-align: center; }
+.dg-result { font-size: 18px; font-weight: 700; margin: 0; }
+.dg-answer { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 20px; font-weight: 800; color: var(--text); text-decoration: none; }
+.dg-stats { margin-top: 6px; }
+.dg-global { display: grid; gap: 6px; text-align: left; }
+.dg-dist { display: grid; gap: 4px; }
+.dg-dist div { display: grid; grid-template-columns: 16px 1fr 32px; align-items: center; gap: 6px; font-size: 13px; }
+.dg-dist i { display: block; height: 14px; border-radius: 4px; background: var(--text-3); }
+.dg-dist i.me { background: var(--accent); }
+.dg-dist em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 860px) { .dg { grid-template-columns: minmax(0, 1fr); } }

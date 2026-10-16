@@ -20,6 +20,7 @@ export const MENU = [
     { ko: '기기 동기화·백업', en: 'Sync & backup', dko: '코드 하나로 휴대폰과 PC에서 같은 기록 보기', den: 'See the same records on your phone and PC with one code', href: (l) => app(l, 'view=sync'), view: 'sync', isNew: true },
   ] },
   { key: 'community', ko: '커뮤니티', en: 'Community', items: [
+    { ko: '오늘의 유형 맞히기', en: 'Daily type guess', dko: '하루 한 문제, 수 4개로 유형 맞히고 결과 공유', den: 'One puzzle a day: guess the type from four moves and share', href: (l) => app(l, 'view=daily'), view: 'daily', isNew: true },
     { ko: '그룹 유형 지도', en: 'Group type maps', dko: '친구·커뮤니티의 유형을 16칸 지도로', den: "Your friends' and community's types on a 16-cell map", href: (l) => app(l, 'view=groups'), view: 'groups', isNew: true },
     { ko: '코치와 두기', en: 'Play the coach', dko: '수마다 스타일을 알려 주는 코치와 대국', den: 'A coach that names the style of every move', href: (l) => app(l, 'view=coach'), view: 'coach' },
   ] },
