@@ -1,7 +1,7 @@
 // 명예의 전당 데이터 만들기: hall-of-fame 워크플로의 분석 결과(hof-all.jsonl.gz)와 모은 대국(hof-games.jsonl.gz)으로
 // 선수마다 종합·시간대별 유형, 같은 레이팅 대비 두드러진 지표, 글자마다 대표 수(실제 대국 링크), 자주 둔 오프닝을 계산해
 // src/data/hof.json으로 저장한다. 정적 페이지(scripts/build-pages.mjs)가 이 파일로 /hall-of-fame/ 페이지를 만든다.
-// 사용: npx tsx scripts/hof/build-hof.mts <hof-all.jsonl.gz> <hof-games.jsonl.gz>
+// 사용: npx tsx scripts/hof/build-hof.mts <hof-all.jsonl.gz> <hof-games.jsonl.gz> [<추가 분석> <추가 대국> ...]  (판 수를 늘린 묶음을 짝지어 더 넣으면 합친다)
 import { createReadStream, readFileSync, writeFileSync } from 'node:fs';
 import { createGunzip } from 'node:zlib';
 import { createInterface } from 'node:readline';
@@ -24,8 +24,12 @@ async function readGz<T>(f: string): Promise<T[]> {
   for await (const l of createInterface({ input: createReadStream(f).pipe(createGunzip()), crlfDelay: Infinity })) if (l.trim()) out.push(JSON.parse(l));
   return out;
 }
-const shards = await readGz<Shard>(process.argv[2]);
-const gameSets = new Map((await readGz<{ id: string; games: string[] }>(process.argv[3])).map((o) => [o.id, o.games]));
+const shards: Shard[] = [];
+const gameSets = new Map<string, string[]>();
+for (let i = 2; i + 1 < process.argv.length; i += 2) {
+  shards.push(...await readGz<Shard>(process.argv[i]));
+  for (const o of await readGz<{ id: string; games: string[] }>(process.argv[i + 1])) gameSets.set(o.id, o.games);
+}
 const meta: PlayerMeta[] = JSON.parse(readFileSync('scripts/hof/players.json', 'utf8'));
 
 const toMove = (r: Rec) => ({

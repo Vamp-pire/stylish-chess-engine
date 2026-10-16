@@ -9,9 +9,13 @@ on:
       games:
         description: '시간대(불릿·블리츠·래피드)당 최근 판 수'
         default: '150'
+      prev_run:
+        description: '판 수를 늘릴 때: 이전 실행 번호 (그 실행에서 모은 대국은 빼고 새 판만 모은다). 처음이면 비워 둔다'
+        default: ''
 
 permissions:
   contents: read
+  actions: read # 이전 실행의 아티팩트(이미 모은 대국) 받기
 
 jobs:
   collect:
@@ -22,13 +26,27 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Collect public Chess.com games
+      - name: Check inputs
         # 입력값은 셸 코드에 바로 넣지 않고 환경 변수로 받아 형식을 확인한다 (명령 주입 방지)
         env:
           GAMES: ${{ inputs.games }}
+          PREV: ${{ inputs.prev_run }}
         run: |
           [[ "$GAMES" =~ ^[0-9]{1,4}$ ]] || { echo "games 형식 오류"; exit 1; }
-          node scripts/hof/collect.mjs hof-games.jsonl.gz "$GAMES" 15
+          [[ -z "$PREV" || "$PREV" =~ ^[0-9]{1,15}$ ]] || { echo "prev_run 형식 오류"; exit 1; }
+      - name: Download previously collected games
+        if: ${{ inputs.prev_run != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: hof-games
+          path: prev
+          run-id: ${{ inputs.prev_run }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Collect public Chess.com games
+        env:
+          GAMES: ${{ inputs.games }}
+        run: |
+          node scripts/hof/collect.mjs hof-games.jsonl.gz "$GAMES" 15 $(ls prev/*.jsonl.gz 2>/dev/null)
       - uses: actions/upload-artifact@v4
         with:
           name: hof-games
