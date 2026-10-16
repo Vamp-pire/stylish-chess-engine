@@ -12,6 +12,7 @@ export const UPDATES = [
         '맨 위 메뉴를 <b>분석 · 내 기록 · 커뮤니티 · 알아보기</b> 네 가지로 정리했어요. PC에서는 마우스를 올리거나 누르면 펼쳐지고, 휴대폰에서는 ☰ 버튼으로 열어요. 키보드(Tab·방향키·Esc)로도 쓸 수 있어요.',
         '프로필 화면 맨 아래에 숨어 있던 <b>그룹 유형 지도</b>, <b>기기 동기화·백업</b>과 <b>연습 과제</b>, <b>월간 결산</b>, <b>유형 비교</b>, <b>Lichess 북마클릿</b>을 각각 메뉴에서 바로 열 수 있어요.',
         '<b>유형 궁합 모아 보기</b>와 <b>유형별 오프닝 모아 보기</b> 페이지를 새로 만들었어요.',
+        '휴대폰 첫 화면에서 카드 그림을 아래로 옮겨 <b>아이디 입력창이 바로 보이게</b> 했어요.',
       ]],
     ],
     en: [
@@ -23,6 +24,7 @@ export const UPDATES = [
         'The top menu is now four groups: <b>Analyze · My records · Community · Learn</b>. Hover or click to open on PC, or use the ☰ button on phones. Keyboard (Tab, arrows, Esc) works too.',
         '<b>Group type maps</b>, <b>Sync & backup</b>, <b>Practice</b>, <b>Monthly recap</b>, <b>Compare types</b> and the <b>Lichess bookmarklet</b>, which were tucked away at the bottom of the profile page, now each open straight from the menu.',
         'New pages collecting <b>all type matchups</b> and <b>openings for every type</b>.',
+        'On phones, the home page now shows the <b>username box first</b>, with the type cards below it.',
       ]],
     ],
   },
