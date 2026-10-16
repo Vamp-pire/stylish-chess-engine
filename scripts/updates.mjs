@@ -5,7 +5,7 @@ export const UPDATES = [
     date: '2026-10-16',
     ko: [
       ['오늘의 유형 맞히기', [
-        '<b>하루 한 문제</b>: 익명 Lichess 플레이어가 실제로 둔 수 4개를 보고 그 사람의 4글자 유형을 맞혀요. 수 하나가 글자 하나의 단서이고, 기회는 4번이에요. 틀릴 때마다 그 수의 스타일 힌트가 열려요.',
+        '<b>하루 한 문제</b>: 익명 Lichess 플레이어가 실제로 둔 수 4개를 보고 그 사람의 4글자 유형을 맞혀요. 수 하나가 글자 하나의 단서이고, 기회는 4번이고, 낼 때마다 <b>몇 글자가 맞았는지만</b> 알려 줘요(어느 글자인지는 비밀). 틀릴 때마다 그 수의 스타일 힌트가 열려요.',
         '결과는 🟩⬜ 이모지로 복사해 공유할 수 있고(답은 안 보여요), 연속 정답 기록과 오늘 전체 참여자의 정답률·분포도 볼 수 있어요. 문제는 한국 시간 자정마다 바뀌어요. 메뉴 <b>커뮤니티 → 오늘의 유형 맞히기</b>에서 열 수 있어요.',
       ]],
       ['메뉴 개편', [
@@ -17,7 +17,7 @@ export const UPDATES = [
     ],
     en: [
       ['Daily type guess', [
-        '<b>One puzzle a day</b>: look at four moves an anonymous Lichess player actually played and guess their four-letter type. Each move is a clue to one letter, and you get four tries. Every wrong guess unlocks a style hint for a move.',
+        '<b>One puzzle a day</b>: look at four moves an anonymous Lichess player actually played and guess their four-letter type. Each move is a clue to one letter, and you get four tries. Each guess only tells you <b>how many</b> letters are right, not which. Every wrong guess unlocks a style hint for a move.',
         'Copy your result as 🟩⬜ emoji to share (no spoilers), and see your streak plus today\'s solve rate and distribution for everyone. A new puzzle arrives at midnight Korea time. Open it from <b>Community → Daily type guess</b>.',
       ]],
       ['New menu', [

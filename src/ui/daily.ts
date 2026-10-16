@@ -1,6 +1,7 @@
 // 오늘의 유형 맞히기 (3단계): 익명 Lichess 플레이어가 둔 수 4개를 보고 그 사람의 4글자 유형을 맞힌다.
 // 문제는 public/daily/p/{번호}.json (scripts/daily/build-daily.mts로 만든 묶음), 한국 시간 자정마다 바뀐다.
 // 수 하나가 글자 하나의 단서(1번 수 → 첫째 글자 …). 기회 4번, 틀릴 때마다 수의 스타일 힌트가 하나씩 열린다.
+// 결과는 '몇 글자 맞았는지'만 알려 준다 (어느 글자인지 알려 주면 두 번째에 반드시 맞혀서 너무 쉽다).
 // 기록(연속 기록·분포)은 이 브라우저에, 전체 통계는 Supabase(익명 ID당 하루 한 번)에 남는다.
 import { Chessground } from 'chessground';
 import type { Api as CgApi } from 'chessground/api';
@@ -63,7 +64,7 @@ export async function renderDaily(app: HTMLElement) {
   }
   if (root !== app) return;
   const rec = load().days[day];
-  pick = rec && !rec.done ? [...(rec.g.at(-1) ?? '')].map((c, i) => (c === puzzle!.code[i] ? c : '')) : ['', '', '', ''];
+  pick = rec && !rec.done ? [...(rec.g.at(-1) ?? '')] : ['', '', '', ''];
   if (pick.length !== 4) pick = ['', '', '', ''];
   shown = 0;
   stats = null;
@@ -71,8 +72,10 @@ export async function renderDaily(app: HTMLElement) {
   if (rec?.done) loadStats(rec);
 }
 
-/** 글자별 결과 🟩/⬜ */
-const marks = (guess: string, code: string) => [...guess].map((c, i) => (c === code[i] ? '🟩' : '⬜')).join('');
+/** 맞은 글자 수 (어느 자리인지는 알려 주지 않는다) */
+const hits = (guess: string, code: string) => [...guess].filter((c, i) => c === code[i]).length;
+/** 결과 이모지: 맞은 개수만큼 🟩를 앞에 (자리와 무관) */
+const marks = (guess: string, code: string) => '🟩'.repeat(hits(guess, code)) + '⬜'.repeat(4 - hits(guess, code));
 
 function draw() {
   if (!root || !puzzle) return;
@@ -99,7 +102,7 @@ function draw() {
         ${hint}
       </div>
       <div class="card card-pad dg-side">
-        ${rec.g.length ? `<div class="dg-rows">${rec.g.map((g) => `<div class="dg-row"><code>${g}</code><span>${marks(g, p.code)}</span></div>`).join('')}</div>` : ''}
+        ${rec.g.length ? `<div class="dg-rows">${rec.g.map((g) => `<div class="dg-row"><code>${g}</code><span title="${tr('맞은 글자 수 (자리는 비밀)', 'Letters right (positions hidden)')}">${marks(g, p.code)} <b>${tr(`${hits(g, p.code)}개 맞음`, `${hits(g, p.code)}/4`)}</b></span></div>`).join('')}</div>` : ''}
         ${rec.done ? doneHtml(p, rec, st) : guessHtml(rec)}
       </div>
     </div>`;
@@ -114,9 +117,13 @@ function draw() {
 function guessHtml(rec: DayRec) {
   const axes = TYPE_DATA.axes;
   const left = TRIES - rec.g.length;
+  const guess = pick.join('');
+  const dup = pick.every(Boolean) && rec.g.includes(guess);
   return `<div class="dg-guess">
+    <p class="faint">${tr('제출하면 4글자 중 <b>몇 개가 맞았는지</b>만 알려 줘요. 어느 글자인지는 수를 보고 추리하세요.', 'After each guess you only learn <b>how many</b> letters are right, not which. Work out the rest from the moves.')}</p>
     ${axes.map((a, i) => `<div class="dg-axis"><span class="faint">${esc(a.question ?? '')}</span><div class="seg">${a.letters.map((l, k) => `<button type="button" class="${pick[i] === l ? 'active' : ''}" data-dg-letter="${i}:${l}" aria-pressed="${pick[i] === l}">${l} <small>${esc(a.names[k])}</small></button>`).join('')}</div></div>`).join('')}
-    <button class="btn primary" id="dg-submit" ${pick.every(Boolean) ? '' : 'disabled'}>${tr(`${pick.every(Boolean) ? pick.join('') : '____'} 제출 (남은 기회 ${left})`, `Submit ${pick.every(Boolean) ? pick.join('') : '____'} (${left} left)`)}</button>
+    ${dup ? `<p class="faint">${tr('이미 낸 답이에요. 글자를 바꿔 보세요.', 'You already tried that. Change a letter.')}</p>` : ''}
+    <button class="btn primary" id="dg-submit" ${pick.every(Boolean) && !dup ? '' : 'disabled'}>${tr(`${pick.every(Boolean) ? pick.join('') : '____'} 제출 (남은 기회 ${left})`, `Submit ${pick.every(Boolean) ? pick.join('') : '____'} (${left} left)`)}</button>
   </div>`;
 }
 
@@ -147,6 +154,7 @@ function wire() {
     // 다음으로 고를 축의 수를 보드에 띄운다
     const next = pick.findIndex((x) => !x);
     if (next >= 0) shown = next;
+    else shown = Number(i);
     draw();
   });
   root.querySelector<HTMLButtonElement>('#dg-submit')?.addEventListener('click', submit);
@@ -157,6 +165,7 @@ function wire() {
 
 function submit() {
   if (!puzzle || !pick.every(Boolean)) return;
+  if (load().days[day]?.g.includes(pick.join(''))) return;
   const st = load();
   const rec: DayRec = st.days[day] ?? { g: [], done: false, ok: false };
   if (rec.done) return;
@@ -177,8 +186,7 @@ function submit() {
   // 오래된 날짜 기록은 60일만 남긴다
   for (const k of Object.keys(st.days)) if (Number(k) < day - 60) delete st.days[k];
   save(st);
-  // 맞힌 글자는 그대로 두고 틀린 글자만 비운다. 틀렸으면 방금 열린 힌트의 수를 보여 준다
-  pick = [...guess].map((c, i) => (c === puzzle!.code[i] ? c : ''));
+  // 방금 낸 답을 그대로 두고 고치게 한다. 틀렸으면 방금 열린 힌트의 수를 보여 준다
   if (!rec.done) shown = Math.min(rec.g.length - 1, 3);
   draw();
   if (rec.done) loadStats(rec);
