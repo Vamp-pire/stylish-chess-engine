@@ -1,16 +1,10 @@
 // 유형 궁합 페이지(16유형 쌍 136개)와 유형별 어울리는 오프닝. scripts/build-pages.mjs가 불러 쓴다.
 // 오프닝은 미리 분석한 public/opening-styles.json(lichess-org/chess-openings, CC0)의 스타일로 유형 축과 맞춘다.
+import { STYLE_LABEL, boardSvg } from './pages-shared.mjs';
 import { readFileSync } from 'node:fs';
 
 const OS = JSON.parse(readFileSync(new URL('../public/opening-styles.json', import.meta.url), 'utf8'));
 
-const STYLE_LABEL = {
-  aggressive: ['공격적', 'aggressive'], tactical: ['전술적', 'tactical'], initiative: ['주도권', 'initiative'], counterattack: ['반격', 'counterattack'],
-  positional: ['포지셔널', 'positional'], prophylactic: ['예방', 'prophylactic'], restriction: ['조이기', 'restriction'], active: ['활동적', 'active'],
-  space: ['공간', 'space'], tension: ['긴장 유지', 'tension'], solid: ['안정적', 'solid'], defensive: ['수비적', 'defensive'],
-  simplifying: ['단순화', 'simplifying'], complicating: ['복잡화', 'complicating'], quiet: ['조용한 수', 'quiet'], waiting: ['대기', 'waiting'],
-  practical: ['실전적', 'practical'], kingActivity: ['킹 활용', 'king activity'], passedPawn: ['통과폰', 'passed pawn'],
-};
 
 // ───────────── 유형별 어울리는 오프닝 ─────────────
 const K = OS.keys;
@@ -119,8 +113,69 @@ export function compatPairs(types) {
 }
 export const compatPath = (a, b) => `/types/match/${a.code}-${b.code}`;
 
+
+// ───────────── 숫자로 보는 궁합 (보정 플레이어 통계, src/data/type-stats.json) ─────────────
+const METRIC_ORDER = ['aggressive', 'tactical', 'initiative', 'complicating', 'risk', 'positional', 'prophylactic', 'solid', 'defensive', 'simplifying'];
+/** 지표가 더 높은 쪽이 판을 어떻게 끌고 가려 하는지 */
+const METRIC_PLAY = {
+  aggressive: ['상대 킹을 향해 먼저 달려들려 해요', 'tries to go after the king first'],
+  tactical: ['체크·잡기·위협이 오가는 전술 싸움으로 끌고 가요', 'steers toward checks, captures and threats'],
+  initiative: ['먼저 위협을 만들어 상대가 대응하게 만들어요', 'makes threats first and forces replies'],
+  complicating: ['계산할 게 많은 복잡한 판을 만들려 해요', 'tries to make the position complicated'],
+  risk: ['희생·함정·도박수로 판을 흔들어요', 'shakes things up with sacrifices, traps and gambles'],
+  positional: ['폰 구조·약한 칸처럼 오래 남는 이점을 쌓아요', 'builds lasting edges like pawn structure and weak squares'],
+  prophylactic: ['상대의 계획을 미리 막는 수를 둬요', 'stops the opponent\'s plans in advance'],
+  solid: ['위험을 줄이고 단단하게 버텨요', 'keeps things safe and solid'],
+  defensive: ['위협이 오면 정확하게 막아 내요', 'defends threats accurately'],
+  simplifying: ['기물을 바꿔 판을 단순하게 정리해요', 'trades pieces to simplify'],
+};
+
+export function compatDataBlock({ A, B, stats, examples, lang, esc }) {
+  const en = lang === 'en';
+  const sa = stats?.types?.[A.code], sb = stats?.types?.[B.code];
+  if (!sa || !sb) return '';
+  const label = (k) => esc(STYLE_LABEL[k][en ? 1 : 0]);
+  const rows = METRIC_ORDER.map((k) => {
+    const a = sa.peers[k], b = sb.peers[k];
+    return `<tr><td>${label(k)}</td><td class="num${a > b + 4 ? ' hi' : ''}">${a}</td><td class="num${b > a + 4 ? ' hi' : ''}">${b}</td></tr>`;
+  }).join('');
+  const same = A.code === B.code;
+  let story = '';
+  if (!same) {
+    const gaps = METRIC_ORDER.map((k) => ({ k, d: sa.peers[k] - sb.peers[k] })).sort((x, y) => Math.abs(y.d) - Math.abs(x.d)).slice(0, 3);
+    const who = (d) => (d > 0 ? A : B);
+    story = `<p>${en ? 'The biggest gaps:' : '가장 크게 갈리는 지표는 이거예요.'}</p><ul>${gaps.map(({ k, d }) => {
+      const hi = who(d), lo = d > 0 ? B : A;
+      const vh = d > 0 ? sa.peers[k] : sb.peers[k], vl = d > 0 ? sb.peers[k] : sa.peers[k];
+      return `<li><b>${label(k)}</b> — ${en ? `${hi.code} sits at the ${vh}th percentile of same-rated players, ${lo.code} at the ${vl}th. In a game, ${hi.code} ${METRIC_PLAY[k][1]}.` : `${hi.code}는 같은 레이팅 중 ${vh}% 지점, ${lo.code}는 ${vl}% 지점이에요. 실전에서는 ${hi.code} 쪽이 ${METRIC_PLAY[k][0]}.`}</li>`;
+    }).join('')}</ul>`;
+  }
+  const rare = en
+    ? `Rare moves (played by under 10% of same-rated players): ${A.code} ${sa.rare}%${same ? '' : `, ${B.code} ${sb.rare}%`}. Average accuracy: ${A.code} ${sa.accuracy}%${same ? '' : `, ${B.code} ${sb.accuracy}%`}.`
+    : `같은 레이팅의 10%도 안 두는 드문 수 비율은 ${A.code} ${sa.rare}%${same ? '' : `, ${B.code} ${sb.rare}%`}이고, 평균 정확도는 ${A.code} ${sa.accuracy}%${same ? '' : `, ${B.code} ${sb.accuracy}%`}예요.`;
+  const share = en
+    ? `Among the ${stats.players.toLocaleString('en')} players we calibrated with, ${A.code} is ${sa.share}%${same ? '' : ` and ${B.code} is ${sb.share}%`} of players${same ? '' : `, so you will meet this pairing in roughly ${Math.round(sa.share * sb.share * (2 / 100) * 10) / 10}% of games between random players`}.`
+    : `보정에 쓴 플레이어 ${stats.players.toLocaleString('ko')}명 중 ${A.code}는 ${sa.share}%${same ? '' : `, ${B.code}는 ${sb.share}%`}예요${same ? '' : `. 아무나 만나는 대국이라면 이 조합은 대략 ${Math.round(sa.share * sb.share * (2 / 100) * 10) / 10}%의 판에서 나와요`}.`;
+  const ex = (t) => {
+    const m = (examples?.[t.code] ?? []).find((x) => x.kind === 'signature');
+    if (!m) return '';
+    return `<figure class="hof-move">${boardSvg(m.fen, m.uci, m.color)}<figcaption><b>${t.code} · ${m.moveNumber}${m.color === 'w' ? '.' : '...'} ${esc(m.san)}</b>
+<span class="chips">${m.styles.map((x) => `<span class="chip">${label(x.key)}</span>`).join('')}</span>
+<span class="muted">${en ? `Rating ${m.elo} · about ${m.humanP}% of same-rated players would play this` : `레이팅 ${m.elo} · 같은 레이팅 약 ${m.humanP}%가 두는 수`}</span></figcaption></figure>`;
+  };
+  return `<h2>${en ? 'By the numbers' : '숫자로 보면'}</h2>
+<p>${share}</p>
+<div class="table-wrap"><table class="cmp-table"><thead><tr><th>${en ? 'Percentile vs same rating (average)' : '같은 레이팅 대비 백분위 (평균)'}</th><th>${A.code}</th>${same ? '' : `<th>${B.code}</th>`}</tr></thead><tbody>${same ? rows.replace(/<td class="num[^"]*">\d+<\/td><\/tr>/g, '</tr>') : rows}</tbody></table></div>
+<p class="muted">${en ? '50 = average for the same rating. Higher means that style shows up more.' : '50이 같은 레이팅의 평균이에요. 높을수록 그 스타일이 더 자주 나와요.'}</p>
+${story}
+<p>${rare}</p>
+<h2>${en ? 'A real move from each type' : '유형별 실제 대표 수'}</h2>
+<p>${en ? 'Moves from anonymous calibration players of each type that show the type clearly.' : '보정에 쓴 익명 플레이어 중 그 유형다운 실제 수예요.'}</p>
+<div class="hof-moves">${ex(A)}${same ? '' : ex(B)}</div>`;
+}
+
 /** 궁합 페이지 본문. A·B는 언어에 맞춘 유형 데이터, axes는 언어에 맞춘 축 정보 */
-export function compatBody({ A, B, axes, lang, esc, P, IMG, idForm }) {
+export function compatBody({ A, B, axes, lang, esc, P, IMG, idForm, stats, examples }) {
   const en = lang === 'en';
   const same = [...A.code].filter((c, i) => c === B.code[i]).length;
   const rel = REL[same];
@@ -141,6 +196,7 @@ export function compatBody({ A, B, axes, lang, esc, P, IMG, idForm }) {
 <p class="lead">${esc(rel[en ? 3 : 2])}</p>
 <div class="cols">${card(A)}${A.code !== B.code ? card(B) : ''}</div>
 <h2>${en ? 'Axis by axis' : '축별로 보면'}</h2><ul>${axisRows}</ul>
+${compatDataBlock({ A, B, stats, examples, lang, esc })}
 ${A.code !== B.code ? `<h2>${en ? 'How to play each other' : '서로를 상대하는 법'}</h2><div class="cols">${side(A, B)}${side(B, A)}</div>`
     : `<h2>${en ? 'Playing your own type' : '같은 유형끼리'}</h2><p>${en ? 'Mirror matches are decided by who handles the shared watch-outs better.' : '거울 대결은 둘 다 가진 \'이럴 때 조심\'을 누가 더 잘 피하느냐로 갈려요.'}</p><ul>${A.weaknesses.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`}
 <div class="cta-band small"><h2>${en ? 'Which type are you?' : '나는 어떤 유형일까요?'}</h2><p>${en ? 'Find out from your recent games.' : '최근 게임으로 확인해 보세요.'}</p>${idForm(lang)}</div>

@@ -24,6 +24,8 @@ const calib = JSON.parse(readFileSync(new URL('../src/data/type-calib.json', imp
 /** 유형별 실제 예시 수 (scripts/calib/pick-examples.mts) */
 const examples = JSON.parse(readFileSync(new URL('../src/data/type-examples.json', import.meta.url), 'utf8'));
 const EN = JSON.parse(readFileSync(new URL('../src/data/chess-types.en.json', import.meta.url), 'utf8'));
+const TYPE_STATS = JSON.parse(readFileSync(new URL('../src/data/type-stats.json', import.meta.url), 'utf8'));
+const TYPE_EXAMPLES = JSON.parse(readFileSync(new URL('../src/data/type-examples.json', import.meta.url), 'utf8'));
 /** 언어별 유형 정보 (영어는 이름을 영어 이름으로) */
 const typeIn = (t, lang) => (lang === 'en' ? { ...t, ...EN.types[t.code], name: t.en } : t);
 const groupIn = (g, lang) => (lang === 'en' ? { ...data.groups[g], ...EN.groups[g] } : data.groups[g]);
@@ -769,7 +771,7 @@ for (const lang of ['ko', 'en']) {
       path, active: 'types', lang, image: IMG(lang, `${a.code}.png`),
       title: lang === 'en' ? `${a.code} ${A.name} vs ${b.code} ${B.name}: chess type matchup | Stylish` : `${a.code} ${A.name} vs ${b.code} ${B.name} — 체스 유형 궁합 | Stylish`,
       description: lang === 'en' ? `How the ${A.name} (${a.code}) and the ${B.name} (${b.code}) play against each other, axis by axis, and where each should press.` : `${a.code} ${A.name}와 ${b.code} ${B.name}가 만나면 어떻게 부딪히는지, 축별 차이와 서로를 상대하는 법.`,
-      body: compatBody({ A, B, axes: axesIn(lang), lang, esc, P, IMG, idForm: (l) => idForm(l === 'en' ? 'Find my type' : '내 유형 알아보기', l) }),
+      body: compatBody({ A, B, axes: axesIn(lang), lang, esc, P, IMG, idForm: (l) => idForm(l === 'en' ? 'Find my type' : '내 유형 알아보기', l), stats: TYPE_STATS, examples: TYPE_EXAMPLES }),
     }));
   }
 }

@@ -272,3 +272,7 @@ th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: l
 .mini-board .mv { stroke: rgba(21, 120, 27, .8); stroke-width: 7; stroke-linecap: round; }
 .mini-board .mvh { fill: rgba(21, 120, 27, .8); }
 .table-wrap { overflow-x: auto; }
+
+/* ── 궁합: 숫자로 보면 ── */
+.cmp-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.cmp-table td.hi { color: var(--accent); font-weight: 800; }

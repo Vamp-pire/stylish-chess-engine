@@ -1,0 +1,293 @@
+{
+ "players": 3610,
+ "types": {
+  "AWIO": {
+   "share": 8.5,
+   "n": 308,
+   "accuracy": 86.1,
+   "rare": 30.8,
+   "peers": {
+    "aggressive": 68,
+    "tactical": 70,
+    "initiative": 72,
+    "positional": 44,
+    "prophylactic": 45,
+    "solid": 30,
+    "defensive": 36,
+    "simplifying": 40,
+    "complicating": 64,
+    "risk": 68
+   }
+  },
+  "AWIE": {
+   "share": 8.1,
+   "n": 291,
+   "accuracy": 87.6,
+   "rare": 20.5,
+   "peers": {
+    "aggressive": 73,
+    "tactical": 75,
+    "initiative": 80,
+    "positional": 47,
+    "prophylactic": 52,
+    "solid": 33,
+    "defensive": 47,
+    "simplifying": 54,
+    "complicating": 72,
+    "risk": 66
+   }
+  },
+  "AWRO": {
+   "share": 6.5,
+   "n": 234,
+   "accuracy": 87,
+   "rare": 30,
+   "peers": {
+    "aggressive": 56,
+    "tactical": 56,
+    "initiative": 48,
+    "positional": 33,
+    "prophylactic": 43,
+    "solid": 31,
+    "defensive": 75,
+    "simplifying": 32,
+    "complicating": 58,
+    "risk": 62
+   }
+  },
+  "AWRE": {
+   "share": 4.3,
+   "n": 155,
+   "accuracy": 87.5,
+   "rare": 21.2,
+   "peers": {
+    "aggressive": 60,
+    "tactical": 62,
+    "initiative": 56,
+    "positional": 38,
+    "prophylactic": 45,
+    "solid": 36,
+    "defensive": 78,
+    "simplifying": 39,
+    "complicating": 68,
+    "risk": 58
+   }
+  },
+  "ASIO": {
+   "share": 5.1,
+   "n": 183,
+   "accuracy": 87.8,
+   "rare": 27.2,
+   "peers": {
+    "aggressive": 57,
+    "tactical": 62,
+    "initiative": 59,
+    "positional": 40,
+    "prophylactic": 29,
+    "solid": 64,
+    "defensive": 28,
+    "simplifying": 60,
+    "complicating": 31,
+    "risk": 41
+   }
+  },
+  "ASIE": {
+   "share": 9.8,
+   "n": 353,
+   "accuracy": 88,
+   "rare": 21.3,
+   "peers": {
+    "aggressive": 64,
+    "tactical": 65,
+    "initiative": 65,
+    "positional": 49,
+    "prophylactic": 32,
+    "solid": 69,
+    "defensive": 30,
+    "simplifying": 73,
+    "complicating": 42,
+    "risk": 37
+   }
+  },
+  "ASRO": {
+   "share": 3.7,
+   "n": 132,
+   "accuracy": 86.7,
+   "rare": 29.5,
+   "peers": {
+    "aggressive": 47,
+    "tactical": 44,
+    "initiative": 33,
+    "positional": 30,
+    "prophylactic": 30,
+    "solid": 64,
+    "defensive": 61,
+    "simplifying": 54,
+    "complicating": 28,
+    "risk": 34
+   }
+  },
+  "ASRE": {
+   "share": 4.2,
+   "n": 152,
+   "accuracy": 87.8,
+   "rare": 20.8,
+   "peers": {
+    "aggressive": 53,
+    "tactical": 54,
+    "initiative": 42,
+    "positional": 41,
+    "prophylactic": 31,
+    "solid": 65,
+    "defensive": 67,
+    "simplifying": 65,
+    "complicating": 37,
+    "risk": 37
+   }
+  },
+  "PWIO": {
+   "share": 4.5,
+   "n": 163,
+   "accuracy": 85.3,
+   "rare": 30.5,
+   "peers": {
+    "aggressive": 45,
+    "tactical": 45,
+    "initiative": 58,
+    "positional": 62,
+    "prophylactic": 66,
+    "solid": 34,
+    "defensive": 33,
+    "simplifying": 35,
+    "complicating": 62,
+    "risk": 66
+   }
+  },
+  "PWIE": {
+   "share": 4.5,
+   "n": 164,
+   "accuracy": 87.3,
+   "rare": 20.2,
+   "peers": {
+    "aggressive": 52,
+    "tactical": 53,
+    "initiative": 66,
+    "positional": 69,
+    "prophylactic": 69,
+    "solid": 40,
+    "defensive": 38,
+    "simplifying": 49,
+    "complicating": 71,
+    "risk": 61
+   }
+  },
+  "PWRO": {
+   "share": 8.6,
+   "n": 309,
+   "accuracy": 85.8,
+   "rare": 32.7,
+   "peers": {
+    "aggressive": 32,
+    "tactical": 31,
+    "initiative": 32,
+    "positional": 50,
+    "prophylactic": 65,
+    "solid": 27,
+    "defensive": 68,
+    "simplifying": 28,
+    "complicating": 56,
+    "risk": 55
+   }
+  },
+  "PWRE": {
+   "share": 5,
+   "n": 181,
+   "accuracy": 86.6,
+   "rare": 22.2,
+   "peers": {
+    "aggressive": 42,
+    "tactical": 38,
+    "initiative": 42,
+    "positional": 61,
+    "prophylactic": 67,
+    "solid": 41,
+    "defensive": 72,
+    "simplifying": 37,
+    "complicating": 63,
+    "risk": 56
+   }
+  },
+  "PSIO": {
+   "share": 4.5,
+   "n": 161,
+   "accuracy": 86.3,
+   "rare": 29,
+   "peers": {
+    "aggressive": 32,
+    "tactical": 37,
+    "initiative": 42,
+    "positional": 58,
+    "prophylactic": 55,
+    "solid": 71,
+    "defensive": 22,
+    "simplifying": 53,
+    "complicating": 30,
+    "risk": 33
+   }
+  },
+  "PSIE": {
+   "share": 5.2,
+   "n": 186,
+   "accuracy": 87.3,
+   "rare": 21.2,
+   "peers": {
+    "aggressive": 41,
+    "tactical": 42,
+    "initiative": 51,
+    "positional": 68,
+    "prophylactic": 54,
+    "solid": 74,
+    "defensive": 27,
+    "simplifying": 67,
+    "complicating": 40,
+    "risk": 33
+   }
+  },
+  "PSRO": {
+   "share": 8.9,
+   "n": 323,
+   "accuracy": 86.2,
+   "rare": 30,
+   "peers": {
+    "aggressive": 26,
+    "tactical": 24,
+    "initiative": 20,
+    "positional": 50,
+    "prophylactic": 51,
+    "solid": 67,
+    "defensive": 55,
+    "simplifying": 48,
+    "complicating": 24,
+    "risk": 30
+   }
+  },
+  "PSRE": {
+   "share": 8.7,
+   "n": 315,
+   "accuracy": 87.5,
+   "rare": 21.2,
+   "peers": {
+    "aggressive": 33,
+    "tactical": 31,
+    "initiative": 29,
+    "positional": 58,
+    "prophylactic": 52,
+    "solid": 70,
+    "defensive": 62,
+    "simplifying": 58,
+    "complicating": 38,
+    "risk": 29
+   }
+  }
+ }
+}
