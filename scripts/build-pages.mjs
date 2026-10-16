@@ -4,6 +4,7 @@
 // 검색엔진과 광고 심사가 읽을 수 있도록 자바스크립트 없이 보이는 HTML로 만든다. 내용은 src/data/chess-types.json
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { UPDATES } from './updates.mjs';
+import { menuHtml } from '../src/ui/menu.js';
 import { compatPairs, compatPath, compatBody, compatLinks, openingBlock } from './pages-compat.mjs';
 
 const SITE = (process.env.SITE_URL ?? 'https://stylish-chess-engine.pages.dev').replace(/\/$/, '');
@@ -157,9 +158,9 @@ function page({ path, title, description, body, active = '', image = null, wide 
   const en = lang === 'en';
   const url = `${SITE}${P(lang, path)}`;
   const img = image ?? IMG(lang, 'landing.png');
-  const nav = [['/types/', en ? 'Chess types' : '체스 유형', 'types'], ['__coach', en ? 'Play the coach' : '코치와 두기', 'coach'], ['/about', en ? 'About' : '소개', 'about']]
-    .map(([href, label, key]) => `<a href="${href === '__coach' ? APP(lang, 'view=coach') : P(lang, href)}"${key === active ? ' class="active"' : ''}>${label}</a>`).join('');
   const other = en ? path : P('en', path);
+  const nav = menuHtml({ lang, active: { types: 'learn', about: 'learn', coach: 'community' }[active] ?? '',
+    langSwitch: `<a class="mm-lang" href="${other}" hreflang="${en ? 'ko' : 'en'}" lang="${en ? 'ko' : 'en'}">${en ? '한국어' : 'English'}</a>` });
   return `<!doctype html>
 <html lang="${en ? 'en' : 'ko'}">
 <head>
@@ -185,6 +186,8 @@ function page({ path, title, description, body, active = '', image = null, wide 
 <link rel="icon" type="image/png" href="/logo.png" />
 <link rel="stylesheet" href="${PRETENDARD}" />
 <link rel="stylesheet" href="/pages.css" />
+<link rel="stylesheet" href="/menu.css" />
+<script defer src="/menu.js"></script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE}" crossorigin="anonymous"></script>
 <!-- Microsoft Clarity: 사용 행태(클릭·스크롤) 분석 -->
 <script type="text/javascript">(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "yxfrmbcyx5");</script>
@@ -192,7 +195,7 @@ function page({ path, title, description, body, active = '', image = null, wide 
 <body>
 <header class="topbar"><div class="topbar-in">
 <a class="brand" href="${P(lang, '/')}"><img src="/logo.png" alt="" width="28" height="28" /><span>Stylish<em>.</em></span></a>
-<nav>${nav}<a class="lang" href="${other}" hreflang="${en ? 'ko' : 'en'}" lang="${en ? 'ko' : 'en'}">${en ? '한국어' : 'English'}</a><a class="cta" href="${APP(lang)}">${en ? 'Analyze' : '분석하기'}</a></nav>
+${nav}
 </div></header>
 ${en ? '' : `<script>
 // 브라우저 언어가 한국어가 아니면 영어판 안내 (자동 이동은 하지 않는다)
@@ -767,8 +770,39 @@ for (const lang of ['ko', 'en']) {
   }
 }
 
+// ── 궁합 모아 보기 · 유형별 오프닝 모아 보기 (메뉴 '알아보기'에서 들어온다) ──
+for (const lang of ['ko', 'en']) {
+  const en = lang === 'en';
+  const types = data.types.map((t) => typeIn(t, lang));
+  write(P(lang, '/types/match/'), page({
+    path: '/types/match/', active: 'types', lang, wide: true,
+    title: en ? 'Chess type matchups: all 136 pairings | Stylish' : '체스 유형 궁합 136가지 모아 보기 | Stylish',
+    description: en ? 'Pick your type and an opponent type to see how the two clash axis by axis and where each should press.' : '내 유형과 상대 유형을 골라 두 유형이 축마다 어떻게 부딪히는지, 서로를 상대할 때 어디를 노리면 좋은지 확인하세요.',
+    body: `<article class="type-page">
+<p class="crumbs"><a href="${P(lang, '/types/')}">${en ? 'Chess types' : '체스 유형'}</a> › ${en ? 'Matchups' : '궁합'}</p>
+<h1>${en ? 'Type matchups' : '유형 궁합'}</h1>
+<p class="lead">${en ? 'Find your type below, then pick the type you are facing. Each of the 136 pairings explains how the two styles clash and where to press.' : '아래에서 내 유형을 찾고, 상대 유형을 고르세요. 136가지 조합마다 두 스타일이 어떻게 부딪히는지, 어디를 노리면 좋은지 정리했어요.'}</p>
+${types.map((t) => `<h2 id="${t.code}">${t.code} ${esc(t.name)}</h2>
+${compatLinks({ t, types, lang, esc, P })}`).join('\n')}
+<div class="cta-band small"><h2>${en ? "Don't know your type yet?" : '아직 내 유형을 모르나요?'}</h2><p>${en ? 'Find out from your recent games.' : '최근 게임으로 확인해 보세요.'}</p>${idForm(en ? 'Find my type' : '내 유형 알아보기', lang)}</div>
+</article>`,
+  }));
+  write(P(lang, '/types/openings'), page({
+    path: '/types/openings', active: 'types', lang, wide: true,
+    title: en ? 'Chess openings for each of the 16 types | Stylish' : '체스 유형별 어울리는 오프닝 | Stylish',
+    description: en ? 'Three White and three Black openings whose pre-analyzed style matches each of the 16 chess types.' : '16가지 체스 유형마다 스타일이 잘 맞는 백·흑 오프닝을 3개씩 골랐어요.',
+    body: `<article class="type-page">
+<p class="crumbs"><a href="${P(lang, '/types/')}">${en ? 'Chess types' : '체스 유형'}</a> › ${en ? 'Openings' : '오프닝'}</p>
+<h1>${en ? 'Openings by type' : '유형별 오프닝'}</h1>
+<p class="lead">${en ? "We pre-analyzed well-known openings with the same style ratings used for your games, then matched them to each type's letters. Try one that fits, or compare with what you already play." : '잘 알려진 오프닝을 내 게임과 같은 스타일 기준으로 미리 분석해, 유형의 글자와 잘 맞는 것을 골랐어요. 어울리는 오프닝을 시도해 보거나 지금 두는 오프닝과 비교해 보세요.'}</p>
+${types.map((t) => `<h2 id="${t.code}"><a href="${P(lang, `/types/${t.code}`)}">${t.code} ${esc(t.name)}</a></h2>
+${openingBlock({ code: t.code, lang, esc, intro: false })}`).join('\n')}
+</article>`,
+  }));
+}
+
 // ── 사이트맵·robots ──
-const koPaths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), ...COMPAT.map(([a, b]) => compatPath(a, b)), '/app', '/about', '/updates', '/contact', '/privacy'];
+const koPaths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/types/match/', '/types/openings', ...COMPAT.map(([a, b]) => compatPath(a, b)), '/app', '/about', '/updates', '/contact', '/privacy'];
 const paths = [...koPaths, ...koPaths.filter((p) => p !== '/app').map((p) => P('en', p))];
 writeFileSync(new URL('sitemap.xml', DIST), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

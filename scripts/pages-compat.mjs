@@ -156,10 +156,10 @@ export function compatLinks({ t, types, lang, esc, P }) {
 }
 
 /** 유형 페이지에 넣는 '어울리는 오프닝' 블록 */
-export function openingBlock({ code, lang, esc }) {
+export function openingBlock({ code, lang, esc, intro = true }) {
   const en = lang === 'en';
   const p = openingPicks(code, lang);
   const col = (title, xs) => `<div class="card"><h3>${title}</h3><ul>${xs.map((o) => `<li><b>${esc(o.name)}</b> <span class="muted">${esc(o.eco)}${o.tags.length ? ` · ${esc(o.tags.join(' · '))}` : ''}</span></li>`).join('')}</ul></div>`;
-  return `<p>${en ? 'Openings whose style (pre-analyzed from the opening database) matches this type\'s letters. Try them, or compare with what you already play.' : '오프닝 데이터베이스를 미리 분석한 스타일이 이 유형의 글자와 잘 맞는 오프닝이에요. 새로 시도해 보거나 지금 두는 오프닝과 비교해 보세요.'}</p>
+  return `${intro ? `<p>${en ? 'Openings whose style (pre-analyzed from the opening database) matches this type\'s letters. Try them, or compare with what you already play.' : '오프닝 데이터베이스를 미리 분석한 스타일이 이 유형의 글자와 잘 맞는 오프닝이에요. 새로 시도해 보거나 지금 두는 오프닝과 비교해 보세요.'}</p>` : ''}
 <div class="cols">${col(en ? 'As White' : '백으로', p.w)}${col(en ? 'As Black' : '흑으로', p.b)}</div>`;
 }

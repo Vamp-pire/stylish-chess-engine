@@ -36,11 +36,14 @@ import { pickHighlights, drawCard, cardBlob } from './ui/highlights';
 import { findMissed, openQuiz } from './ui/quiz';
 import { openModal } from './ui/modal';
 import { renderCoach, leaveCoach } from './ui/coachView';
+import { menuHtml, menuGroupOf } from './ui/menu.js';
 import { STYLES, STYLE_KEYS, RISK_KINDS, RISK_LABEL, QUALITY_LABEL, type StyleKey, type QualityKey } from './core/styles';
 
 // ───────────── 상태 ─────────────
 
-type View = 'analyze' | 'coach' | 'guide' | 'about' | 'players' | 'group';
+type View = 'analyze' | 'coach' | 'guide' | 'about' | 'players' | 'group' | 'compare' | 'bookmarklet' | 'practice' | 'recap' | 'sync' | 'groups';
+/** 주소(?view=)로 바로 열 수 있는 화면 */
+const URL_VIEWS: View[] = ['coach', 'guide', 'about', 'players', 'compare', 'bookmarklet', 'practice', 'recap', 'sync', 'groups'];
 type InputTab = 'paste' | 'samples' | 'file' | 'lichess' | 'chesscom' | 'lichessUser';
 
 interface PlyInfo { san: string; color: 'w' | 'b'; from: string; to: string; fenAfter: string; moveNumber: number }
@@ -179,15 +182,48 @@ const playerName = (h: Record<string, string>, c: 'w' | 'b') => h[c === 'w' ? 'W
 
 // ───────────── 라우팅 ─────────────
 
-function setView(v: View) {
+/** 메뉴에 지금 위치 표시 (큰 주제 밑줄 + 해당 항목) */
+function setMenuActive() {
+  const group = menuGroupOf(state.view);
+  document.querySelectorAll<HTMLElement>('.mm-group').forEach((el) => el.classList.toggle('active', el.dataset.group === group));
+  const idTab = state.tab === 'lichessUser' || state.tab === 'chesscom';
+  document.querySelectorAll<HTMLAnchorElement>('.mm-item').forEach((a) => {
+    const on = a.dataset.view === state.view && (state.view !== 'analyze' || (a.dataset.tabGo === 'lichessUser') === idTab);
+    if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
+}
+/** 화면 전환. push면 주소(/app?view=…)도 바꿔서 새로고침·뒤로 가기가 되게 한다 */
+function setView(v: View, push = true) {
   state.view = v;
   if (v === 'players') state.playerKey = null;
-  document.querySelectorAll<HTMLButtonElement>('.nav button').forEach((b) => b.classList.toggle('active', b.dataset.nav === v));
+  setMenuActive();
+  if (push) {
+    const url = URL_VIEWS.includes(v) ? `/app?view=${v}` : '/app';
+    if (location.pathname + location.search !== url) history.pushState(null, '', url + location.hash);
+  }
   render();
   window.scrollTo({ top: 0 });
 }
-document.querySelectorAll<HTMLElement>('[data-nav]').forEach((el) =>
-  el.addEventListener('click', (e) => { e.preventDefault(); setView(el.dataset.nav as View); }));
+// 메뉴·안내 링크(data-view): 새로고침 없이 앱 안에서 화면만 바꾼다 (새 탭으로 열기는 그대로)
+document.addEventListener('click', (e) => {
+  const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[data-view]');
+  if (!a || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+  e.preventDefault();
+  const tab = a.dataset.tabGo as InputTab | undefined;
+  if (tab) {
+    // 분석 메뉴: 보고 있던 한 판 리뷰는 닫고 입력 화면으로 (진행 중인 종합 분석은 그대로)
+    state.run?.cancel(); state.game = null;
+    state.tab = tab === 'lichessUser' && state.tab === 'chesscom' ? 'chesscom' : tab;
+  }
+  setView(a.dataset.view as View);
+});
+window.addEventListener('popstate', () => {
+  const q = new URLSearchParams(location.search);
+  const g = q.get('g')?.toUpperCase();
+  if (g && /^[A-Z2-9]{6}$/.test(g)) { state.view = 'group'; state.groupCode = g; setMenuActive(); render(); return; }
+  const v = q.get('view') as View | null;
+  setView(v && URL_VIEWS.includes(v) ? v : 'analyze', false);
+});
 
 function render() {
   cg?.destroy(); cg = null;
@@ -198,6 +234,12 @@ function render() {
   if (state.view === 'about') { location.href = getLang() === 'en' ? '/en/about' : '/about'; return; }
   if (state.view === 'players') { renderPlayers(); return; }
   if (state.view === 'group' && state.groupCode) { renderGroup(state.groupCode); return; }
+  if (state.view === 'groups') { renderGroups(); return; }
+  if (state.view === 'sync') { renderSyncView(); return; }
+  if (state.view === 'practice') { renderPractice(); return; }
+  if (state.view === 'recap') { renderRecap(); return; }
+  if (state.view === 'compare') { renderCompare(); return; }
+  if (state.view === 'bookmarklet') { renderBookmarklet(); return; }
   if (state.game) renderReview(); else if (state.batch) renderBatch(); else renderInput();
 }
 
@@ -1273,19 +1315,18 @@ function wireSync() {
     try { await fn(); } catch (e) { msg(e instanceof Error ? (e.message === 'bad code' ? tr('코드를 다시 확인해 주세요 (16자).', 'Please check the code (16 characters).') : e.message) : String(e)); }
     finally { if (btn) btn.disabled = false; }
   };
-  $('#sync-create')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => { await createSync(); renderPlayers(); }));
+  $('#sync-create')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => { await createSync(); render(); }));
   $('#sync-connect')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => {
     const n = await connectSync($<HTMLInputElement>('#sync-input')?.value ?? '');
-    renderPlayers(); msg(tr(`연결했어요. 플레이어 ${n}명의 기록을 합쳤어요.`, `Linked. Merged records for ${n} players.`));
+    render(); msg(tr(`연결했어요. 플레이어 ${n}명의 기록을 합쳤어요.`, `Linked. Merged records for ${n} players.`));
   }));
-  $('#sync-now')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => { const n = await syncNow(); renderPlayers(); msg(tr(`동기화했어요 (플레이어 ${n}명).`, `Synced (${n} players).`)); }));
-  $('#sync-off')?.addEventListener('click', () => { if (confirm(tr('이 기기의 연결을 끊을까요? 이 기기의 기록은 그대로 남아요.', 'Unlink this device? Records on this device stay.'))) { disconnectSync(); renderPlayers(); } });
+  $('#sync-now')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => { const n = await syncNow(); render(); msg(tr(`동기화했어요 (플레이어 ${n}명).`, `Synced (${n} players).`)); }));
+  $('#sync-off')?.addEventListener('click', () => { if (confirm(tr('이 기기의 연결을 끊을까요? 이 기기의 기록은 그대로 남아요.', 'Unlink this device? Records on this device stay.'))) { disconnectSync(); render(); } });
   $('#sync-copy')?.addEventListener('click', async (e) => { const st = syncState(); if (st) { await navigator.clipboard.writeText(st.code).catch(() => {}); (e.currentTarget as HTMLElement).textContent = tr('복사했어요', 'Copied'); } });
 }
 
 function wireBackup() {
   wireSync();
-  wireGroups();
   $('#export-records')?.addEventListener('click', () => {
     const url = URL.createObjectURL(new Blob([exportRecords()], { type: 'application/json' }));
     const a = document.createElement('a');
@@ -1295,9 +1336,83 @@ function wireBackup() {
   $<HTMLInputElement>('#import-records')?.addEventListener('change', async (e) => {
     const f = (e.target as HTMLInputElement).files?.[0];
     if (!f) return;
-    try { const n = importRecords(await f.text()); alert(tr(`플레이어 ${n}명의 기록을 가져왔어요.`, `Imported records for ${n} players.`)); renderPlayers(); }
+    try { const n = importRecords(await f.text()); alert(tr(`플레이어 ${n}명의 기록을 가져왔어요.`, `Imported records for ${n} players.`)); render(); }
     catch (err) { alert(tr('기록 파일을 읽지 못했어요: ', 'Could not read the record file: ') + (err instanceof Error ? err.message : String(err))); }
   });
+}
+
+/** 기록이 없을 때 공통 안내 */
+const emptyRecords = (msg: string) => `<p class="muted">${msg}</p><a class="btn primary" href="/app?tab=user" data-view="analyze" data-tab-go="lichessUser">${tr('내 게임 분석하기', 'Analyze my games')}</a>`;
+const viewHero = (title: string, lead: string) => `<div class="hero"><h1>${title}</h1><p>${lead}</p></div>`;
+
+function renderGroups() {
+  app.innerHTML = `${viewHero(tr('그룹 유형 지도', 'Group type maps'), tr('그룹을 만들어 코드나 링크를 공유하면, 들어온 사람들의 유형이 16칸 지도와 축별 인원으로 모여요.', 'Create a group and share its code or link: everyone who joins appears on a 16-cell type map with counts per axis.'))}
+    ${groupsCard()}`;
+  wireGroups();
+}
+
+function renderSyncView() {
+  app.innerHTML = `${viewHero(tr('기기 동기화·백업', 'Sync & backup'), tr('기록은 이 브라우저에만 저장돼요. 다른 기기에서도 보려면 동기화 코드를 쓰거나 기록 파일로 옮기세요.', 'Records are stored only in this browser. To see them elsewhere, use a sync code or move a record file.'))}
+    ${syncCard()}
+    <div class="card card-pad sync-card"><div class="section-title">${tr('기록 파일로 백업', 'Back up to a file')}</div>
+      <p class="faint">${tr('이 브라우저의 기록을 파일로 내보내거나, 내보낸 파일을 가져와 지금 기록과 합칠 수 있어요. 서버를 거치지 않아요.', 'Export the records in this browser to a file, or import one to merge with your current records. Nothing goes through a server.')}</p>
+      <div class="row-gap">${backupButtons()}</div></div>`;
+  wireBackup();
+}
+
+function renderPractice() {
+  const rows = listPlayers().map((pl) => ({ pl, st: practiceStats(pl.key), set: weeklySet(pl.key) })).filter((x) => x.st.total);
+  app.innerHTML = `${viewHero(tr('연습 과제', 'Practice'), tr(`분석한 내 게임에서 놓친 기회가 문제로 쌓여요. 매주 새 문제 ${WEEKLY}개가 나와요.`, `Chances you missed in your analyzed games become problems. ${WEEKLY} new ones every week.`))}
+    <div class="card card-pad return-card">${rows.length ? rows.map(({ pl, st, set }) => `<div class="return-row">
+      <div><b>${esc(pl.name)} <span class="faint">${SOURCE_NAME[pl.source]}</span></b>
+        <span class="faint">${tr(`이번 주 ${Math.min(st.solvedThisWeek, WEEKLY)}/${WEEKLY} 완료 · 남은 문제 ${st.unsolved}개`, `${Math.min(st.solvedThisWeek, WEEKLY)}/${WEEKLY} done this week · ${st.unsolved} unsolved`)}</span></div>
+      ${set.length ? `<button class="btn primary" data-practice="${esc(pl.key)}">🧩 ${tr(`연습하기 (${set.length}문제)`, `Practice (${set.length})`)}</button>` : `<span class="faint">${tr('이번 주 과제를 다 풀었어요!', "You're done for this week!")}</span>`}
+    </div>`).join('') : emptyRecords(tr('아직 연습 문제가 없어요. 내 게임을 분석하면 놓친 기회가 문제로 쌓여요.', 'No problems yet. Analyze your games and missed chances become problems.'))}</div>`;
+  app.querySelectorAll<HTMLButtonElement>('[data-practice]').forEach((b) => b.onclick = () => {
+    const key = b.dataset.practice!, set = weeklySet(key);
+    openQuiz(set.map((x) => ({ move: asQuizMove(x), game: x.game })), tr('이번 주 연습 과제', "This week's practice"), (i, ok) => { markPractice(key, set[i].id, ok); });
+  });
+}
+
+function renderRecap() {
+  const list = listPlayers().map((pl) => ({ pl, html: monthlySection(gamesOf(pl), pl.name) })).filter((x) => x.html);
+  app.innerHTML = `${viewHero(tr('월간 결산', 'Monthly recap'), tr('한 달 동안의 유형·정확도 변화·대담한 수·많이 둔 오프닝을 카드 한 장으로 받아 공유하세요. 월초 1주일 동안은 지난달 결산을 보여 줘요.', "Your month's type, accuracy change, bold moves and favorite opening on one shareable card. During the first week of a month it shows last month."))}
+    ${list.length ? list.map(({ pl, html }) => `<div class="card card-pad return-card" data-recap-for="${esc(pl.key)}"><div class="section-title">${esc(pl.name)} <span class="faint">${SOURCE_NAME[pl.source]}</span></div>${html}</div>`).join('')
+      : `<div class="card card-pad">${emptyRecords(tr('이번 달(월초에는 지난달)에 둔 게임을 분석하면 결산이 생겨요.', 'Analyze games from this month (or last month, early on) to get a recap.'))}</div>`}`;
+  app.querySelectorAll<HTMLElement>('[data-recap-for]').forEach((c) => c.querySelector('[data-recap-image]')?.addEventListener('click', () => {
+    const p = getPlayer(c.dataset.recapFor!); if (p) openRecapImage(gamesOf(p), p.name);
+  }));
+}
+
+function renderCompare() {
+  const mine = listPlayers().flatMap((pl) => {
+    const prof = combinedProfile(pl);
+    const t = prof && prof.counted >= 20 ? chessTypeOf(withRating(prof, pl.name)) : null;
+    return t ? [{ pl, t }] : [];
+  });
+  const friends = friendsSection(mine[0]?.t ?? null);
+  app.innerHTML = `${viewHero(tr('유형 비교', 'Compare types'), tr('내 유형을 확인한 뒤 친구에게 비교 링크를 보내세요. 친구가 링크를 열고 자기 게임을 분석하면 두 사람의 유형이 나란히 나와요.', 'Get your type, then send a friend a compare link. When they open it and analyze their games, your types appear side by side.'))}
+    <div class="card card-pad return-card">
+      <div class="section-title">${tr('비교 링크 보내기', 'Send a compare link')}</div>
+      ${mine.length ? mine.map(({ pl, t }) => `<div class="return-row">
+        <div><b>${esc(pl.name)} <span class="type-code small">${t.code}</span></b><span class="faint">${esc(t.info.name)} · ${SOURCE_NAME[pl.source]}</span></div>
+        <button type="button" class="btn primary" data-compare-type="${esc(JSON.stringify({ code: t.code, name: pl.name, pcts: t.axes.map((a) => a.pct) }))}">${tr('비교 링크 만들기', 'Make a compare link')}</button>
+      </div>`).join('') : emptyRecords(tr('아직 유형이 나온 플레이어가 없어요. 아이디로 최근 게임을 종합 분석하면 유형이 나와요.', 'No player has a type yet. Run a combined analysis of recent games by username to get one.'))}
+    </div>
+    ${friends ? `<div class="card card-pad return-card">${friends}</div>` : ''}`;
+}
+
+function renderBookmarklet() {
+  app.innerHTML = `${viewHero(tr('Lichess 북마클릿', 'Lichess bookmarklet'), tr('Lichess에서 게임을 보다가 즐겨찾기 버튼 하나만 누르면, 그 판이 바로 Stylish로 와서 분석돼요. PC 브라우저에서 쓸 수 있어요.', 'While viewing a Lichess game, click one bookmark and that game opens in Stylish for analysis. Works in desktop browsers.'))}
+    <div class="card card-pad bookmarklet-card">
+      <ol class="steps">
+        <li>${tr('즐겨찾기 줄을 켜세요 (Chrome·Edge: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, Mac은 <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>).', 'Show your bookmarks bar (Chrome/Edge: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, Mac: <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>).')}</li>
+        <li>${tr('아래 버튼을 마우스로 끌어다 즐겨찾기 줄에 놓으세요.', 'Drag the button below onto the bookmarks bar.')}</li>
+        <li>${tr('Lichess에서 게임 화면을 열고 즐겨찾기 줄의 버튼을 누르면 끝이에요.', 'Open a game on Lichess and click the bookmark.')}</li>
+      </ol>
+      <p><a class="btn primary bookmarklet" href="${esc(BOOKMARKLET)}" onclick="return false" draggable="true">♞ ${tr('Stylish로 보기', 'Open in Stylish')}</a></p>
+      <p class="faint">${tr('버튼을 눌러도 여기서는 아무 일도 일어나지 않아요. 즐겨찾기 줄에 놓은 뒤 Lichess에서 눌러 주세요. 휴대폰 브라우저는 지원하지 않아요.', 'Clicking it here does nothing; drop it on the bookmarks bar and use it on Lichess. Mobile browsers are not supported.')}</p>
+    </div>`;
 }
 
 function renderPlayers() {
@@ -1322,13 +1437,17 @@ function renderPlayers() {
         ${state.storageFull ? `<p class="error">${tr('브라우저 저장 공간이 가득 차서 일부 기록을 저장하지 못했습니다. 안 쓰는 플레이어를 지워 주세요.', 'Browser storage is full, so some records were not saved. Please delete players you no longer need.')}</p>` : ''}
         ${players.length ? `
           <div class="game-table-wrap"><table class="game-table players-table">${rows}</table></div>
-          <div class="account-foot"><span class="faint">${tr('기록은 이 브라우저에만 저장돼요. 다른 기기에서 보려면 아래 동기화 코드를 쓰거나 기록 파일로 내보내세요.', 'Records are stored only in this browser. To see them on another device, use a sync code below or export a record file.')}</span><span class="row-gap">${backupButtons()}<button class="ghost danger" id="clear-players">${tr('전체 삭제', 'Delete all')}</button></span></div>`
-        : `<p class="muted">${tr('아직 저장된 플레이어가 없습니다. 기보를 분석하거나 Chess.com·Lichess 아이디로 게임을 분석하면 여기에 쌓입니다.', 'No saved players yet. Analyze a game or load games by Chess.com or Lichess username and they will appear here.')}</p><button class="btn primary" id="go-analyze">${tr('분석하러 가기', 'Go analyze')}</button><div class="row-gap" style="margin-top:12px">${backupButtons(true)}</div>`}
+          <div class="account-foot"><span class="faint">${tr('기록은 이 브라우저에만 저장돼요. 다른 기기에서도 보려면 ', 'Records are stored only in this browser. To see them on another device, use ')}<a href="/app?view=sync" data-view="sync">${tr('기기 동기화·백업', 'Sync & backup')}</a>${tr('을 쓰세요.', '.')}</span><span class="row-gap"><button class="ghost danger" id="clear-players">${tr('전체 삭제', 'Delete all')}</button></span></div>`
+        : `<p class="muted">${tr('아직 저장된 플레이어가 없습니다. 기보를 분석하거나 Chess.com·Lichess 아이디로 게임을 분석하면 여기에 쌓입니다.', 'No saved players yet. Analyze a game or load games by Chess.com or Lichess username and they will appear here.')}</p><button class="btn primary" id="go-analyze">${tr('분석하러 가기', 'Go analyze')}</button>
+          <p class="faint" style="margin-top:12px">${tr('다른 기기에서 분석한 기록이 있다면 ', 'Analyzed on another device? Bring your records over with ')}<a href="/app?view=sync" data-view="sync">${tr('기기 동기화·백업', 'Sync & backup')}</a>${tr('으로 가져오세요.', '.')}</p>`}
       </div>
-      ${groupsCard()}
-      ${syncCard()}`;
+      <div class="menu-hints">
+        <a class="card" href="/app?view=practice" data-view="practice"><b>🧩 ${tr('연습 과제', 'Practice')}</b><span>${tr('놓친 기회로 만든 이번 주 문제', "This week's problems")}</span></a>
+        <a class="card" href="/app?view=recap" data-view="recap"><b>📅 ${tr('월간 결산', 'Monthly recap')}</b><span>${tr('한 달을 카드 한 장으로', 'Your month on one card')}</span></a>
+        <a class="card" href="/app?view=groups" data-view="groups"><b>🗺️ ${tr('그룹 유형 지도', 'Group type maps')}</b><span>${tr('친구들과 유형 모아 보기', 'Types of your friends together')}</span></a>
+        <a class="card" href="/app?view=sync" data-view="sync"><b>🔄 ${tr('기기 동기화·백업', 'Sync & backup')}</b><span>${tr('휴대폰·PC에서 같은 기록', 'Same records on every device')}</span></a>
+      </div>`;
     app.querySelectorAll<HTMLTableRowElement>('tr[data-player]').forEach((tr) => tr.onclick = () => { state.playerKey = tr.dataset.player!; renderPlayers(); window.scrollTo({ top: 0 }); });
-    wireBackup();
     $('#clear-players')?.addEventListener('click', () => { if (confirm(tr('저장된 모든 플레이어 기록을 지울까요?', 'Delete all saved player records?'))) { clearPlayers(); clearPractice(); state.storageFull = false; renderPlayers(); } });
     $('#go-analyze')?.addEventListener('click', () => setView('analyze'));
     return;
@@ -1460,7 +1579,7 @@ async function updateGames(p: SavedPlayer) {
 /** 코치 대국이 끝나면 이미 계산한 수별 평가로 바로 리뷰 화면을 연다 (내 성향은 '나'로 저장) */
 function openCoachReview(pgn: string, result: GameAnalysis, color: 'w' | 'b') {
   state.view = 'analyze';
-  document.querySelectorAll<HTMLButtonElement>('.nav button').forEach((b) => b.classList.toggle('active', b.dataset.nav === 'analyze'));
+  setMenuActive();
   showAnalyzed(pgn, result, { focus: color, save: [color] });
 }
 
@@ -1520,10 +1639,11 @@ function rerenderProfiles() {
 function readEntryQuery() {
   const q = new URLSearchParams(location.search);
   const view = q.get('view');
-  if (view === 'coach' || view === 'guide' || view === 'about' || view === 'players') {
-    state.view = view;
-    document.querySelectorAll<HTMLButtonElement>('.nav button').forEach((b) => b.classList.toggle('active', b.dataset.nav === view));
-  }
+  if (view && URL_VIEWS.includes(view as View)) state.view = view as View;
+  // 메뉴의 분석 항목: ?tab=user(아이디) · ?tab=pgn(기보)
+  const tabQ = q.get('tab');
+  if (tabQ === 'user') state.tab = 'lichessUser';
+  else if (tabQ === 'pgn') state.tab = 'paste';
   // 그룹 유형 지도 (/g/코드 → /app?g=코드)
   const g = q.get('g')?.trim().toUpperCase();
   if (g && /^[A-Z2-9]{6}$/.test(g)) { state.view = 'group'; state.groupCode = g; }
@@ -1546,7 +1666,8 @@ function readEntryQuery() {
   // 북마클릿: Lichess 게임 화면에서 누르면 그 판을 바로 분석
   const link = q.get('link');
   if (!entry && link && /^https:\/\/lichess\.org\/[a-zA-Z0-9]{8}/.test(link)) { state.tab = 'lichess'; state.lichessUrl = link; entry = 'link'; }
-  if (q.size) history.replaceState(null, '', location.pathname + location.hash);
+  // 주소는 정리하되, 새로고침해도 같은 화면이 나오도록 화면(view)·그룹 코드는 남긴다
+  if (q.size) history.replaceState(null, '', location.pathname + (state.view === 'group' ? `?g=${state.groupCode}` : URL_VIEWS.includes(state.view) ? `?view=${state.view}` : '') + location.hash);
   return entry;
 }
 
@@ -1555,19 +1676,15 @@ function applyChromeLang() {
   const en = getLang() === 'en';
   document.documentElement.lang = en ? 'en' : 'ko';
   if (en) document.title = 'Analyze — Stylish chess style analysis';
-  const navText: Record<string, [string, string]> = {
-    analyze: ['분석', 'Analyze'], coach: ['코치', 'Coach'], guide: ['스타일 사전', 'Style guide'], about: ['소개', 'About'], players: ['👤 프로필', '👤 Profile'],
-  };
-  document.querySelectorAll<HTMLButtonElement>('.nav [data-nav]').forEach((b) => { const t = navText[b.dataset.nav!]; if (t) b.textContent = tr(t[0], t[1]); });
-  const typesLink = document.querySelector<HTMLAnchorElement>('.nav .nav-link');
-  if (typesLink) { typesLink.textContent = tr('체스 유형', 'Chess types'); typesLink.href = en ? '/en/types/' : '/types/'; }
+  const menu = $('#site-menu');
+  if (menu) menu.outerHTML = menuHtml({ lang: getLang(), inApp: true, langSwitch: `<button type="button" id="lang-toggle" class="mm-lang">English</button>` });
   const brand = document.querySelector<HTMLAnchorElement>('.topbar .brand');
   if (brand) { brand.href = en ? '/en/' : '/'; brand.title = tr('체스 유형 소개로', 'To the chess types home'); }
   const toggle = $<HTMLButtonElement>('#lang-toggle');
   if (toggle) {
     toggle.textContent = en ? '한국어' : 'English';
     toggle.lang = en ? 'ko' : 'en';
-    toggle.onclick = () => { saveLang(en ? 'ko' : 'en'); location.replace(location.pathname + location.hash); };
+    toggle.onclick = () => { saveLang(en ? 'ko' : 'en'); location.replace(location.pathname + location.search + location.hash); };
   }
   const footer = $('#app-footer');
   if (footer && en) footer.innerHTML = `Stylish is <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPLv3</a> open source.
@@ -1582,6 +1699,7 @@ applyChromeLang();
 // 엔진은 첫 화면에서 미리 띄워 둔다 (WASM 다운로드·초기화 시간 단축)
 getEngine().catch(() => {});
 const entry = readEntryQuery();
+setMenuActive();
 render();
 if (entry === 'pinned') { const p = state.playerKey ? getPlayer(state.playerKey) : null; if (p) updateGames(p); }
 if (entry === 'link') onGo();

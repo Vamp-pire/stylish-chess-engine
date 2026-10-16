@@ -1,0 +1,90 @@
+/* 사이트 공통 메뉴 (정적 페이지·분석 앱 함께 사용). 색은 각 페이지의 CSS 변수를 그대로 쓴다 */
+.mm { margin-left: auto; display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 15px; }
+.mm ul { list-style: none; margin: 0; padding: 0; }
+.mm-list { display: flex; align-items: center; gap: 2px; }
+.mm-group { position: relative; }
+.mm-top {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 40px;
+  padding: 8px 12px; border: 0; border-radius: 10px; background: none; cursor: pointer;
+  color: var(--text-2); font: inherit; font-weight: 600; white-space: nowrap;
+}
+.mm-top svg { transition: transform .15s; opacity: .7; }
+.mm-top:hover, .mm-group.open > .mm-top { color: var(--text); background: var(--surface-2); }
+.mm-group.open > .mm-top svg { transform: rotate(180deg); }
+.mm-group.active > .mm-top { color: var(--text); }
+.mm-group.active > .mm-top::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: 2px; height: 2px; border-radius: 2px; background: var(--accent); }
+.mm-top:focus-visible, .mm-item:focus-visible, .mm-burger:focus-visible, .mm-cta:focus-visible, .mm-lang:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.mm-panel {
+  display: none; position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  width: 340px; padding: 8px; z-index: 50;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: var(--shadow-lg, 0 18px 48px rgba(0, 0, 0, .14));
+}
+/* 버튼과 칸 사이 틈에서 마우스가 빠져나가도 닫히지 않게 */
+.mm-panel::before { content: ''; position: absolute; left: 0; right: 0; top: -8px; height: 8px; }
+.mm-group.open > .mm-panel { display: block; animation: mm-in .14s ease-out; }
+@keyframes mm-in { from { opacity: 0; transform: translate(-50%, -4px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.mm-item { display: block; padding: 10px 12px; border-radius: 10px; text-decoration: none; color: var(--text); }
+.mm-item:hover, .mm-item:focus-visible { background: var(--surface-2); }
+.mm-item b { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; }
+.mm-item span:not(.mm-new) { display: block; margin-top: 2px; color: var(--text-2); font-size: 13px; line-height: 1.45; }
+.mm-item[aria-current="page"] { background: var(--accent-soft, var(--surface-2)); }
+.mm-new { padding: 1px 6px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+
+.mm-end { display: flex; align-items: center; gap: 6px; margin-left: 6px; }
+.mm-lang {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 6px 12px; border-radius: 10px;
+  border: 1px solid var(--border); background: none; color: var(--text-2); font: inherit; font-size: 14px; font-weight: 600;
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+.mm-lang:hover { color: var(--text); background: var(--surface-2); }
+.mm-cta {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 8px 14px; border-radius: 10px;
+  background: var(--text); color: var(--bg); font-weight: 700; text-decoration: none; white-space: nowrap;
+}
+.mm-cta:hover { background: var(--accent); color: #fff; }
+
+.mm-burger { display: none; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 10px; background: none; cursor: pointer; padding: 0; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.mm-burger span { display: block; width: 18px; height: 2px; border-radius: 2px; background: var(--text); transition: transform .15s, opacity .15s; }
+.mm-open .mm-burger span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.mm-open .mm-burger span:nth-child(2) { opacity: 0; }
+.mm-open .mm-burger span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+/* 좁은 화면: ☰ 버튼 → 화면 아래로 펼쳐지는 목록, 큰 주제를 누르면 그 안이 펼쳐진다 */
+@media (max-width: 860px) {
+  .mm { gap: 6px; }
+  .mm-burger { display: inline-flex; order: 3; }
+  .mm-end { order: 2; margin-left: 0; }
+  .mm .mm-list {
+    display: none; position: fixed; left: 0; right: 0; top: var(--mm-top, 60px); bottom: 0; z-index: 60;
+    flex-direction: column; align-items: stretch; gap: 0; padding: 8px 16px 32px; overflow-y: auto;
+    background: var(--bg); border-top: 1px solid var(--border);
+  }
+  .mm-open .mm-list { display: flex; }
+  .mm-group { border-bottom: 1px solid var(--border); }
+  .mm-top { width: 100%; justify-content: space-between; min-height: 52px; padding: 12px 4px; font-size: 17px; border-radius: 0; background: none !important; }
+  .mm-group.active > .mm-top::after { display: none; }
+  .mm-group.active > .mm-top { color: var(--accent); }
+  .mm-panel { position: static; transform: none; width: auto; padding: 0 0 10px; border: 0; box-shadow: none; background: none; }
+  .mm-panel::before { display: none; }
+  .mm-group.open > .mm-panel { animation: none; }
+  .mm-item { padding: 10px 8px; }
+}
+@media (max-width: 420px) {
+  .mm-cta { padding: 8px 10px; font-size: 14px; }
+  .mm-lang { padding: 6px 8px; font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mm-group.open > .mm-panel { animation: none; }
+  .mm-top svg, .mm-burger span { transition: none; }
+}
+/* 머리글의 반투명 흐림(backdrop-filter)은 펼친 목록(position: fixed)의 기준을 머리글로 바꿔 버리므로 좁은 화면에서는 끈다 */
+@media (max-width: 860px) {
+  .topbar { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; background: var(--bg) !important; }
+}
+/* 맨 오른쪽 주제는 칸을 오른쪽 끝에 맞춰 화면 밖으로 나가지 않게 */
+@media (min-width: 861px) {
+  .mm-group:last-child > .mm-panel { left: auto; right: 0; transform: none; }
+  .mm-group:last-child.open > .mm-panel { animation: none; }
+}
