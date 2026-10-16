@@ -1,0 +1,17 @@
+[
+  { "id": "magnuscarlsen", "user": "magnuscarlsen", "name": "Magnus Carlsen", "ko": "마그누스 칼센", "group": "gm", "title": "GM", "desc": ["전 세계 챔피언, 클래식 레이팅 역대 최고 기록 보유자", "Former World Champion and the highest-rated player in history"] },
+  { "id": "hikaru", "user": "hikaru", "name": "Hikaru Nakamura", "ko": "히카루 나카무라", "group": "gm", "title": "GM", "desc": ["블리츠·불릿 최강자이자 세계에서 가장 유명한 체스 스트리머", "Blitz and bullet powerhouse and the world's best-known chess streamer"] },
+  { "id": "fabianocaruana", "user": "fabianocaruana", "name": "Fabiano Caruana", "ko": "파비아노 카루아나", "group": "gm", "title": "GM", "desc": ["깊은 준비로 유명한 미국 최상위 선수", "Top American player known for deep preparation"] },
+  { "id": "gukesh", "user": "gukeshdommaraju", "name": "Gukesh D", "ko": "구케시 D", "group": "gm", "title": "GM", "desc": ["역대 최연소 세계 챔피언", "The youngest World Champion in history"] },
+  { "id": "firouzja", "user": "firouzja2003", "name": "Alireza Firouzja", "ko": "알리레자 피루자", "group": "gm", "title": "GM", "desc": ["날카로운 공격 체스로 유명한 젊은 최상위 선수", "Young elite player known for sharp, attacking chess"] },
+  { "id": "wesleyso", "user": "gmwso", "name": "Wesley So", "ko": "웨슬리 소", "group": "gm", "title": "GM", "desc": ["피셔 랜덤 세계 챔피언, 단단한 스타일의 최상위 선수", "Fischer Random World Champion with a famously solid style"] },
+  { "id": "anishgiri", "user": "anishgiri", "name": "Anish Giri", "ko": "아니시 기리", "group": "gm", "title": "GM", "desc": ["넓은 오프닝 지식과 재치로 유명한 네덜란드 최상위 선수", "Dutch elite player famous for opening knowledge and wit"] },
+  { "id": "nihalsarin", "user": "nihalsarin", "name": "Nihal Sarin", "ko": "니할 사린", "group": "gm", "title": "GM", "desc": ["온라인 빠른 체스에서 특히 강한 인도 최상위 선수", "Indian elite player especially strong in fast online chess"] },
+  { "id": "gothamchess", "user": "gothamchess", "name": "Levy Rozman (GothamChess)", "ko": "갓뎀체스 (GothamChess)", "group": "streamer", "title": "IM", "desc": ["세계에서 가장 큰 체스 유튜브 채널을 운영하는 인터내셔널 마스터", "International Master behind the world's biggest chess YouTube channel"] },
+  { "id": "ericrosen", "user": "imrosen", "name": "Eric Rosen", "ko": "에릭 로젠", "group": "streamer", "title": "IM", "desc": ["함정 수와 차분한 해설로 사랑받는 스트리머", "Streamer loved for his traps and calm commentary"] },
+  { "id": "annacramling", "user": "annacramling", "name": "Anna Cramling", "ko": "안나 크람링", "group": "streamer", "title": "WFM", "desc": ["유쾌한 대국 영상으로 인기 있는 스웨덴 스트리머", "Swedish streamer popular for her lively game videos"] },
+  { "id": "alexandrabotez", "user": "alexandrabotez", "name": "Alexandra Botez", "ko": "알렉산드라 보테즈", "group": "streamer", "title": "WFM", "desc": ["보테즈 자매 채널로 유명한 체스 스트리머", "Chess streamer known for the Botez sisters channel"] },
+  { "id": "ssgssg", "user": "ssgssg2", "name": "ssgssg2 (슥슥이)", "ko": "슥슥이", "group": "korea", "title": "", "desc": ["한국의 인기 체스 유튜버", "Popular Korean chess YouTuber"] },
+  { "id": "chessmakta", "user": "chessmakta", "name": "ChessMakta (체스막타)", "ko": "체스막타", "group": "korea", "title": "", "desc": ["한국의 체스 유튜버", "Korean chess YouTuber"] },
+  { "id": "chessinside", "user": "chessinside", "name": "chessinside (체스인사이드)", "ko": "체스인사이드", "group": "korea", "title": "", "desc": ["Chess.com 한국 커뮤니티를 이끄는 체스 유튜버", "Korean chess YouTuber who leads Chess.com's Korean community"] }
+]

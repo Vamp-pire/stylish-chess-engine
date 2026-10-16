@@ -1,0 +1,95 @@
+# 명예의 전당: 유명 플레이어(scripts/hof/players.json)의 Chess.com 공개 대국을 모아
+# 유형 보정과 같은 조건(깊이 10, Maia3, 오프닝 이론 — scripts/calib/analyze.mts)으로 분석한다.
+# 결과(all.jsonl.gz + 모은 대국)는 아티팩트로 올리고, scripts/hof/build-hof.mts로 src/data/hof.json을 만든 뒤 사람이 커밋한다.
+name: Hall of fame
+
+on:
+  workflow_dispatch:
+    inputs:
+      games:
+        description: '시간대(불릿·블리츠·래피드)당 최근 판 수'
+        default: '150'
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Collect public Chess.com games
+        # 입력값은 셸 코드에 바로 넣지 않고 환경 변수로 받아 형식을 확인한다 (명령 주입 방지)
+        env:
+          GAMES: ${{ inputs.games }}
+        run: |
+          [[ "$GAMES" =~ ^[0-9]{1,4}$ ]] || { echo "games 형식 오류"; exit 1; }
+          node scripts/hof/collect.mjs hof-games.jsonl.gz "$GAMES" 15
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hof-games
+          path: hof-games.jsonl.gz
+          retention-days: 30
+
+  analyze:
+    needs: collect
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        job: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    env:
+      JOBS: 20
+      PROCS: 4 # 러너 vCPU 수만큼 동시에
+      CALIB_GAMES: hof-games.jsonl.gz
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: hof-games
+      - name: Analyze shard
+        run: |
+          SHARDS=$((JOBS * PROCS))
+          for k in $(seq 0 $((PROCS - 1))); do
+            s=$((${{ matrix.job }} * PROCS + k))
+            npx tsx scripts/calib/analyze.mts $s $SHARDS out-$s.jsonl > log-$s.txt 2>&1 &
+          done
+          wait
+          tail -n 3 log-*.txt
+          cat out-*.jsonl > shard-${{ matrix.job }}.jsonl
+          wc -l shard-${{ matrix.job }}.jsonl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hof-shard-${{ matrix.job }}
+          path: shard-${{ matrix.job }}.jsonl
+          retention-days: 7
+
+  combine:
+    needs: analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: hof-shard-*
+          merge-multiple: true
+          path: shards
+      - name: Combine
+        run: |
+          cat shards/*.jsonl > hof-all.jsonl
+          wc -l hof-all.jsonl
+          gzip -k hof-all.jsonl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hof-analysis
+          path: hof-all.jsonl.gz
+          retention-days: 30
