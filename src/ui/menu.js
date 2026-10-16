@@ -26,6 +26,7 @@ export const MENU = [
   ] },
   { key: 'learn', ko: '알아보기', en: 'Learn', items: [
     { ko: '체스 유형 16가지', en: '16 chess types', dko: '4글자 유형이 뜻하는 것', den: 'What the four letters mean', href: (l) => page(l, '/types/') },
+    { ko: '명예의 전당', en: 'Hall of fame', dko: '칼센·히카루·갓뎀체스·슥슥이는 어떤 유형?', den: 'What type are Carlsen, Hikaru and GothamChess?', href: (l) => page(l, '/hall-of-fame/'), isNew: true },
     { ko: '유형 궁합', en: 'Type matchups', dko: '136가지 조합, 서로를 상대하는 법', den: '136 pairings and how to play each other', href: (l) => page(l, '/types/match/'), isNew: true },
     { ko: '유형별 오프닝', en: 'Openings by type', dko: '유형에 어울리는 백·흑 오프닝', den: 'White and Black openings that suit each type', href: (l) => page(l, '/types/openings'), isNew: true },
     { ko: '스타일 사전', en: 'Style guide', dko: '수 하나를 평가하는 19가지 스타일', den: 'The 19 styles used to rate a move', href: (l) => app(l, 'view=guide'), view: 'guide' },

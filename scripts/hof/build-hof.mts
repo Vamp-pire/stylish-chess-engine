@@ -109,15 +109,14 @@ for (const p of meta) {
     merged.rating = e.elo.length ? chesscomToLichess(Math.round(e.elo.reduce((a, b) => a + b, 0) / e.elo.length)) : null;
     return { cls: c, games: e.games, chesscomElo: e.elo.length ? Math.round(e.elo.reduce((a, b) => a + b, 0) / e.elo.length) : null, type: typeOf(merged) };
   });
-  // 종합: 판 수가 가장 많은 시간대를 기준으로 (사이트 종합 분석과 같다)
-  const all = mergeProfiles([...byCls.values()].flatMap((e) => e.profiles))!;
-  const main = [...byCls.entries()].sort((a, b) => b[1].games - a[1].games)[0];
-  all.timeClass = main[0];
-  all.rating = main[1].elo.length ? chesscomToLichess(Math.round(main[1].elo.reduce((a, b) => a + b, 0) / main[1].elo.length)) : null;
-  const overall = typeOf(all);
+  // 대표 유형: 블리츠 기준 (시간대를 섞으면 축 기준이 어긋나고, 레이팅 환산표도 블리츠 기준이라 가장 믿을 만하다).
+  // 블리츠가 없으면 판 수가 가장 많은 시간대. 시간대별 유형은 따로 보여 준다
+  const mainCls = classes.find((c) => c.cls === 'blitz' && c.type) ?? [...classes].filter((c) => c.type).sort((a, b) => b.games - a.games)[0];
+  const main = [mainCls?.cls ?? 'blitz'];
+  const overall = mainCls?.type ?? null;
   if (!overall) { console.log(`${p.id}: 유형 없음`); continue; }
   // 글자마다 대표 수: 좋은 수(최선·좋은 수, 손실 30cp 이하) 중 그 글자다움이 가장 높은 것, 뻔한 수 제외
-  const pool = allMoves.filter((m) => !m.rec.f && !m.rec.b && m.ply >= 12 && !m.recapture && !m.san.endsWith('#') && m.rec.hp != null && m.rec.hp < 0.7
+  const pool = allMoves.filter((m) => m.cls === main[0] && !m.rec.f && !m.rec.b && m.ply >= 12 && !m.recapture && !m.san.endsWith('#') && m.rec.hp != null && m.rec.hp < 0.7
     && (m.rec.q === 'best' || m.rec.q === 'good') && m.rec.cp <= 30);
   const used = new Set<string>();
   const signature = [...overall.code].map((letter) => {
@@ -129,7 +128,7 @@ for (const p of meta) {
   });
   const topOpen = (mp: Map<string, number>) => [...mp].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([name, n]) => ({ name, n }));
   out.push({
-    ...p, overall, mainClass: main[0], games: classes.reduce((s, c) => s + c.games, 0), classes, signature,
+    ...p, overall, mainClass: main[0], mainGames: mainCls?.games ?? 0, games: classes.reduce((s, c) => s + c.games, 0), classes, signature,
     openings: { w: topOpen(openings.w), b: topOpen(openings.b) },
   });
   console.log(`${p.id}: ${overall.code} (${classes.map((c) => `${c.cls} ${c.games}판 ${c.type?.code ?? '-'}`).join(', ')})`);

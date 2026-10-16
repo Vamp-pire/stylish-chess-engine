@@ -1,0 +1,3396 @@
+{
+ "updated": "2026-10-16",
+ "players": [
+  {
+   "id": "magnuscarlsen",
+   "user": "magnuscarlsen",
+   "name": "Magnus Carlsen",
+   "ko": "마그누스 칼센",
+   "group": "gm",
+   "title": "GM",
+   "desc": [
+    "전 세계 챔피언, 클래식 레이팅 역대 최고 기록 보유자",
+    "Former World Champion and the highest-rated player in history"
+   ],
+   "overall": {
+    "code": "AWIO",
+    "pcts": [
+     71,
+     87,
+     74,
+     59
+    ],
+    "counted": 5059,
+    "accuracy": 94.5,
+    "rating": 2999,
+    "peers": {
+     "aggressive": 62,
+     "tactical": 78,
+     "initiative": 79,
+     "positional": 44,
+     "prophylactic": 56,
+     "solid": 34,
+     "defensive": 47,
+     "simplifying": 24,
+     "complicating": 90,
+     "risk": 70
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 3256,
+     "type": {
+      "code": "AWIE",
+      "pcts": [
+       79,
+       76,
+       77,
+       10
+      ],
+      "counted": 5152,
+      "accuracy": 92.3,
+      "rating": 2924,
+      "peers": {
+       "aggressive": 74,
+       "tactical": 76,
+       "initiative": 87,
+       "positional": 48,
+       "prophylactic": 39,
+       "solid": 38,
+       "defensive": 55,
+       "simplifying": 54,
+       "complicating": 90,
+       "risk": 52
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 3363,
+     "type": {
+      "code": "AWIO",
+      "pcts": [
+       71,
+       87,
+       74,
+       59
+      ],
+      "counted": 5059,
+      "accuracy": 94.5,
+      "rating": 2999,
+      "peers": {
+       "aggressive": 62,
+       "tactical": 78,
+       "initiative": 79,
+       "positional": 44,
+       "prophylactic": 56,
+       "solid": 34,
+       "defensive": 47,
+       "simplifying": 24,
+       "complicating": 90,
+       "risk": 70
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2916,
+     "type": {
+      "code": "PWRO",
+      "pcts": [
+       50,
+       86,
+       46,
+       78
+      ],
+      "counted": 5918,
+      "accuracy": 96.2,
+      "rating": 2686,
+      "peers": {
+       "aggressive": 52,
+       "tactical": 42,
+       "initiative": 51,
+       "positional": 46,
+       "prophylactic": 52,
+       "solid": 31,
+       "defensive": 55,
+       "simplifying": 25,
+       "complicating": 81,
+       "risk": 78
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "A",
+     "fen": "8/1p5Q/pq1p1kp1/5b2/1n2P3/1P3NP1/P1r2P1P/3R2K1 w - - 1 24",
+     "san": "Rxd6+",
+     "uci": "d1d6",
+     "color": "w",
+     "n": 24,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184576110999",
+     "opp": "ant_chess_2019",
+     "styles": [
+      "tactical",
+      "aggressive",
+      "initiative"
+     ],
+     "humanP": 0
+    },
+    {
+     "letter": "W",
+     "fen": "5r2/R3KP2/8/8/1p6/p4P2/1k6/8 b - - 4 58",
+     "san": "Rxf7+",
+     "uci": "f8f7",
+     "color": "b",
+     "n": 58,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184577311211",
+     "opp": "Oleksandr_Bortnyk",
+     "styles": [
+      "counterattack",
+      "complicating",
+      "aggressive"
+     ],
+     "humanP": 60
+    },
+    {
+     "letter": "I",
+     "fen": "1r3k2/2R2p1n/3p4/1p6/pNbP4/P3PB2/1P1K1P2/8 b - - 8 40",
+     "san": "Ng5",
+     "uci": "h7g5",
+     "color": "b",
+     "n": 40,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/185309700660",
+     "opp": "theloyalwolf",
+     "styles": [
+      "initiative",
+      "tactical",
+      "active"
+     ],
+     "humanP": 59
+    },
+    {
+     "letter": "O",
+     "fen": "r1bqkb1r/pp5p/2n1ppp1/3n4/3P4/2NB1N2/PP1B1PPP/R2QK2R b KQkq - 1 12",
+     "san": "Bd7",
+     "uci": "c8d7",
+     "color": "b",
+     "n": 12,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/180000919138",
+     "opp": "artin10862",
+     "styles": [
+      "active",
+      "solid"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Queens Gambit",
+      "n": 33
+     },
+     {
+      "name": "Sicilian Defense",
+      "n": 30
+     },
+     {
+      "name": "English Opening",
+      "n": 23
+     }
+    ],
+    "b": [
+     {
+      "name": "Sicilian Defense",
+      "n": 38
+     },
+     {
+      "name": "Modern Defense",
+      "n": 17
+     },
+     {
+      "name": "French Defense",
+      "n": 17
+     }
+    ]
+   }
+  },
+  {
+   "id": "hikaru",
+   "user": "hikaru",
+   "name": "Hikaru Nakamura",
+   "ko": "히카루 나카무라",
+   "group": "gm",
+   "title": "GM",
+   "desc": [
+    "블리츠·불릿 최강자이자 세계에서 가장 유명한 체스 스트리머",
+    "Blitz and bullet powerhouse and the world's best-known chess streamer"
+   ],
+   "overall": {
+    "code": "AWIO",
+    "pcts": [
+     58,
+     74,
+     66,
+     70
+    ],
+    "counted": 5374,
+    "accuracy": 93.9,
+    "rating": 3073,
+    "peers": {
+     "aggressive": 51,
+     "tactical": 63,
+     "initiative": 58,
+     "positional": 76,
+     "prophylactic": 26,
+     "solid": 51,
+     "defensive": 34,
+     "simplifying": 24,
+     "complicating": 72,
+     "risk": 57
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 3376,
+     "type": {
+      "code": "PWRE",
+      "pcts": [
+       45,
+       83,
+       43,
+       17
+      ],
+      "counted": 5564,
+      "accuracy": 92.2,
+      "rating": 3008,
+      "peers": {
+       "aggressive": 45,
+       "tactical": 60,
+       "initiative": 60,
+       "positional": 48,
+       "prophylactic": 71,
+       "solid": 53,
+       "defensive": 68,
+       "simplifying": 22,
+       "complicating": 90,
+       "risk": 58
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 3468,
+     "type": {
+      "code": "AWIO",
+      "pcts": [
+       58,
+       74,
+       66,
+       70
+      ],
+      "counted": 5374,
+      "accuracy": 93.9,
+      "rating": 3073,
+      "peers": {
+       "aggressive": 51,
+       "tactical": 63,
+       "initiative": 58,
+       "positional": 76,
+       "prophylactic": 26,
+       "solid": 51,
+       "defensive": 34,
+       "simplifying": 24,
+       "complicating": 72,
+       "risk": 57
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2801,
+     "type": {
+      "code": "PWRO",
+      "pcts": [
+       50,
+       73,
+       46,
+       86
+      ],
+      "counted": 5738,
+      "accuracy": 95.7,
+      "rating": 2611,
+      "peers": {
+       "aggressive": 52,
+       "tactical": 42,
+       "initiative": 51,
+       "positional": 46,
+       "prophylactic": 52,
+       "solid": 48,
+       "defensive": 55,
+       "simplifying": 25,
+       "complicating": 60,
+       "risk": 69
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "A",
+     "fen": "4rr2/p3b1k1/1pn2qp1/2pBpP2/P1PpP1Q1/6P1/2PB2K1/1R3R2 w - - 0 33",
+     "san": "fxg6",
+     "uci": "f5g6",
+     "color": "w",
+     "n": 33,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/185008111279",
+     "opp": "Robin_cool",
+     "styles": [
+      "tactical",
+      "complicating",
+      "aggressive"
+     ],
+     "humanP": 41
+    },
+    {
+     "letter": "W",
+     "fen": "2rqk2r/1b2ppb1/p2p1np1/1p2n3/3NP2p/1BN1BP1P/PPP2QP1/1K1RR3 b k - 5 15",
+     "san": "Rxc3",
+     "uci": "c8c3",
+     "color": "b",
+     "n": 15,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184759290504",
+     "opp": "Matviy2009",
+     "styles": [
+      "complicating",
+      "aggressive",
+      "active"
+     ],
+     "humanP": 37
+    },
+    {
+     "letter": "I",
+     "fen": "3r2k1/6p1/1n2p2p/p7/P1p1P3/2N2P2/6PP/2R3K1 w - - 3 31",
+     "san": "Rb1",
+     "uci": "c1b1",
+     "color": "w",
+     "n": 31,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/186390990407",
+     "opp": "MITerryble",
+     "styles": [
+      "initiative",
+      "tactical",
+      "positional"
+     ],
+     "humanP": 61
+    },
+    {
+     "letter": "O",
+     "fen": "r2r2k1/pp3ppp/1bp5/3n4/1PnN2b1/P1B1P1P1/4NPBP/R1R3K1 w - - 9 19",
+     "san": "Kh1",
+     "uci": "g1h1",
+     "color": "w",
+     "n": 19,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/185011111195",
+     "opp": "Zhuu96",
+     "styles": [
+      "solid"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Sicilian Defense",
+      "n": 23
+     },
+     {
+      "name": "English Opening",
+      "n": 21
+     },
+     {
+      "name": "Queens Gambit",
+      "n": 14
+     }
+    ],
+    "b": [
+     {
+      "name": "Sicilian Defense",
+      "n": 38
+     },
+     {
+      "name": "English Opening",
+      "n": 23
+     },
+     {
+      "name": "Modern Defense",
+      "n": 21
+     }
+    ]
+   }
+  },
+  {
+   "id": "fabianocaruana",
+   "user": "fabianocaruana",
+   "name": "Fabiano Caruana",
+   "ko": "파비아노 카루아나",
+   "group": "gm",
+   "title": "GM",
+   "desc": [
+    "깊은 준비로 유명한 미국 최상위 선수",
+    "Top American player known for deep preparation"
+   ],
+   "overall": {
+    "code": "AWRO",
+    "pcts": [
+     61,
+     80,
+     36,
+     71
+    ],
+    "counted": 6255,
+    "accuracy": 94.1,
+    "rating": 2896,
+    "peers": {
+     "aggressive": 71,
+     "tactical": 45,
+     "initiative": 58,
+     "positional": 44,
+     "prophylactic": 56,
+     "solid": 34,
+     "defensive": 72,
+     "simplifying": 24,
+     "complicating": 72,
+     "risk": 61
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 3116,
+     "type": {
+      "code": "PWRE",
+      "pcts": [
+       36,
+       80,
+       45,
+       22
+      ],
+      "counted": 5443,
+      "accuracy": 91.2,
+      "rating": 2826,
+      "peers": {
+       "aggressive": 45,
+       "tactical": 43,
+       "initiative": 48,
+       "positional": 48,
+       "prophylactic": 71,
+       "solid": 38,
+       "defensive": 55,
+       "simplifying": 22,
+       "complicating": 74,
+       "risk": 56
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 3216,
+     "type": {
+      "code": "AWRO",
+      "pcts": [
+       61,
+       80,
+       36,
+       71
+      ],
+      "counted": 6255,
+      "accuracy": 94.1,
+      "rating": 2896,
+      "peers": {
+       "aggressive": 71,
+       "tactical": 45,
+       "initiative": 58,
+       "positional": 44,
+       "prophylactic": 56,
+       "solid": 34,
+       "defensive": 72,
+       "simplifying": 24,
+       "complicating": 72,
+       "risk": 61
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2789,
+     "type": {
+      "code": "PWRO",
+      "pcts": [
+       47,
+       73,
+       37,
+       80
+      ],
+      "counted": 5836,
+      "accuracy": 94.4,
+      "rating": 2602,
+      "peers": {
+       "aggressive": 42,
+       "tactical": 42,
+       "initiative": 51,
+       "positional": 46,
+       "prophylactic": 52,
+       "solid": 48,
+       "defensive": 67,
+       "simplifying": 25,
+       "complicating": 60,
+       "risk": 67
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "A",
+     "fen": "8/1pp1R3/2kb1Q2/4p3/p1PpP1pr/P2n2N1/1P2K1Pq/7R b - - 1 31",
+     "san": "Qxg2+",
+     "uci": "h2g2",
+     "color": "b",
+     "n": 31,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/186222389175",
+     "opp": "Germanovs_Georgijs",
+     "styles": [
+      "tactical",
+      "aggressive",
+      "initiative"
+     ],
+     "humanP": 57
+    },
+    {
+     "letter": "W",
+     "fen": "8/4k2P/2nqPp2/p4B2/2p3P1/3pP3/pr3PK1/R2Q4 b - - 0 38",
+     "san": "Rxf2+",
+     "uci": "b2f2",
+     "color": "b",
+     "n": 38,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/174176057154",
+     "opp": "sergoy",
+     "styles": [
+      "counterattack",
+      "aggressive",
+      "complicating"
+     ],
+     "humanP": 11
+    },
+    {
+     "letter": "R",
+     "fen": "8/8/8/8/p5k1/4P3/2R3K1/8 b - - 1 62",
+     "san": "Kf5",
+     "uci": "g4f5",
+     "color": "b",
+     "n": 62,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/174176057154",
+     "opp": "sergoy",
+     "styles": [
+      "kingActivity",
+      "defensive",
+      "prophylactic"
+     ],
+     "humanP": 42
+    },
+    {
+     "letter": "O",
+     "fen": "rn1qk2r/p4pp1/bppbpn1p/3p4/3P1B1P/3BPN2/PPPN1PP1/R2QK2R w KQkq - 2 9",
+     "san": "Rc1",
+     "uci": "a1c1",
+     "color": "w",
+     "n": 9,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184603002340",
+     "opp": "artin10862",
+     "styles": [
+      "solid"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Sicilian Defense",
+      "n": 35
+     },
+     {
+      "name": "English Opening",
+      "n": 25
+     },
+     {
+      "name": "Reti Opening",
+      "n": 14
+     }
+    ],
+    "b": [
+     {
+      "name": "Sicilian Defense",
+      "n": 27
+     },
+     {
+      "name": "Queens Gambit",
+      "n": 26
+     },
+     {
+      "name": "Indian Game",
+      "n": 19
+     }
+    ]
+   }
+  },
+  {
+   "id": "gukesh",
+   "user": "gukeshdommaraju",
+   "name": "Gukesh D",
+   "ko": "구케시 D",
+   "group": "gm",
+   "title": "GM",
+   "desc": [
+    "역대 최연소 세계 챔피언",
+    "The youngest World Champion in history"
+   ],
+   "overall": {
+    "code": "AWIO",
+    "pcts": [
+     58,
+     86,
+     65,
+     66
+    ],
+    "counted": 4630,
+    "accuracy": 93.5,
+    "rating": 2744,
+    "peers": {
+     "aggressive": 62,
+     "tactical": 78,
+     "initiative": 69,
+     "positional": 44,
+     "prophylactic": 83,
+     "solid": 34,
+     "defensive": 47,
+     "simplifying": 24,
+     "complicating": 72,
+     "risk": 83
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 365,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 2881,
+     "type": {
+      "code": "PWIE",
+      "pcts": [
+       39,
+       78,
+       52,
+       17
+      ],
+      "counted": 5024,
+      "accuracy": 91.1,
+      "rating": 2663,
+      "peers": {
+       "aggressive": 36,
+       "tactical": 60,
+       "initiative": 71,
+       "positional": 48,
+       "prophylactic": 71,
+       "solid": 53,
+       "defensive": 68,
+       "simplifying": 22,
+       "complicating": 74,
+       "risk": 63
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 2999,
+     "type": {
+      "code": "AWIO",
+      "pcts": [
+       58,
+       86,
+       65,
+       66
+      ],
+      "counted": 4630,
+      "accuracy": 93.5,
+      "rating": 2744,
+      "peers": {
+       "aggressive": 62,
+       "tactical": 78,
+       "initiative": 69,
+       "positional": 44,
+       "prophylactic": 83,
+       "solid": 34,
+       "defensive": 47,
+       "simplifying": 24,
+       "complicating": 72,
+       "risk": 83
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 65,
+     "chesscomElo": 2641,
+     "type": {
+      "code": "PWIO",
+      "pcts": [
+       37,
+       79,
+       54,
+       68
+      ],
+      "counted": 2437,
+      "accuracy": 95.1,
+      "rating": 2502,
+      "peers": {
+       "aggressive": 41,
+       "tactical": 55,
+       "initiative": 72,
+       "positional": 49,
+       "prophylactic": 80,
+       "solid": 37,
+       "defensive": 65,
+       "simplifying": 26,
+       "complicating": 62,
+       "risk": 78
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "A",
+     "fen": "1r1r1k2/pb6/1q2pn2/7Q/1p4R1/6B1/PP3PP1/4R1K1 w - - 0 32",
+     "san": "Qh8+",
+     "uci": "h5h8",
+     "color": "w",
+     "n": 32,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/148117410793",
+     "opp": "Parhamov",
+     "styles": [
+      "tactical",
+      "defensive",
+      "aggressive"
+     ],
+     "humanP": 34
+    },
+    {
+     "letter": "W",
+     "fen": "8/b2B4/1N3k2/3Pp1p1/4Pp2/5P1b/5P1P/6K1 w - - 14 46",
+     "san": "Nc8",
+     "uci": "b6c8",
+     "color": "w",
+     "n": 46,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/76178585509",
+     "opp": "Firegrizzly",
+     "styles": [
+      "complicating",
+      "aggressive",
+      "initiative"
+     ],
+     "humanP": 16
+    },
+    {
+     "letter": "I",
+     "fen": "rr4k1/1pQ2pp1/2p1b2p/p3n2q/P6P/2N3P1/1P1RPPB1/3R2K1 b - - 7 22",
+     "san": "Nc4",
+     "uci": "e5c4",
+     "color": "b",
+     "n": 22,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/148119803399",
+     "opp": "Turboplombir",
+     "styles": [
+      "initiative",
+      "prophylactic",
+      "solid"
+     ],
+     "humanP": 60
+    },
+    {
+     "letter": "O",
+     "fen": "6k1/4q1b1/4P2P/3p1p2/1p1P4/2p3R1/2Q3PK/1q3r2 w - - 0 38",
+     "san": "Qf2",
+     "uci": "c2f2",
+     "color": "w",
+     "n": 38,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/80406796781",
+     "opp": "OhanyanEminChess",
+     "styles": [
+      "tactical"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Queens Gambit",
+      "n": 33
+     },
+     {
+      "name": "English Opening",
+      "n": 14
+     },
+     {
+      "name": "Kings Indian Defense",
+      "n": 13
+     }
+    ],
+    "b": [
+     {
+      "name": "Sicilian Defense",
+      "n": 31
+     },
+     {
+      "name": "Caro Kann Defense",
+      "n": 17
+     },
+     {
+      "name": "Kings Indian Defense",
+      "n": 15
+     }
+    ]
+   }
+  },
+  {
+   "id": "firouzja",
+   "user": "firouzja2003",
+   "name": "Alireza Firouzja",
+   "ko": "알리레자 피루자",
+   "group": "gm",
+   "title": "GM",
+   "desc": [
+    "날카로운 공격 체스로 유명한 젊은 최상위 선수",
+    "Young elite player known for sharp, attacking chess"
+   ],
+   "overall": {
+    "code": "AWIO",
+    "pcts": [
+     52,
+     83,
+     56,
+     66
+    ],
+    "counted": 5052,
+    "accuracy": 93.5,
+    "rating": 2935,
+    "peers": {
+     "aggressive": 51,
+     "tactical": 78,
+     "initiative": 79,
+     "positional": 44,
+     "prophylactic": 83,
+     "solid": 34,
+     "defensive": 72,
+     "simplifying": 24,
+     "complicating": 72,
+     "risk": 74
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 3326,
+     "type": {
+      "code": "PWRE",
+      "pcts": [
+       36,
+       85,
+       35,
+       20
+      ],
+      "counted": 6176,
+      "accuracy": 92.4,
+      "rating": 2973,
+      "peers": {
+       "aggressive": 45,
+       "tactical": 43,
+       "initiative": 60,
+       "positional": 48,
+       "prophylactic": 71,
+       "solid": 53,
+       "defensive": 80,
+       "simplifying": 22,
+       "complicating": 90,
+       "risk": 68
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 3272,
+     "type": {
+      "code": "AWIO",
+      "pcts": [
+       52,
+       83,
+       56,
+       66
+      ],
+      "counted": 5052,
+      "accuracy": 93.5,
+      "rating": 2935,
+      "peers": {
+       "aggressive": 51,
+       "tactical": 78,
+       "initiative": 79,
+       "positional": 44,
+       "prophylactic": 83,
+       "solid": 34,
+       "defensive": 72,
+       "simplifying": 24,
+       "complicating": 72,
+       "risk": 74
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2838,
+     "type": {
+      "code": "PWRO",
+      "pcts": [
+       48,
+       85,
+       45,
+       74
+      ],
+      "counted": 5708,
+      "accuracy": 95.2,
+      "rating": 2635,
+      "peers": {
+       "aggressive": 62,
+       "tactical": 59,
+       "initiative": 63,
+       "positional": 46,
+       "prophylactic": 80,
+       "solid": 31,
+       "defensive": 67,
+       "simplifying": 25,
+       "complicating": 81,
+       "risk": 76
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "A",
+     "fen": "2r1q2r/1p2P1pk/7p/5p2/1P2N3/2RQ4/1KP3PP/8 w - - 0 33",
+     "san": "Nf6+",
+     "uci": "e4f6",
+     "color": "w",
+     "n": 33,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/186221789145",
+     "opp": "Carnivoras",
+     "styles": [
+      "tactical",
+      "aggressive",
+      "complicating"
+     ],
+     "humanP": 8
+    },
+    {
+     "letter": "W",
+     "fen": "8/1p1R1pk1/p4rpp/P7/3Q2KP/1R3NP1/1P2r3/5q2 w - - 2 36",
+     "san": "Rxf7+",
+     "uci": "d7f7",
+     "color": "w",
+     "n": 36,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/172380646234",
+     "opp": "gurelediz",
+     "styles": [
+      "aggressive",
+      "complicating",
+      "initiative"
+     ],
+     "humanP": 54
+    },
+    {
+     "letter": "I",
+     "fen": "r1b1k2r/1pq2pp1/p2pp2p/2n5/3NNP1b/1B6/PPPQ2PP/2KRR3 w kq - 0 15",
+     "san": "Nf5",
+     "uci": "d4f5",
+     "color": "w",
+     "n": 15,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/186221789145",
+     "opp": "Carnivoras",
+     "styles": [
+      "counterattack",
+      "initiative",
+      "aggressive"
+     ],
+     "humanP": 46
+    },
+    {
+     "letter": "O",
+     "fen": "r1b2rk1/p3qpb1/2R4p/1pn1p3/2B1P3/2N2N1P/PPQ2PP1/R5K1 b - - 0 18",
+     "san": "Nxe4",
+     "uci": "c5e4",
+     "color": "b",
+     "n": 18,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/182591301721",
+     "opp": "Rud_Makarian",
+     "styles": [
+      "active",
+      "aggressive",
+      "complicating"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Sicilian Defense",
+      "n": 33
+     },
+     {
+      "name": "Queens Gambit",
+      "n": 26
+     },
+     {
+      "name": "Ruy Lopez Opening",
+      "n": 24
+     }
+    ],
+    "b": [
+     {
+      "name": "Sicilian Defense",
+      "n": 23
+     },
+     {
+      "name": "English Opening",
+      "n": 18
+     },
+     {
+      "name": "Caro Kann Defense",
+      "n": 16
+     }
+    ]
+   }
+  },
+  {
+   "id": "wesleyso",
+   "user": "gmwso",
+   "name": "Wesley So",
+   "ko": "웨슬리 소",
+   "group": "gm",
+   "title": "GM",
+   "desc": [
+    "피셔 랜덤 세계 챔피언, 단단한 스타일의 최상위 선수",
+    "Fischer Random World Champion with a famously solid style"
+   ],
+   "overall": {
+    "code": "PWIO",
+    "pcts": [
+     43,
+     83,
+     56,
+     60
+    ],
+    "counted": 5336,
+    "accuracy": 95,
+    "rating": 2931,
+    "peers": {
+     "aggressive": 51,
+     "tactical": 63,
+     "initiative": 79,
+     "positional": 44,
+     "prophylactic": 83,
+     "solid": 34,
+     "defensive": 72,
+     "simplifying": 24,
+     "complicating": 72,
+     "risk": 75
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 3087,
+     "type": {
+      "code": "AWIE",
+      "pcts": [
+       66,
+       76,
+       69,
+       17
+      ],
+      "counted": 4824,
+      "accuracy": 92.5,
+      "rating": 2806,
+      "peers": {
+       "aggressive": 56,
+       "tactical": 60,
+       "initiative": 80,
+       "positional": 19,
+       "prophylactic": 71,
+       "solid": 53,
+       "defensive": 55,
+       "simplifying": 54,
+       "complicating": 90,
+       "risk": 67
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 3265,
+     "type": {
+      "code": "PWIO",
+      "pcts": [
+       43,
+       83,
+       56,
+       60
+      ],
+      "counted": 5336,
+      "accuracy": 95,
+      "rating": 2931,
+      "peers": {
+       "aggressive": 51,
+       "tactical": 63,
+       "initiative": 79,
+       "positional": 44,
+       "prophylactic": 83,
+       "solid": 34,
+       "defensive": 72,
+       "simplifying": 24,
+       "complicating": 72,
+       "risk": 75
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2821,
+     "type": {
+      "code": "AWIO",
+      "pcts": [
+       57,
+       86,
+       54,
+       73
+      ],
+      "counted": 5602,
+      "accuracy": 95.8,
+      "rating": 2624,
+      "peers": {
+       "aggressive": 52,
+       "tactical": 59,
+       "initiative": 74,
+       "positional": 46,
+       "prophylactic": 52,
+       "solid": 31,
+       "defensive": 67,
+       "simplifying": 25,
+       "complicating": 81,
+       "risk": 81
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "P",
+     "fen": "1r3rk1/2q3bp/3p2n1/3Pn1p1/2pNPp2/1pP2P1P/1P3B2/R2QRBK1 b - - 7 31",
+     "san": "Ra8",
+     "uci": "b8a8",
+     "color": "b",
+     "n": 31,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/177147412169",
+     "opp": "pomp523",
+     "styles": [
+      "prophylactic",
+      "positional",
+      "active"
+     ],
+     "humanP": 18
+    },
+    {
+     "letter": "W",
+     "fen": "R3Rbk1/5pp1/7p/8/1p1r4/1Pr4P/5PP1/6K1 b - - 1 33",
+     "san": "Kh7",
+     "uci": "g8h7",
+     "color": "b",
+     "n": 33,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/185013511273",
+     "opp": "Duhless",
+     "styles": [
+      "complicating",
+      "kingActivity"
+     ],
+     "humanP": 18
+    },
+    {
+     "letter": "I",
+     "fen": "r2qrnk1/4bppp/ppn5/3p1Q2/NPpP1B1P/2P2N2/P4PP1/R3R1K1 b - - 0 22",
+     "san": "Qd7",
+     "uci": "d8d7",
+     "color": "b",
+     "n": 22,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/177145612721",
+     "opp": "Witik",
+     "styles": [
+      "initiative",
+      "active",
+      "tactical"
+     ],
+     "humanP": 1
+    },
+    {
+     "letter": "O",
+     "fen": "8/5rpk/4p3/1p2P3/1rnR2N1/6RP/5PP1/6K1 b - - 1 33",
+     "san": "Kh8",
+     "uci": "h7h8",
+     "color": "b",
+     "n": 33,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/186224189117",
+     "opp": "DenLaz",
+     "styles": [
+      "quiet",
+      "defensive"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Queens Gambit",
+      "n": 20
+     },
+     {
+      "name": "English Opening",
+      "n": 17
+     },
+     {
+      "name": "Sicilian Defense",
+      "n": 17
+     }
+    ],
+    "b": [
+     {
+      "name": "Sicilian Defense",
+      "n": 35
+     },
+     {
+      "name": "Ruy Lopez Opening",
+      "n": 26
+     },
+     {
+      "name": "English Opening",
+      "n": 18
+     }
+    ]
+   }
+  },
+  {
+   "id": "anishgiri",
+   "user": "anishgiri",
+   "name": "Anish Giri",
+   "ko": "아니시 기리",
+   "group": "gm",
+   "title": "GM",
+   "desc": [
+    "넓은 오프닝 지식과 재치로 유명한 네덜란드 최상위 선수",
+    "Dutch elite player famous for opening knowledge and wit"
+   ],
+   "overall": {
+    "code": "AWRO",
+    "pcts": [
+     70,
+     61,
+     49,
+     72
+    ],
+    "counted": 5493,
+    "accuracy": 94.2,
+    "rating": 2855,
+    "peers": {
+     "aggressive": 62,
+     "tactical": 45,
+     "initiative": 45,
+     "positional": 44,
+     "prophylactic": 26,
+     "solid": 51,
+     "defensive": 47,
+     "simplifying": 24,
+     "complicating": 46,
+     "risk": 48
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 3098,
+     "type": {
+      "code": "PWRE",
+      "pcts": [
+       41,
+       54,
+       45,
+       21
+      ],
+      "counted": 5636,
+      "accuracy": 91.3,
+      "rating": 2814,
+      "peers": {
+       "aggressive": 56,
+       "tactical": 43,
+       "initiative": 48,
+       "positional": 48,
+       "prophylactic": 71,
+       "solid": 67,
+       "defensive": 55,
+       "simplifying": 54,
+       "complicating": 74,
+       "risk": 49
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 3157,
+     "type": {
+      "code": "AWRO",
+      "pcts": [
+       70,
+       61,
+       49,
+       72
+      ],
+      "counted": 5493,
+      "accuracy": 94.2,
+      "rating": 2855,
+      "peers": {
+       "aggressive": 62,
+       "tactical": 45,
+       "initiative": 45,
+       "positional": 44,
+       "prophylactic": 26,
+       "solid": 51,
+       "defensive": 47,
+       "simplifying": 24,
+       "complicating": 46,
+       "risk": 48
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2714,
+     "type": {
+      "code": "PWIO",
+      "pcts": [
+       48,
+       73,
+       55,
+       84
+      ],
+      "counted": 5431,
+      "accuracy": 95.6,
+      "rating": 2550,
+      "peers": {
+       "aggressive": 51,
+       "tactical": 40,
+       "initiative": 50,
+       "positional": 48,
+       "prophylactic": 52,
+       "solid": 51,
+       "defensive": 41,
+       "simplifying": 25,
+       "complicating": 61,
+       "risk": 69
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "A",
+     "fen": "r7/pp1bqknp/3p1Np1/2pP2P1/2P3P1/4Q2P/PP2N3/5RK1 w - - 3 25",
+     "san": "Ng8+",
+     "uci": "f6g8",
+     "color": "w",
+     "n": 25,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184610651558",
+     "opp": "Ineffaceable",
+     "styles": [
+      "tactical",
+      "aggressive",
+      "initiative"
+     ],
+     "humanP": 11
+    },
+    {
+     "letter": "W",
+     "fen": "2r2rk1/ppq2pp1/4p1p1/2npP3/2pQ1N1P/P1P1P1P1/1P3PK1/4RR2 b - - 4 20",
+     "san": "Nb3",
+     "uci": "c5b3",
+     "color": "b",
+     "n": 20,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/169546412522",
+     "opp": "Velimirovich",
+     "styles": [
+      "complicating",
+      "initiative",
+      "tactical"
+     ],
+     "humanP": 19
+    },
+    {
+     "letter": "R",
+     "fen": "5r2/7p/1p1pk1p1/pN6/7q/1P5P/P7/5Q1K w - - 0 37",
+     "san": "Qxf8",
+     "uci": "f1f8",
+     "color": "w",
+     "n": 37,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/142532952880",
+     "opp": "NewEra0243",
+     "styles": [
+      "defensive",
+      "counterattack",
+      "complicating"
+     ],
+     "humanP": 70
+    },
+    {
+     "letter": "O",
+     "fen": "8/8/2k5/5r2/3K1P2/N7/8/8 w - - 1 70",
+     "san": "Kc3",
+     "uci": "d4c3",
+     "color": "w",
+     "n": 70,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/185011111223",
+     "opp": "ContrVersia",
+     "styles": [],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Queens Gambit",
+      "n": 36
+     },
+     {
+      "name": "English Opening",
+      "n": 26
+     },
+     {
+      "name": "Sicilian Defense",
+      "n": 23
+     }
+    ],
+    "b": [
+     {
+      "name": "Sicilian Defense",
+      "n": 48
+     },
+     {
+      "name": "Ruy Lopez Opening",
+      "n": 16
+     },
+     {
+      "name": "Indian Game",
+      "n": 16
+     }
+    ]
+   }
+  },
+  {
+   "id": "nihalsarin",
+   "user": "nihalsarin",
+   "name": "Nihal Sarin",
+   "ko": "니할 사린",
+   "group": "gm",
+   "title": "GM",
+   "desc": [
+    "온라인 빠른 체스에서 특히 강한 인도 최상위 선수",
+    "Indian elite player especially strong in fast online chess"
+   ],
+   "overall": {
+    "code": "AWRO",
+    "pcts": [
+     58,
+     87,
+     47,
+     78
+    ],
+    "counted": 5599,
+    "accuracy": 93.7,
+    "rating": 2968,
+    "peers": {
+     "aggressive": 62,
+     "tactical": 78,
+     "initiative": 69,
+     "positional": 44,
+     "prophylactic": 83,
+     "solid": 20,
+     "defensive": 72,
+     "simplifying": 24,
+     "complicating": 72,
+     "risk": 78
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 3322,
+     "type": {
+      "code": "AWIE",
+      "pcts": [
+       72,
+       77,
+       63,
+       16
+      ],
+      "counted": 5635,
+      "accuracy": 92.5,
+      "rating": 2970,
+      "peers": {
+       "aggressive": 56,
+       "tactical": 76,
+       "initiative": 71,
+       "positional": 48,
+       "prophylactic": 39,
+       "solid": 53,
+       "defensive": 55,
+       "simplifying": 22,
+       "complicating": 74,
+       "risk": 62
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 3319,
+     "type": {
+      "code": "AWRO",
+      "pcts": [
+       58,
+       87,
+       47,
+       78
+      ],
+      "counted": 5599,
+      "accuracy": 93.7,
+      "rating": 2968,
+      "peers": {
+       "aggressive": 62,
+       "tactical": 78,
+       "initiative": 69,
+       "positional": 44,
+       "prophylactic": 83,
+       "solid": 20,
+       "defensive": 72,
+       "simplifying": 24,
+       "complicating": 72,
+       "risk": 78
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2761,
+     "type": {
+      "code": "PWRO",
+      "pcts": [
+       46,
+       74,
+       46,
+       78
+      ],
+      "counted": 5740,
+      "accuracy": 95.4,
+      "rating": 2583,
+      "peers": {
+       "aggressive": 42,
+       "tactical": 42,
+       "initiative": 51,
+       "positional": 47,
+       "prophylactic": 52,
+       "solid": 49,
+       "defensive": 55,
+       "simplifying": 25,
+       "complicating": 61,
+       "risk": 73
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "A",
+     "fen": "6k1/1p4p1/pPp3r1/2Pn1p2/P2Pp1Pq/R3Pr1P/4KPQ1/1R2B3 b - - 1 41",
+     "san": "Nf4+",
+     "uci": "d5f4",
+     "color": "b",
+     "n": 41,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184373994772",
+     "opp": "Sina-Movahed",
+     "styles": [
+      "tactical",
+      "complicating",
+      "aggressive"
+     ],
+     "humanP": 0
+    },
+    {
+     "letter": "W",
+     "fen": "2kr3r/Qb3pp1/5b2/pN1pq2p/Pp6/3B4/1PP3PP/3R3K w - - 2 35",
+     "san": "Bf5+",
+     "uci": "d3f5",
+     "color": "w",
+     "n": 35,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184377099386",
+     "opp": "Sina-Movahed",
+     "styles": [
+      "aggressive",
+      "complicating",
+      "initiative"
+     ],
+     "humanP": 6
+    },
+    {
+     "letter": "R",
+     "fen": "6k1/pR3p2/2B1b1pp/8/P7/2r1P2P/r5P1/4R1K1 w - - 9 31",
+     "san": "Bf3",
+     "uci": "c6f3",
+     "color": "w",
+     "n": 31,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/185133613630",
+     "opp": "legendisback1",
+     "styles": [
+      "defensive",
+      "counterattack"
+     ],
+     "humanP": 27
+    },
+    {
+     "letter": "O",
+     "fen": "r1bq1rk1/1ppnppbp/3p1np1/p7/P2P4/2N2NP1/1PP1PPBP/R1BQ1RK1 w - - 0 8",
+     "san": "Qd3",
+     "uci": "d1d3",
+     "color": "w",
+     "n": 8,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184375310396",
+     "opp": "Sina-Movahed",
+     "styles": [
+      "active",
+      "solid"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Indian Game",
+      "n": 30
+     },
+     {
+      "name": "Queens Gambit",
+      "n": 24
+     },
+     {
+      "name": "Queens Pawn Opening",
+      "n": 22
+     }
+    ],
+    "b": [
+     {
+      "name": "English Opening",
+      "n": 27
+     },
+     {
+      "name": "Queens Gambit",
+      "n": 25
+     },
+     {
+      "name": "Modern Defense",
+      "n": 18
+     }
+    ]
+   }
+  },
+  {
+   "id": "gothamchess",
+   "user": "gothamchess",
+   "name": "Levy Rozman (GothamChess)",
+   "ko": "갓뎀체스 (GothamChess)",
+   "group": "streamer",
+   "title": "IM",
+   "desc": [
+    "세계에서 가장 큰 체스 유튜브 채널을 운영하는 인터내셔널 마스터",
+    "International Master behind the world's biggest chess YouTube channel"
+   ],
+   "overall": {
+    "code": "AWRO",
+    "pcts": [
+     59,
+     79,
+     36,
+     74
+    ],
+    "counted": 5296,
+    "accuracy": 91,
+    "rating": 2693,
+    "peers": {
+     "aggressive": 51,
+     "tactical": 63,
+     "initiative": 58,
+     "positional": 44,
+     "prophylactic": 56,
+     "solid": 20,
+     "defensive": 72,
+     "simplifying": 24,
+     "complicating": 46,
+     "risk": 67
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 2986,
+     "type": {
+      "code": "AWIE",
+      "pcts": [
+       56,
+       85,
+       52,
+       38
+      ],
+      "counted": 5311,
+      "accuracy": 89.8,
+      "rating": 2735,
+      "peers": {
+       "aggressive": 65,
+       "tactical": 60,
+       "initiative": 71,
+       "positional": 48,
+       "prophylactic": 71,
+       "solid": 38,
+       "defensive": 68,
+       "simplifying": 22,
+       "complicating": 74,
+       "risk": 75
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 2926,
+     "type": {
+      "code": "AWRO",
+      "pcts": [
+       59,
+       79,
+       36,
+       74
+      ],
+      "counted": 5296,
+      "accuracy": 91,
+      "rating": 2693,
+      "peers": {
+       "aggressive": 51,
+       "tactical": 63,
+       "initiative": 58,
+       "positional": 44,
+       "prophylactic": 56,
+       "solid": 20,
+       "defensive": 72,
+       "simplifying": 24,
+       "complicating": 46,
+       "risk": 67
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2473,
+     "type": {
+      "code": "AWIE",
+      "pcts": [
+       93,
+       78,
+       85,
+       49
+      ],
+      "counted": 4488,
+      "accuracy": 93.4,
+      "rating": 2391,
+      "peers": {
+       "aggressive": 96,
+       "tactical": 90,
+       "initiative": 79,
+       "positional": 53,
+       "prophylactic": 23,
+       "solid": 14,
+       "defensive": 26,
+       "simplifying": 60,
+       "complicating": 65,
+       "risk": 77
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "A",
+     "fen": "r3r3/1b5k/pp1p1b2/2p1qN1n/4PB1P/1QP2P2/PP6/R3K1R1 w Q - 2 25",
+     "san": "Qf7+",
+     "uci": "b3f7",
+     "color": "w",
+     "n": 25,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184675797960",
+     "opp": "BeztDonut",
+     "styles": [
+      "tactical",
+      "aggressive",
+      "initiative"
+     ],
+     "humanP": 41
+    },
+    {
+     "letter": "W",
+     "fen": "rn1qrnk1/1b2bppp/8/pp3NPQ/2p1pPN1/2P5/PP5P/R1B2RK1 w - - 0 22",
+     "san": "Ngh6+",
+     "uci": "g4h6",
+     "color": "w",
+     "n": 22,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/185388513294",
+     "opp": "rubi2211",
+     "styles": [
+      "complicating",
+      "aggressive",
+      "initiative"
+     ],
+     "humanP": 36
+    },
+    {
+     "letter": "R",
+     "fen": "r3k2r/4ppbp/p1p1P1p1/1b6/1B6/4P3/6NP/2RQK3 b kq - 0 27",
+     "san": "O-O",
+     "uci": "e8g8",
+     "color": "b",
+     "n": 27,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184485425206",
+     "opp": "Saqo25",
+     "styles": [
+      "prophylactic",
+      "defensive",
+      "tension"
+     ],
+     "humanP": 40
+    },
+    {
+     "letter": "O",
+     "fen": "r2qkb1r/pppn1pp1/4pn1p/1P1p1b2/P7/4PN2/1BPP1PPP/RN1QKB1R w KQkq - 0 7",
+     "san": "Nh4",
+     "uci": "f3h4",
+     "color": "w",
+     "n": 7,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184073292196",
+     "opp": "jkaRUSSIA",
+     "styles": [
+      "solid"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Sicilian Defense",
+      "n": 25
+     },
+     {
+      "name": "Queens Pawn Opening",
+      "n": 24
+     },
+     {
+      "name": "Trompowsky Attack",
+      "n": 23
+     }
+    ],
+    "b": [
+     {
+      "name": "Caro Kann Defense",
+      "n": 26
+     },
+     {
+      "name": "Scandinavian Defense",
+      "n": 26
+     },
+     {
+      "name": "French Defense",
+      "n": 23
+     }
+    ]
+   }
+  },
+  {
+   "id": "ericrosen",
+   "user": "imrosen",
+   "name": "Eric Rosen",
+   "ko": "에릭 로젠",
+   "group": "streamer",
+   "title": "IM",
+   "desc": [
+    "함정 수와 차분한 해설로 사랑받는 스트리머",
+    "Streamer loved for his traps and calm commentary"
+   ],
+   "overall": {
+    "code": "AWRO",
+    "pcts": [
+     61,
+     78,
+     28,
+     80
+    ],
+    "counted": 6034,
+    "accuracy": 92.3,
+    "rating": 2693,
+    "peers": {
+     "aggressive": 71,
+     "tactical": 45,
+     "initiative": 58,
+     "positional": 44,
+     "prophylactic": 56,
+     "solid": 20,
+     "defensive": 82,
+     "simplifying": 24,
+     "complicating": 46,
+     "risk": 64
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 2751,
+     "type": {
+      "code": "PWRO",
+      "pcts": [
+       44,
+       80,
+       26,
+       55
+      ],
+      "counted": 5910,
+      "accuracy": 89.9,
+      "rating": 2576,
+      "peers": {
+       "aggressive": 46,
+       "tactical": 60,
+       "initiative": 48,
+       "positional": 48,
+       "prophylactic": 71,
+       "solid": 25,
+       "defensive": 80,
+       "simplifying": 21,
+       "complicating": 50,
+       "risk": 66
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 2926,
+     "type": {
+      "code": "AWRO",
+      "pcts": [
+       61,
+       78,
+       28,
+       80
+      ],
+      "counted": 6034,
+      "accuracy": 92.3,
+      "rating": 2693,
+      "peers": {
+       "aggressive": 71,
+       "tactical": 45,
+       "initiative": 58,
+       "positional": 44,
+       "prophylactic": 56,
+       "solid": 20,
+       "defensive": 82,
+       "simplifying": 24,
+       "complicating": 46,
+       "risk": 64
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2426,
+     "type": {
+      "code": "AWRO",
+      "pcts": [
+       52,
+       79,
+       29,
+       53
+      ],
+      "counted": 5995,
+      "accuracy": 93.6,
+      "rating": 2358,
+      "peers": {
+       "aggressive": 58,
+       "tactical": 50,
+       "initiative": 46,
+       "positional": 54,
+       "prophylactic": 53,
+       "solid": 29,
+       "defensive": 73,
+       "simplifying": 26,
+       "complicating": 65,
+       "risk": 64
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "A",
+     "fen": "8/1k1r3p/R7/2P1QpP1/1P1r1P2/8/1P3K1P/3b4 w - - 2 44",
+     "san": "c6+",
+     "uci": "c5c6",
+     "color": "w",
+     "n": 44,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/185807789237",
+     "opp": "screwdriver2009",
+     "styles": [
+      "aggressive",
+      "tactical",
+      "counterattack"
+     ],
+     "humanP": 22
+    },
+    {
+     "letter": "W",
+     "fen": "8/pB5p/1p5P/2pPk1p1/4b3/4P1P1/PP1K4/8 w - - 2 35",
+     "san": "d6",
+     "uci": "d5d6",
+     "color": "w",
+     "n": 35,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/185346700166",
+     "opp": "IKKPHD",
+     "styles": [
+      "complicating",
+      "passedPawn",
+      "initiative"
+     ],
+     "humanP": 30
+    },
+    {
+     "letter": "R",
+     "fen": "8/2R1p1r1/3kP3/1p6/1p6/1P6/1KP5/8 w - - 2 53",
+     "san": "Rd7+",
+     "uci": "c7d7",
+     "color": "w",
+     "n": 53,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/185292807314",
+     "opp": "matarez",
+     "styles": [
+      "defensive",
+      "counterattack",
+      "aggressive"
+     ],
+     "humanP": 2
+    },
+    {
+     "letter": "O",
+     "fen": "8/pK2k3/2pr3p/8/8/2R5/PP6/8 w - - 28 72",
+     "san": "Ka6",
+     "uci": "b7a6",
+     "color": "w",
+     "n": 72,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184933287950",
+     "opp": "W1nlovee7",
+     "styles": [
+      "solid"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Indian Game",
+      "n": 36
+     },
+     {
+      "name": "Indian Game..",
+      "n": 31
+     },
+     {
+      "name": "Queens Pawn Opening",
+      "n": 27
+     }
+    ],
+    "b": [
+     {
+      "name": "French Defense",
+      "n": 36
+     },
+     {
+      "name": "Queens Gambit",
+      "n": 31
+     },
+     {
+      "name": "Sicilian Defense",
+      "n": 27
+     }
+    ]
+   }
+  },
+  {
+   "id": "annacramling",
+   "user": "annacramling",
+   "name": "Anna Cramling",
+   "ko": "안나 크람링",
+   "group": "streamer",
+   "title": "WFM",
+   "desc": [
+    "유쾌한 대국 영상으로 인기 있는 스웨덴 스트리머",
+    "Swedish streamer popular for her lively game videos"
+   ],
+   "overall": {
+    "code": "PWRO",
+    "pcts": [
+     47,
+     88,
+     37,
+     73
+    ],
+    "counted": 5139,
+    "accuracy": 90.6,
+    "rating": 2351,
+    "peers": {
+     "aggressive": 59,
+     "tactical": 71,
+     "initiative": 65,
+     "positional": 52,
+     "prophylactic": 83,
+     "solid": 8,
+     "defensive": 78,
+     "simplifying": 23,
+     "complicating": 76,
+     "risk": 59
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 2264,
+     "type": {
+      "code": "PWIE",
+      "pcts": [
+       40,
+       74,
+       50,
+       44
+      ],
+      "counted": 4746,
+      "accuracy": 88,
+      "rating": 2252,
+      "peers": {
+       "aggressive": 58,
+       "tactical": 53,
+       "initiative": 69,
+       "positional": 59,
+       "prophylactic": 72,
+       "solid": 20,
+       "defensive": 69,
+       "simplifying": 51,
+       "complicating": 75,
+       "risk": 48
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 2415,
+     "type": {
+      "code": "PWRO",
+      "pcts": [
+       47,
+       88,
+       37,
+       73
+      ],
+      "counted": 5139,
+      "accuracy": 90.6,
+      "rating": 2351,
+      "peers": {
+       "aggressive": 59,
+       "tactical": 71,
+       "initiative": 65,
+       "positional": 52,
+       "prophylactic": 83,
+       "solid": 8,
+       "defensive": 78,
+       "simplifying": 23,
+       "complicating": 76,
+       "risk": 59
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2202,
+     "type": {
+      "code": "AWRE",
+      "pcts": [
+       60,
+       82,
+       45,
+       33
+      ],
+      "counted": 4867,
+      "accuracy": 92,
+      "rating": 2211,
+      "peers": {
+       "aggressive": 56,
+       "tactical": 75,
+       "initiative": 66,
+       "positional": 59,
+       "prophylactic": 54,
+       "solid": 22,
+       "defensive": 70,
+       "simplifying": 26,
+       "complicating": 68,
+       "risk": 66
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "P",
+     "fen": "8/8/5B2/3p4/5P2/3kn3/5K2/8 w - - 0 63",
+     "san": "Be5",
+     "uci": "f6e5",
+     "color": "w",
+     "n": 63,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/185185111093",
+     "opp": "stewartgranger1",
+     "styles": [
+      "prophylactic",
+      "solid",
+      "positional"
+     ],
+     "humanP": 6
+    },
+    {
+     "letter": "W",
+     "fen": "2rr2k1/1p3pb1/q2p2p1/1NnP2P1/4Pp2/6NQ/P4PK1/1R5R w - - 0 29",
+     "san": "Nf5",
+     "uci": "g3f5",
+     "color": "w",
+     "n": 29,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/172622694540",
+     "opp": "JID_fan",
+     "styles": [
+      "counterattack",
+      "complicating",
+      "aggressive"
+     ],
+     "humanP": 23
+    },
+    {
+     "letter": "R",
+     "fen": "6k1/5pp1/7p/8/4P3/4R3/4n1KP/5r2 b - - 1 43",
+     "san": "Rg1+",
+     "uci": "f1g1",
+     "color": "b",
+     "n": 43,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/171934315216",
+     "opp": "Chesser_Awesome",
+     "styles": [
+      "defensive",
+      "counterattack",
+      "complicating"
+     ],
+     "humanP": 8
+    },
+    {
+     "letter": "O",
+     "fen": "5Q2/8/2p5/2Q1p1pp/4k2P/6K1/8/8 w - - 2 61",
+     "san": "Qcd6",
+     "uci": "c5d6",
+     "color": "w",
+     "n": 61,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/172618354422",
+     "opp": "Mavinovski",
+     "styles": [],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Queens Gambit",
+      "n": 61
+     },
+     {
+      "name": "Nimzo Indian Defense",
+      "n": 22
+     },
+     {
+      "name": "Kings Indian Defense",
+      "n": 21
+     }
+    ],
+    "b": [
+     {
+      "name": "Sicilian Defense",
+      "n": 64
+     },
+     {
+      "name": "Queens Gambit",
+      "n": 29
+     },
+     {
+      "name": "Queens Pawn Opening",
+      "n": 18
+     }
+    ]
+   }
+  },
+  {
+   "id": "alexandrabotez",
+   "user": "alexandrabotez",
+   "name": "Alexandra Botez",
+   "ko": "알렉산드라 보테즈",
+   "group": "streamer",
+   "title": "WFM",
+   "desc": [
+    "보테즈 자매 채널로 유명한 체스 스트리머",
+    "Chess streamer known for the Botez sisters channel"
+   ],
+   "overall": {
+    "code": "PWRO",
+    "pcts": [
+     30,
+     54,
+     23,
+     89
+    ],
+    "counted": 5457,
+    "accuracy": 89.4,
+    "rating": 2336,
+    "peers": {
+     "aggressive": 49,
+     "tactical": 21,
+     "initiative": 29,
+     "positional": 53,
+     "prophylactic": 57,
+     "solid": 48,
+     "defensive": 67,
+     "simplifying": 23,
+     "complicating": 25,
+     "risk": 47
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 380,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 2472,
+     "type": {
+      "code": "PWRO",
+      "pcts": [
+       22,
+       52,
+       21,
+       75
+      ],
+      "counted": 5944,
+      "accuracy": 87.2,
+      "rating": 2390,
+      "peers": {
+       "aggressive": 28,
+       "tactical": 13,
+       "initiative": 25,
+       "positional": 24,
+       "prophylactic": 72,
+       "solid": 43,
+       "defensive": 69,
+       "simplifying": 20,
+       "complicating": 27,
+       "risk": 35
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 2394,
+     "type": {
+      "code": "PWRO",
+      "pcts": [
+       30,
+       54,
+       23,
+       89
+      ],
+      "counted": 5457,
+      "accuracy": 89.4,
+      "rating": 2336,
+      "peers": {
+       "aggressive": 49,
+       "tactical": 21,
+       "initiative": 29,
+       "positional": 53,
+       "prophylactic": 57,
+       "solid": 48,
+       "defensive": 67,
+       "simplifying": 23,
+       "complicating": 25,
+       "risk": 47
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 80,
+     "chesscomElo": 2032,
+     "type": {
+      "code": "PWIO",
+      "pcts": [
+       41,
+       63,
+       55,
+       55
+      ],
+      "counted": 2485,
+      "accuracy": 89.8,
+      "rating": 2101,
+      "peers": {
+       "aggressive": 34,
+       "tactical": 56,
+       "initiative": 53,
+       "positional": 62,
+       "prophylactic": 54,
+       "solid": 43,
+       "defensive": 43,
+       "simplifying": 26,
+       "complicating": 46,
+       "risk": 49
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "P",
+     "fen": "5Q2/2P5/r7/8/1K4k1/8/8/5R2 b - - 10 73",
+     "san": "Rg6",
+     "uci": "a6g6",
+     "color": "b",
+     "n": 73,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/172397644870",
+     "opp": "gregor20a2",
+     "styles": [
+      "prophylactic",
+      "positional"
+     ],
+     "humanP": 6
+    },
+    {
+     "letter": "W",
+     "fen": "1r3bk1/2R3p1/3p3p/1p1P4/p3Np2/3B4/q4P1P/3R3K w - - 0 31",
+     "san": "Nf6+",
+     "uci": "e4f6",
+     "color": "w",
+     "n": 31,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/172259247502",
+     "opp": "Virguero",
+     "styles": [
+      "complicating",
+      "aggressive",
+      "tactical"
+     ],
+     "humanP": 24
+    },
+    {
+     "letter": "R",
+     "fen": "r7/1b2ppkp/3p2p1/1P1PP3/2pQ1P2/r1P4P/6P1/3R2K1 b - - 1 30",
+     "san": "Kg8",
+     "uci": "g7g8",
+     "color": "b",
+     "n": 30,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/169775396832",
+     "opp": "Eduard_Kleiman",
+     "styles": [
+      "prophylactic",
+      "quiet",
+      "defensive"
+     ],
+     "humanP": 15
+    },
+    {
+     "letter": "O",
+     "fen": "8/1p1k4/P2p4/7p/r7/3N4/2R3K1/8 b - - 0 52",
+     "san": "Ra5",
+     "uci": "a4a5",
+     "color": "b",
+     "n": 52,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/170900769870",
+     "opp": "Nox",
+     "styles": [
+      "defensive"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Queens Gambit",
+      "n": 39
+     },
+     {
+      "name": "Kings Indian Defense",
+      "n": 28
+     },
+     {
+      "name": "Slav Defense",
+      "n": 19
+     }
+    ],
+    "b": [
+     {
+      "name": "French Defense",
+      "n": 75
+     },
+     {
+      "name": "Kings Indian Defense",
+      "n": 20
+     },
+     {
+      "name": "Queens Pawn Opening",
+      "n": 11
+     }
+    ]
+   }
+  },
+  {
+   "id": "ssgssg",
+   "user": "ssgssg2",
+   "name": "ssgssg2 (슥슥이)",
+   "ko": "슥슥이",
+   "group": "korea",
+   "title": "",
+   "desc": [
+    "한국의 인기 체스 유튜버",
+    "Popular Korean chess YouTuber"
+   ],
+   "overall": {
+    "code": "PWIO",
+    "pcts": [
+     49,
+     55,
+     51,
+     76
+    ],
+    "counted": 4508,
+    "accuracy": 87.5,
+    "rating": 2102,
+    "peers": {
+     "aggressive": 67,
+     "tactical": 45,
+     "initiative": 48,
+     "positional": 60,
+     "prophylactic": 58,
+     "solid": 43,
+     "defensive": 49,
+     "simplifying": 59,
+     "complicating": 55,
+     "risk": 51
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 1903,
+     "type": {
+      "code": "AWRO",
+      "pcts": [
+       68,
+       68,
+       49,
+       64
+      ],
+      "counted": 4717,
+      "accuracy": 87,
+      "rating": 2017,
+      "peers": {
+       "aggressive": 77,
+       "tactical": 65,
+       "initiative": 67,
+       "positional": 67,
+       "prophylactic": 41,
+       "solid": 24,
+       "defensive": 69,
+       "simplifying": 48,
+       "complicating": 52,
+       "risk": 58
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 2034,
+     "type": {
+      "code": "PWIO",
+      "pcts": [
+       49,
+       55,
+       51,
+       76
+      ],
+      "counted": 4508,
+      "accuracy": 87.5,
+      "rating": 2102,
+      "peers": {
+       "aggressive": 67,
+       "tactical": 45,
+       "initiative": 48,
+       "positional": 60,
+       "prophylactic": 58,
+       "solid": 43,
+       "defensive": 49,
+       "simplifying": 59,
+       "complicating": 55,
+       "risk": 51
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2169,
+     "type": {
+      "code": "AWIO",
+      "pcts": [
+       52,
+       68,
+       55,
+       55
+      ],
+      "counted": 4817,
+      "accuracy": 89.5,
+      "rating": 2190,
+      "peers": {
+       "aggressive": 55,
+       "tactical": 60,
+       "initiative": 66,
+       "positional": 59,
+       "prophylactic": 54,
+       "solid": 23,
+       "defensive": 58,
+       "simplifying": 61,
+       "complicating": 69,
+       "risk": 53
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "P",
+     "fen": "8/8/P4k2/6R1/3p3P/8/3K4/r4r2 w - - 6 42",
+     "san": "Rd5",
+     "uci": "g5d5",
+     "color": "w",
+     "n": 42,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184124110646",
+     "opp": "emran60",
+     "styles": [
+      "prophylactic",
+      "positional",
+      "active"
+     ],
+     "humanP": 37
+    },
+    {
+     "letter": "W",
+     "fen": "r1br1nk1/1p3ppp/pq2p3/4P3/1P1pNPQ1/P2B4/6PP/R4RK1 w - - 7 20",
+     "san": "Nf6+",
+     "uci": "e4f6",
+     "color": "w",
+     "n": 20,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/174474441814",
+     "opp": "krizm0",
+     "styles": [
+      "aggressive",
+      "complicating",
+      "initiative"
+     ],
+     "humanP": 37
+    },
+    {
+     "letter": "I",
+     "fen": "1r6/5k1p/p5p1/1p3p2/5K2/P1N3PP/1P6/8 b - - 4 30",
+     "san": "b4",
+     "uci": "b5b4",
+     "color": "b",
+     "n": 30,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184830043694",
+     "opp": "bk1p",
+     "styles": [
+      "initiative",
+      "tension",
+      "solid"
+     ],
+     "humanP": 26
+    },
+    {
+     "letter": "O",
+     "fen": "3Q4/2Q5/8/5K2/1k6/8/8/8 w - - 7 71",
+     "san": "Qb6+",
+     "uci": "c7b6",
+     "color": "w",
+     "n": 71,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/184023821386",
+     "opp": "wqreqwrqtgqer",
+     "styles": [
+      "initiative",
+      "aggressive"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Sicilian Defense",
+      "n": 52
+     },
+     {
+      "name": "French Defense",
+      "n": 32
+     },
+     {
+      "name": "Scandinavian Defense",
+      "n": 23
+     }
+    ],
+    "b": [
+     {
+      "name": "Sicilian Defense",
+      "n": 63
+     },
+     {
+      "name": "Benoni Defense",
+      "n": 21
+     },
+     {
+      "name": "Indian Game",
+      "n": 17
+     }
+    ]
+   }
+  },
+  {
+   "id": "chessmakta",
+   "user": "chessmakta",
+   "name": "ChessMakta (체스막타)",
+   "ko": "체스막타",
+   "group": "korea",
+   "title": "",
+   "desc": [
+    "한국의 체스 유튜버",
+    "Korean chess YouTuber"
+   ],
+   "overall": {
+    "code": "PSRO",
+    "pcts": [
+     31,
+     34,
+     18,
+     61
+    ],
+    "counted": 5341,
+    "accuracy": 88.2,
+    "rating": 1847,
+    "peers": {
+     "aggressive": 33,
+     "tactical": 54,
+     "initiative": 32,
+     "positional": 68,
+     "prophylactic": 59,
+     "solid": 57,
+     "defensive": 80,
+     "simplifying": 59,
+     "complicating": 32,
+     "risk": 38
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 450,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 1673,
+     "type": {
+      "code": "PSRO",
+      "pcts": [
+       34,
+       44,
+       26,
+       80
+      ],
+      "counted": 5157,
+      "accuracy": 86.2,
+      "rating": 1867,
+      "peers": {
+       "aggressive": 22,
+       "tactical": 28,
+       "initiative": 23,
+       "positional": 39,
+       "prophylactic": 42,
+       "solid": 41,
+       "defensive": 56,
+       "simplifying": 46,
+       "complicating": 28,
+       "risk": 39
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 1641,
+     "type": {
+      "code": "PSRO",
+      "pcts": [
+       31,
+       34,
+       18,
+       61
+      ],
+      "counted": 5341,
+      "accuracy": 88.2,
+      "rating": 1847,
+      "peers": {
+       "aggressive": 33,
+       "tactical": 54,
+       "initiative": 32,
+       "positional": 68,
+       "prophylactic": 59,
+       "solid": 57,
+       "defensive": 80,
+       "simplifying": 59,
+       "complicating": 32,
+       "risk": 38
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 150,
+     "chesscomElo": 2007,
+     "type": {
+      "code": "PSRO",
+      "pcts": [
+       45,
+       44,
+       39,
+       67
+      ],
+      "counted": 4876,
+      "accuracy": 90,
+      "rating": 2085,
+      "peers": {
+       "aggressive": 44,
+       "tactical": 56,
+       "initiative": 41,
+       "positional": 62,
+       "prophylactic": 54,
+       "solid": 62,
+       "defensive": 55,
+       "simplifying": 61,
+       "complicating": 47,
+       "risk": 49
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "P",
+     "fen": "6k1/5pp1/p3p2p/1pq2r2/4Q2P/P1P1R1P1/1P3P2/3R2K1 b - - 0 33",
+     "san": "Rd5",
+     "uci": "f5d5",
+     "color": "b",
+     "n": 33,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/146567263628",
+     "opp": "hamed07dec",
+     "styles": [
+      "initiative",
+      "prophylactic",
+      "tactical"
+     ],
+     "humanP": 1
+    },
+    {
+     "letter": "S",
+     "fen": "3rk2r/pp1n1ppp/4p3/1B2Nb2/1b1P1B2/4P3/PP2KPPP/R6R w k - 6 16",
+     "san": "Bxd7+",
+     "uci": "b5d7",
+     "color": "w",
+     "n": 16,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/146903198856",
+     "opp": "Ruslan_EV",
+     "styles": [
+      "simplifying",
+      "aggressive",
+      "tactical"
+     ],
+     "humanP": 10
+    },
+    {
+     "letter": "R",
+     "fen": "r1q3k1/1R2bppp/p1p1pn2/2P5/5B2/2NP2P1/P4PBP/1R4K1 b - - 0 21",
+     "san": "Bf8",
+     "uci": "e7f8",
+     "color": "b",
+     "n": 21,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/146751304394",
+     "opp": "stinkyicebeamer",
+     "styles": [
+      "defensive",
+      "counterattack"
+     ],
+     "humanP": 9
+    },
+    {
+     "letter": "O",
+     "fen": "1R6/8/5K2/8/1pk5/8/8/8 w - - 2 60",
+     "san": "Re8",
+     "uci": "b8e8",
+     "color": "w",
+     "n": 60,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/146815463504",
+     "opp": "Alisiadragon",
+     "styles": [
+      "positional",
+      "solid"
+     ],
+     "humanP": 0
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Queens Gambit",
+      "n": 78
+     },
+     {
+      "name": "Queens Pawn Opening",
+      "n": 23
+     },
+     {
+      "name": "Slav Defense",
+      "n": 19
+     }
+    ],
+    "b": [
+     {
+      "name": "Scandinavian Defense",
+      "n": 92
+     },
+     {
+      "name": "Queens Pawn Opening",
+      "n": 18
+     },
+     {
+      "name": "Queens Gambit",
+      "n": 15
+     }
+    ]
+   }
+  },
+  {
+   "id": "chessinside",
+   "user": "chessinside",
+   "name": "chessinside (체스인사이드)",
+   "ko": "체스인사이드",
+   "group": "korea",
+   "title": "",
+   "desc": [
+    "Chess.com 한국 커뮤니티를 이끄는 체스 유튜버",
+    "Korean chess YouTuber who leads Chess.com's Korean community"
+   ],
+   "overall": {
+    "code": "PSIE",
+    "pcts": [
+     46,
+     34,
+     51,
+     45
+    ],
+    "counted": 5362,
+    "accuracy": 90.1,
+    "rating": 2130,
+    "peers": {
+     "aggressive": 46,
+     "tactical": 29,
+     "initiative": 37,
+     "positional": 60,
+     "prophylactic": 27,
+     "solid": 75,
+     "defensive": 37,
+     "simplifying": 60,
+     "complicating": 54,
+     "risk": 38
+    }
+   },
+   "mainClass": "blitz",
+   "mainGames": 150,
+   "games": 363,
+   "classes": [
+    {
+     "cls": "bullet",
+     "games": 150,
+     "chesscomElo": 2059,
+     "type": {
+      "code": "PSRE",
+      "pcts": [
+       29,
+       39,
+       37,
+       48
+      ],
+      "counted": 5287,
+      "accuracy": 87.9,
+      "rating": 2118,
+      "peers": {
+       "aggressive": 38,
+       "tactical": 19,
+       "initiative": 24,
+       "positional": 63,
+       "prophylactic": 41,
+       "solid": 78,
+       "defensive": 42,
+       "simplifying": 18,
+       "complicating": 27,
+       "risk": 33
+      }
+     }
+    },
+    {
+     "cls": "blitz",
+     "games": 150,
+     "chesscomElo": 2077,
+     "type": {
+      "code": "PSIE",
+      "pcts": [
+       46,
+       34,
+       51,
+       45
+      ],
+      "counted": 5362,
+      "accuracy": 90.1,
+      "rating": 2130,
+      "peers": {
+       "aggressive": 46,
+       "tactical": 29,
+       "initiative": 37,
+       "positional": 60,
+       "prophylactic": 27,
+       "solid": 75,
+       "defensive": 37,
+       "simplifying": 60,
+       "complicating": 54,
+       "risk": 38
+      }
+     }
+    },
+    {
+     "cls": "rapid",
+     "games": 63,
+     "chesscomElo": 1903,
+     "type": {
+      "code": "PSIE",
+      "pcts": [
+       44,
+       47,
+       66,
+       28
+      ],
+      "counted": 2264,
+      "accuracy": 92.2,
+      "rating": 2017,
+      "peers": {
+       "aggressive": 62,
+       "tactical": 37,
+       "initiative": 39,
+       "positional": 64,
+       "prophylactic": 55,
+       "solid": 66,
+       "defensive": 19,
+       "simplifying": 61,
+       "complicating": 72,
+       "risk": 37
+      }
+     }
+    }
+   ],
+   "signature": [
+    {
+     "letter": "P",
+     "fen": "r2q1rk1/1b2nppp/p3pn2/1p4N1/3P4/1BN5/PP2QPPP/3RR1K1 b - - 5 16",
+     "san": "Ned5",
+     "uci": "e7d5",
+     "color": "b",
+     "n": 16,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/5097234769",
+     "opp": "zbrad",
+     "styles": [
+      "prophylactic",
+      "positional",
+      "solid"
+     ],
+     "humanP": 64
+    },
+    {
+     "letter": "S",
+     "fen": "3R4/1p3ppk/pnr2n1p/6q1/1Q2p1B1/1P2P2P/PB3PP1/6K1 w - - 8 27",
+     "san": "Bxf6",
+     "uci": "b2f6",
+     "color": "w",
+     "n": 27,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/5084807049",
+     "opp": "selsdon32",
+     "styles": [
+      "counterattack",
+      "simplifying",
+      "initiative"
+     ],
+     "humanP": 65
+    },
+    {
+     "letter": "I",
+     "fen": "2krr3/pbqn2p1/1p2p2p/2p2p2/3P1b2/2PB1NP1/PPQN1P1P/1K1RR3 b - - 0 19",
+     "san": "Bxd2",
+     "uci": "f4d2",
+     "color": "b",
+     "n": 19,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/5367380258",
+     "opp": "michalbasinski",
+     "styles": [
+      "initiative",
+      "complicating",
+      "counterattack"
+     ],
+     "humanP": 36
+    },
+    {
+     "letter": "E",
+     "fen": "r1bqk2r/5p2/p1nbpp2/1p1p4/3P1N1p/1QN1P1P1/PP2BP1P/1K1R3R b kq - 1 14",
+     "san": "Na5",
+     "uci": "c6a5",
+     "color": "b",
+     "n": 14,
+     "cls": "blitz",
+     "link": "https://www.chess.com/game/live/5084883617",
+     "opp": "zvonkop10",
+     "styles": [
+      "complicating",
+      "initiative",
+      "tactical"
+     ],
+     "humanP": 70
+    }
+   ],
+   "openings": {
+    "w": [
+     {
+      "name": "Nimzowitsch Larsen Attack",
+      "n": 46
+     },
+     {
+      "name": "Queens Pawn Opening",
+      "n": 32
+     },
+     {
+      "name": "Indian Game..",
+      "n": 19
+     }
+    ],
+    "b": [
+     {
+      "name": "Caro Kann Defense",
+      "n": 55
+     },
+     {
+      "name": "Scandinavian Defense",
+      "n": 35
+     },
+     {
+      "name": "Slav Defense",
+      "n": 18
+     }
+    ]
+   }
+  }
+ ]
+}

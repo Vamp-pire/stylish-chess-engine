@@ -241,3 +241,34 @@ th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: l
 .update { border-top: 1px solid var(--border); padding-top: 8px; margin-top: 24px; }
 .update h3 { margin: 18px 0 6px; }
 .update li { margin: 4px 0; }
+
+/* ── 명예의 전당 ── */
+.hof-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.hof-card { display: flex; gap: 12px; align-items: center; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); text-decoration: none; color: var(--text); }
+.hof-card:hover { border-color: var(--accent); }
+.hof-card img { width: 72px; height: 72px; border-radius: 12px; flex: none; }
+.hof-card span { display: grid; gap: 2px; min-width: 0; }
+.hof-card em { font-style: normal; font-weight: 700; color: var(--accent); }
+.hof-card small { color: var(--text-3); font-size: 13px; line-height: 1.4; }
+.hof-axis { display: grid; grid-template-columns: 1fr 2fr 1fr 44px; align-items: center; gap: 8px; margin: 10px 0; font-size: 14px; }
+.hof-axis span { color: var(--text-3); }
+.hof-axis span.on { color: var(--text); font-weight: 700; }
+.hof-axis span:nth-of-type(2) { text-align: right; }
+.hof-axis .bar { position: relative; height: 8px; border-radius: 99px; background: var(--surface-2); }
+.hof-axis .bar i { position: absolute; top: -4px; width: 16px; height: 16px; margin-left: -8px; border-radius: 50%; background: var(--accent); }
+.hof-axis b { text-align: right; font-variant-numeric: tabular-nums; }
+.cta-row { margin: 20px 0; }
+.btn-cta { display: inline-flex; padding: 12px 20px; border-radius: 12px; background: var(--accent); color: #fff; font-weight: 800; text-decoration: none; }
+.btn-cta:hover { filter: brightness(1.08); }
+.hof-moves { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.hof-move { margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); }
+.hof-move figcaption { display: grid; gap: 6px; margin-top: 10px; font-size: 14px; }
+.hof-move .type-letter { justify-self: start; display: inline-block; padding: 0 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); font-weight: 800; }
+.mini-board { width: 100%; height: auto; display: block; border-radius: 8px; }
+.mini-board .sl { fill: #f0d9b5; } .mini-board .sd { fill: #b58863; }
+.mini-board text { font-size: 34px; text-anchor: middle; font-family: 'Segoe UI Symbol', 'Noto Sans Symbols2', 'DejaVu Sans', serif; }
+.mini-board .pw { fill: #fff; stroke: #222; stroke-width: 1.2; paint-order: stroke; }
+.mini-board .pb { fill: #222; stroke: #fff; stroke-width: .6; paint-order: stroke; }
+.mini-board .mv { stroke: rgba(21, 120, 27, .8); stroke-width: 7; stroke-linecap: round; }
+.mini-board .mvh { fill: rgba(21, 120, 27, .8); }
+.table-wrap { overflow-x: auto; }

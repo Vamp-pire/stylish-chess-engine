@@ -6,6 +6,8 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { UPDATES } from './updates.mjs';
 import { menuHtml } from '../src/ui/menu.js';
 import { compatPairs, compatPath, compatBody, compatLinks, openingBlock } from './pages-compat.mjs';
+import { hofPath, hofIndexBody, hofPlayerBody } from './pages-hof.mjs';
+import { existsSync } from 'node:fs';
 
 const SITE = (process.env.SITE_URL ?? 'https://stylish-chess-engine.pages.dev').replace(/\/$/, '');
 const ADSENSE = 'ca-pub-8762647584529985';
@@ -803,8 +805,33 @@ ${openingBlock({ code: t.code, lang, esc, intro: false })}`).join('\n')}
   }));
 }
 
+// ── 명예의 전당 (src/data/hof.json이 있을 때만) ──
+const HOF_FILE = new URL('../src/data/hof.json', import.meta.url);
+const HOF = existsSync(HOF_FILE) ? JSON.parse(readFileSync(HOF_FILE, 'utf8')) : null;
+if (HOF) {
+  for (const lang of ['ko', 'en']) {
+    const en = lang === 'en';
+    write(P(lang, '/hall-of-fame/'), page({
+      path: '/hall-of-fame/', active: 'types', lang, wide: true,
+      title: en ? 'Hall of fame: chess types of Carlsen, Hikaru, GothamChess and more | Stylish' : '명예의 전당: 칼센·히카루·갓뎀체스는 어떤 체스 유형? | Stylish',
+      description: en ? 'Four-letter chess types of famous players and streamers, from hundreds of their public Chess.com games.' : '유명 선수와 체스 스트리머의 4글자 체스 유형. Chess.com 공개 대국 수백 판을 분석했어요.',
+      body: hofIndexBody({ hof: HOF, data, lang, esc, P, IMG, typeIn }),
+    }));
+    for (const pl of HOF.players) {
+      const t = typeIn(data.types.find((x) => x.code === pl.overall.code), lang);
+      const nm = en ? pl.name : pl.ko;
+      write(P(lang, hofPath(pl)), page({
+        path: hofPath(pl), active: 'types', lang, image: IMG(lang, `${t.code}.png`),
+        title: en ? `${nm}'s chess type: ${t.code} ${t.name} | Stylish` : `${nm}의 체스 유형은 ${t.code} ${t.name} | Stylish`,
+        description: en ? `${nm}'s chess style from ${pl.games} public Chess.com games: ${t.code} ${t.name}. Signature moves, standout traits and favorite openings.` : `Chess.com 공개 대국 ${pl.games}판으로 본 ${nm}의 체스 스타일: ${t.code} ${t.name}. 대표 수, 두드러진 특징, 자주 둔 오프닝.`,
+        body: hofPlayerBody({ p: pl, hof: HOF, data, axes: axesIn(lang), lang, esc, P, IMG, typeIn, contact: CONTACT_FORM }),
+      }));
+    }
+  }
+}
+
 // ── 사이트맵·robots ──
-const koPaths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/types/match/', '/types/openings', ...COMPAT.map(([a, b]) => compatPath(a, b)), '/app', '/about', '/updates', '/contact', '/privacy'];
+const koPaths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/types/match/', '/types/openings', ...(HOF ? ['/hall-of-fame/', ...HOF.players.map(hofPath)] : []), ...COMPAT.map(([a, b]) => compatPath(a, b)), '/app', '/about', '/updates', '/contact', '/privacy'];
 const paths = [...koPaths, ...koPaths.filter((p) => p !== '/app').map((p) => P('en', p))];
 writeFileSync(new URL('sitemap.xml', DIST), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
