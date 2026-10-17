@@ -1,6 +1,6 @@
 // 유형 궁합 페이지(16유형 쌍 136개)와 유형별 어울리는 오프닝. scripts/build-pages.mjs가 불러 쓴다.
 // 오프닝은 미리 분석한 public/opening-styles.json(lichess-org/chess-openings, CC0)의 스타일로 유형 축과 맞춘다.
-import { STYLE_LABEL, boardSvg } from './pages-shared.mjs';
+import { STYLE_LABEL, boardSvg, typeImg } from './pages-shared.mjs';
 import { readFileSync } from 'node:fs';
 
 const OS = JSON.parse(readFileSync(new URL('../public/opening-styles.json', import.meta.url), 'utf8'));
@@ -188,7 +188,7 @@ export function compatBody({ A, B, axes, lang, esc, P, IMG, idForm, stats, examp
     <p><b>${en ? 'What they do well' : '상대가 잘하는 것'}</b></p><ul>${them.strengths.slice(0, 2).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
     <p><b>${en ? 'Where to press (their watch-outs)' : '노려 볼 곳 (상대의 \'이럴 때 조심\')'}</b></p><ul>${them.weaknesses.slice(0, 2).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
     <p><b>${en ? 'What to lean on' : '내가 살릴 것'}</b></p><ul>${me.strengths.slice(0, 2).map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
-  const card = (t) => `<a class="opp-card g-${t.code.slice(0, 2)}" href="${P(lang, `/types/${t.code}`)}"><img src="${IMG(lang, `${t.code}-square.png`)}" alt="" width="600" height="600" loading="lazy" /><span><b>${t.code} ${esc(t.name)}</b>${esc(t.tagline)}</span></a>`;
+  const card = (t) => `<a class="opp-card g-${t.code.slice(0, 2)}" href="${P(lang, `/types/${t.code}`)}">${typeImg(IMG(lang, `${t.code}-square.png`), { w: 600, h: 600, sizes: '96px' })}<span><b>${t.code} ${esc(t.name)}</b>${esc(t.tagline)}</span></a>`;
   return `<article class="type-page">
 <p class="crumbs"><a href="${P(lang, '/types/')}">${en ? 'Chess types' : '체스 유형'}</a> › ${en ? 'Matchups' : '궁합'}</p>
 <h1>${A.code} ${esc(A.name)} × ${B.code} ${esc(B.name)}</h1>

@@ -48,7 +48,7 @@ export function typeSection(p: PlayerProfile, name = ''): string {
     : `<p class="type-note type-unsure">⚠ ${tr(`아직 바뀔 수 있어요. 평가한 수가 ${t.counted}수뿐이라, ${Math.ceil((MIN_COUNTED - t.counted) / 25)}판 정도 더 분석하면 결과가 안정돼요.`, `This may still change. Only ${t.counted} moves rated so far; about ${Math.ceil((MIN_COUNTED - t.counted) / 25)} more games will settle it.`)}</p>`;
   return `<div class="type-card g-${g}">
     <div class="type-top">
-      <a href="/types/${t.code}" target="_blank" rel="noopener"><img class="type-thumb" src="/img/types/${t.code}-square.png" alt="${t.code} ${esc(t.info.name)}" width="600" height="600" /></a>
+      <a href="/types/${t.code}" target="_blank" rel="noopener"><img class="type-thumb" src="/img/types/${t.code}-square-300.webp" alt="${t.code} ${esc(t.info.name)}" width="600" height="600" decoding="async" /></a>
       <div>
         <div class="type-head">
           <span class="type-code">${codeHtml}</span>

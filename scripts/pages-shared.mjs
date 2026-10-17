@@ -31,3 +31,13 @@ export function boardSvg(fen, uci, color) {
   return `<svg class="mini-board" viewBox="0 0 320 320" role="img" aria-label="board">${cells}${pieces}
 <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="mv"/><circle cx="${x2}" cy="${y2}" r="7" class="mvh"/></svg>`;
 }
+
+/**
+ * 유형 그림 <img>: PNG 경로(…-square.png 또는 공유용 ….png)를 받아 가벼운 WebP(scripts/build-webp.mjs)를 화면 크기에 맞춰 쓴다.
+ * sizes는 실제로 보이는 폭. 화면 밖 그림은 lazy, 첫 화면 큰 그림만 high(먼저 받기)
+ */
+export function typeImg(png, { alt = '', w, h, sizes, lazy = true, high = false, cls = '' }) {
+  const base = png.replace(/\.png$/, '');
+  const [a, b] = base.endsWith('-square') ? [300, 600] : [800, 1200];
+  return `<img${cls ? ` class="${cls}"` : ''} src="${base}-${b}.webp" srcset="${base}-${a}.webp ${a}w, ${base}-${b}.webp ${b}w" sizes="${sizes}" alt="${alt}" width="${w}" height="${h}"${lazy ? ' loading="lazy"' : ''}${high ? ' fetchpriority="high"' : ''} decoding="async" />`;
+}

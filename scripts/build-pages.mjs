@@ -8,6 +8,7 @@ import { menuHtml } from '../src/ui/menu.js';
 import { compatPairs, compatPath, compatBody, compatLinks, openingBlock } from './pages-compat.mjs';
 import { hofPath, hofIndexBody, hofPlayerBody } from './pages-hof.mjs';
 import { reliabilityBody } from './pages-reliability.mjs';
+import { typeImg } from './pages-shared.mjs';
 import { existsSync } from 'node:fs';
 
 const SITE = (process.env.SITE_URL ?? 'https://stylish-chess-engine.pages.dev').replace(/\/$/, '');
@@ -191,7 +192,10 @@ function page({ path, title, description, body, active = '', image = null, wide 
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
 <link rel="icon" type="image/png" href="/logo.png" />
-<link rel="stylesheet" href="${PRETENDARD}" />
+<!-- 글꼴은 화면 표시를 막지 않게 받는다 (먼저 시스템 글꼴로 보이고, 글꼴이 오면 바뀐다) -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="stylesheet" href="${PRETENDARD}" media="print" onload="this.media='all'" />
+<noscript><link rel="stylesheet" href="${PRETENDARD}" /></noscript>
 <link rel="stylesheet" href="/pages.css" />
 <link rel="stylesheet" href="/menu.css" />
 <script defer src="/menu.js"></script>
@@ -228,7 +232,7 @@ ${body}
 
 /** 유형 타일 (정사각형 이미지 + 이름) */
 const tile = (t, lang = 'ko') => `<a class="type-tile g-${t.code.slice(0, 2)}" href="${P(lang, `/types/${t.code}`)}">
-<img src="${IMG(lang, `${t.code}-square.png`)}" alt="${t.code} ${esc(t.name)}" width="600" height="600" loading="lazy" />
+${typeImg(IMG(lang, `${t.code}-square.png`), { alt: `${t.code} ${esc(t.name)}`, w: 600, h: 600, sizes: '(max-width: 900px) 45vw, 260px' })}
 <span class="tile-text"><span class="code">${t.code}</span><span class="nm">${esc(t.name)}</span><span class="tg">${esc(t.tagline)}</span></span></a>`;
 
 /** 유형 그리드 (그룹별 줄) */
@@ -285,7 +289,7 @@ function resultPreview(lang) {
 <h2>${en ? 'What you get' : '이런 결과를 받아요'}</h2>
 <p class="section-lead">${en ? 'An example of the result card after analyzing about 10 games (numbers are illustrative).' : '최근 10판 정도를 분석하면 나오는 결과 예시예요 (숫자는 예시).'}</p>
 <div class="rp-card g-PS">
-<div class="rp-head"><img src="${IMG(lang, 'PSIO-square.png')}" alt="" width="96" height="96" loading="lazy" /><div><b class="rp-code">PSIO</b><span class="rp-name">${esc(name)}</span></div></div>
+<div class="rp-head">${typeImg(IMG(lang, 'PSIO-square.png'), { w: 96, h: 96, sizes: '96px' })}<div><b class="rp-code">PSIO</b><span class="rp-name">${esc(name)}</span></div></div>
 <div class="rp-axes">${axes}</div>
 <dl class="rp-rows">${rows.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
 </div>
@@ -306,7 +310,7 @@ ${idForm()}
 <p class="hero-sub">기보로 분석하거나 예시를 보고 싶다면 <a href="/app">분석 도구 열기</a></p>
 </div>
 <div class="hero-art">
-${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<a class="art-${i}" href="/types/${c}"><img src="/img/types/${c}-square.png" alt="${c} ${esc(byCode[c].name)} 유형 보기" width="600" height="600" /></a>`).join('')}
+${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<a class="art-${i}" href="/types/${c}">${typeImg(`/img/types/${c}-square.png`, { alt: `${c} ${esc(byCode[c].name)} 유형 보기`, w: 600, h: 600, sizes: '(max-width: 900px) 50vw, 260px' })}</a>`).join('')}
 </div>
 </section>
 <section class="facts">
@@ -388,7 +392,7 @@ for (const t of data.types) {
     description: clip(`${t.code} ${t.name}: ${t.tagline}. ${t.summary}`, 150),
     body: `<article class="type-page g-${g}">
 <p class="crumbs"><a href="/types/">체스 유형</a> › ${esc(group.name)}</p>
-<figure class="type-figure"><img class="type-hero" src="/img/types/${t.code}.png" alt="${t.code} ${esc(t.name)}: ${esc(t.tagline)}. 그림: ${esc(t.scene)}" width="1200" height="630" />
+<figure class="type-figure">${typeImg(`/img/types/${t.code}.png`, { cls: 'type-hero', alt: `${t.code} ${esc(t.name)}: ${esc(t.tagline)}. 그림: ${esc(t.scene)}`, w: 1200, h: 630, sizes: '(max-width: 860px) 100vw, 820px', lazy: false, high: true })}
 <figcaption><b>그림 설명</b> ${esc(t.scene)} <span>(흰 기물이 나, 검은 기물이 상대)</span></figcaption></figure>
 <h1><span class="code">${t.code}</span> ${esc(t.name)} <small>${esc(t.en)}</small></h1>
 <p class="tagline">${esc(t.tagline)}</p>
@@ -410,7 +414,7 @@ ${openingBlock({ code: t.code, lang: 'ko', esc })}
 <p>유형을 고르면 서로 어떻게 부딪히는지, 상대할 때 어디를 노리면 좋은지 볼 수 있어요.</p>
 ${compatLinks({ t, types: data.types, lang: 'ko', esc, P })}
 <h2>정반대 유형</h2>
-<a class="opp-card g-${opp.code.slice(0, 2)}" href="/types/${opp.code}"><img src="/img/types/${opp.code}-square.png" alt="" width="600" height="600" loading="lazy" /><span><b>${opp.code} ${esc(opp.name)}</b>${esc(opp.tagline)}. 모든 글자가 반대인 유형이라, 이 유형을 상대할 때는 내 방식이 가장 잘 통하거나 가장 안 통할 수 있습니다.</span></a>
+<a class="opp-card g-${opp.code.slice(0, 2)}" href="/types/${opp.code}">${typeImg(`/img/types/${opp.code}-square.png`, { w: 600, h: 600, sizes: '96px' })}<span><b>${opp.code} ${esc(opp.name)}</b>${esc(opp.tagline)}. 모든 글자가 반대인 유형이라, 이 유형을 상대할 때는 내 방식이 가장 잘 통하거나 가장 안 통할 수 있습니다.</span></a>
 <h2>같은 ${esc(group.name)} 유형</h2>
 <p>${esc(group.desc)}</p>
 <div class="tiles">${siblings.map(tile).join('')}</div>
@@ -542,7 +546,7 @@ ${idForm('Find my type', 'en')}
 <p class="hero-sub">Want to analyze a PGN or try an example? <a href="${APP('en')}">Open the analysis tool</a></p>
 </div>
 <div class="hero-art">
-${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<a class="art-${i}" href="/en/types/${c}"><img src="${IMG('en', `${c}-square.png`)}" alt="${c} The ${esc(byCode[c].en)}: see this type" width="600" height="600" /></a>`).join('')}
+${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<a class="art-${i}" href="/en/types/${c}">${typeImg(IMG('en', `${c}-square.png`), { alt: `${c} The ${esc(byCode[c].en)}: see this type`, w: 600, h: 600, sizes: '(max-width: 900px) 50vw, 260px' })}</a>`).join('')}
 </div>
 </section>
 <section class="facts">
@@ -618,7 +622,7 @@ for (const base of data.types) {
     description: clip(`${t.code} The ${t.name}: ${t.tagline}. ${t.summary}`, 155),
     body: `<article class="type-page g-${g}">
 <p class="crumbs"><a href="/en/types/">Chess types</a> › ${esc(group.name)}</p>
-<figure class="type-figure"><img class="type-hero" src="${IMG('en', `${t.code}.png`)}" alt="${t.code} The ${esc(t.name)}: ${esc(t.tagline)}. Picture: ${esc(t.scene)}" width="1200" height="630" />
+<figure class="type-figure">${typeImg(IMG('en', `${t.code}.png`), { cls: 'type-hero', alt: `${t.code} The ${esc(t.name)}: ${esc(t.tagline)}. Picture: ${esc(t.scene)}`, w: 1200, h: 630, sizes: '(max-width: 860px) 100vw, 820px', lazy: false, high: true })}
 <figcaption><b>The picture</b> ${esc(t.scene)} <span>(white pieces are you, black pieces are the opponent)</span></figcaption></figure>
 <h1><span class="code">${t.code}</span> The ${esc(t.name)}</h1>
 <p class="tagline">${esc(t.tagline)}</p>
@@ -640,7 +644,7 @@ ${openingBlock({ code: t.code, lang: 'en', esc })}
 <p>Pick a type to see how you clash and where to press when you face them.</p>
 ${compatLinks({ t, types: data.types.map((x) => typeIn(x, 'en')), lang: 'en', esc, P })}
 <h2>The opposite type</h2>
-<a class="opp-card g-${opp.code.slice(0, 2)}" href="/en/types/${opp.code}"><img src="${IMG('en', `${opp.code}-square.png`)}" alt="" width="600" height="600" loading="lazy" /><span><b>${opp.code} The ${esc(opp.name)}</b>${esc(opp.tagline)}. Every letter is reversed, so against this type your style either works best or not at all.</span></a>
+<a class="opp-card g-${opp.code.slice(0, 2)}" href="/en/types/${opp.code}">${typeImg(IMG('en', `${opp.code}-square.png`), { w: 600, h: 600, sizes: '96px' })}<span><b>${opp.code} The ${esc(opp.name)}</b>${esc(opp.tagline)}. Every letter is reversed, so against this type your style either works best or not at all.</span></a>
 <h2>Other ${esc(group.name)}</h2>
 <p>${esc(group.desc)}</p>
 <div class="tiles">${siblings.map((x) => tile(x, 'en')).join('')}</div>

@@ -1,5 +1,5 @@
 // 명예의 전당 정적 페이지: src/data/hof.json(scripts/hof/build-hof.mts)으로 목록과 선수별 페이지(한·영)를 만든다.
-import { STYLE_LABEL, boardSvg } from './pages-shared.mjs';
+import { STYLE_LABEL, boardSvg, typeImg } from './pages-shared.mjs';
 
 
 const CLS = { bullet: ['불릿', 'Bullet'], blitz: ['블리츠', 'Blitz'], rapid: ['래피드', 'Rapid'] };
@@ -19,7 +19,7 @@ export function hofIndexBody({ hof, data, lang, esc, P, IMG, typeIn }) {
   const en = lang === 'en';
   const card = (p) => {
     const t = typeIn(data.types.find((x) => x.code === p.overall.code), lang);
-    return `<a class="hof-card" href="${P(lang, hofPath(p))}"><img src="${IMG(lang, `${t.code}-square.png`)}" alt="" width="600" height="600" loading="lazy" />
+    return `<a class="hof-card" href="${P(lang, hofPath(p))}">${typeImg(IMG(lang, `${t.code}-square.png`), { w: 600, h: 600, sizes: '96px' })}
 <span><b>${esc(displayName(p, en))}</b><em>${t.code} ${esc(t.name)}</em><small>${esc(p.desc[en ? 1 : 0])}</small></span></a>`;
   };
   return `<article class="type-page">
@@ -58,7 +58,7 @@ export function hofPlayerBody({ p, hof, data, axes, lang, esc, P, IMG, typeIn, c
 <h1>${en ? `${esc(name)}'s chess type: ${t.code} ${esc(t.name)}` : `${esc(name)}의 체스 유형: ${t.code} ${esc(t.name)}`}</h1>
 <p class="tagline">${esc(p.desc[en ? 1 : 0])}</p>
 <p class="lead">${en ? `From ${p.games} recent public Chess.com games, ${esc(name)}'s type in <b>${L(CLS[p.mainClass], true).toLowerCase()}</b> (${p.mainGames} games), the most representative online time control, is <b>${t.code} ${esc(t.name)}</b>: ${esc(t.tagline)} Other time controls are in the table below.` : `Chess.com에 공개된 최근 대국 ${p.games}판 중, 온라인 체스의 대표 시간대인 <b>${L(CLS[p.mainClass], false)}</b> ${p.mainGames}판 기준으로 ${esc(name)}의 유형은 <b>${t.code} ${esc(t.name)}</b>${ieyo(t.name)}. ${esc(t.tagline)} 다른 시간대의 유형은 아래 표에 있어요.`}</p>
-<div class="cols"><a class="opp-card g-${t.code.slice(0, 2)}" href="${P(lang, `/types/${t.code}`)}"><img src="${IMG(lang, `${t.code}-square.png`)}" alt="" width="600" height="600" loading="lazy" /><span><b>${t.code} ${esc(t.name)}</b>${esc(t.tagline)}</span></a>
+<div class="cols"><a class="opp-card g-${t.code.slice(0, 2)}" href="${P(lang, `/types/${t.code}`)}">${typeImg(IMG(lang, `${t.code}-square.png`), { w: 600, h: 600, sizes: '96px' })}<span><b>${t.code} ${esc(t.name)}</b>${esc(t.tagline)}</span></a>
 <div class="card"><h3>${en ? 'Four axes' : '네 축'}</h3>${bars}<p class="muted">${en ? 'Percent = how far toward that side compared with same-rated players.' : '%는 같은 레이팅 플레이어들 사이에서 그쪽으로 얼마나 치우쳤는지예요.'}</p></div></div>
 <p class="cta-row"><a class="btn-cta" href="${compareUrl(p, en)}" data-track="hof_compare">${en ? `Compare my type with ${esc(name)}` : `내 유형과 ${esc(name)} 비교하기`}</a></p>
 <h2>${en ? 'What stands out' : '두드러진 특징'}</h2>
