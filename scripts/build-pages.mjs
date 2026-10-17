@@ -7,6 +7,7 @@ import { UPDATES } from './updates.mjs';
 import { menuHtml } from '../src/ui/menu.js';
 import { compatPairs, compatPath, compatBody, compatLinks, openingBlock } from './pages-compat.mjs';
 import { hofPath, hofIndexBody, hofPlayerBody } from './pages-hof.mjs';
+import { reliabilityBody } from './pages-reliability.mjs';
 import { existsSync } from 'node:fs';
 
 const SITE = (process.env.SITE_URL ?? 'https://stylish-chess-engine.pages.dev').replace(/\/$/, '');
@@ -436,6 +437,7 @@ write('/about', page({
 ${howMeasured}
 <p>모든 계산은 방문자의 브라우저 안에서 이뤄집니다. 게임 기록이 Stylish 서버로 전송되지 않습니다. 자세한 내용은 <a href="/privacy">개인정보처리방침</a>을 참고하세요.</p>
 <h2>한계</h2>
+<p>측정 방법·보정 규모·정확도를 숫자로 정리한 <a href="/reliability">Stylish는 얼마나 믿을 만한가요?</a>도 함께 보세요.</p>
 <ul>
 <li>함정수·도박수 판정은 사람 수 예측 모델(Maia3)의 확률에 기대므로, 모델의 예측이 실제 사람과 다르면 판정도 달라질 수 있습니다.</li>
 <li>브라우저용 경량 엔진과 제한된 깊이를 쓰므로, 아주 깊은 수순이 필요한 수는 평가가 달라질 수 있습니다.</li>
@@ -832,8 +834,20 @@ if (HOF) {
   }
 }
 
+// ── 얼마나 믿을 만한가 (/reliability) ──
+const CALIB_JSON = JSON.parse(readFileSync(new URL('../src/data/type-calib.json', import.meta.url), 'utf8'));
+for (const lang of ['ko', 'en']) {
+  const en = lang === 'en';
+  write(P(lang, '/reliability'), page({
+    path: '/reliability', active: 'about', lang,
+    title: en ? 'How reliable is Stylish? Methods, calibration and accuracy | Stylish' : 'Stylish는 얼마나 믿을 만한가요? 측정 방법·보정·정확도 | Stylish',
+    description: en ? `How Stylish judges moves and types: calibrated on ${CALIB_JSON.players.toLocaleString('en')} Lichess players, compared with full Stockfish, and when a type can change.` : `Stylish가 수와 유형을 판정하는 방법: Lichess 플레이어 ${CALIB_JSON.players.toLocaleString('ko')}명으로 보정, 정식 Stockfish와 비교한 정확도, 유형이 바뀔 수 있는 경우.`,
+    body: reliabilityBody({ lang, stats: TYPE_STATS, calib: CALIB_JSON, P, esc }),
+  }));
+}
+
 // ── 사이트맵·robots ──
-const koPaths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/types/match/', '/types/openings', ...(HOF ? ['/hall-of-fame/', ...HOF.players.map(hofPath)] : []), ...COMPAT.map(([a, b]) => compatPath(a, b)), '/app', '/about', '/updates', '/contact', '/privacy'];
+const koPaths = ['/', '/types/', ...data.types.map((t) => `/types/${t.code}`), '/types/match/', '/types/openings', ...(HOF ? ['/hall-of-fame/', ...HOF.players.map(hofPath)] : []), ...COMPAT.map(([a, b]) => compatPath(a, b)), '/app', '/about', '/reliability', '/updates', '/contact', '/privacy'];
 const paths = [...koPaths, ...koPaths.filter((p) => p !== '/app').map((p) => P('en', p))];
 writeFileSync(new URL('sitemap.xml', DIST), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

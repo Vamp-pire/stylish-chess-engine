@@ -31,6 +31,7 @@ export const MENU = [
     { ko: '유형별 오프닝', en: 'Openings by type', dko: '유형에 어울리는 백·흑 오프닝', den: 'White and Black openings that suit each type', href: (l) => page(l, '/types/openings'), isNew: true },
     { ko: '스타일 사전', en: 'Style guide', dko: '수 하나를 평가하는 19가지 스타일', den: 'The 19 styles used to rate a move', href: (l) => app(l, 'view=guide'), view: 'guide' },
     { ko: '소개', en: 'About', dko: 'Stylish가 무엇을 어떻게 분석하는지', den: 'What Stylish analyzes and how', href: (l) => page(l, '/about') },
+    { ko: '얼마나 믿을 만한가요?', en: 'How reliable is it?', dko: '측정 방법·보정 규모·판정 정확도', den: 'Methods, calibration and accuracy', href: (l) => page(l, '/reliability') },
     { ko: '패치노트', en: 'Updates', dko: '새로 생기고 바뀐 것', den: "What's new and changed", href: (l) => page(l, '/updates') },
   ] },
 ];

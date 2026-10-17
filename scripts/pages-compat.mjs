@@ -154,8 +154,8 @@ export function compatDataBlock({ A, B, stats, examples, lang, esc }) {
     ? `Rare moves (played by under 10% of same-rated players): ${A.code} ${sa.rare}%${same ? '' : `, ${B.code} ${sb.rare}%`}. Average accuracy: ${A.code} ${sa.accuracy}%${same ? '' : `, ${B.code} ${sb.accuracy}%`}.`
     : `같은 레이팅의 10%도 안 두는 드문 수 비율은 ${A.code} ${sa.rare}%${same ? '' : `, ${B.code} ${sb.rare}%`}이고, 평균 정확도는 ${A.code} ${sa.accuracy}%${same ? '' : `, ${B.code} ${sb.accuracy}%`}예요.`;
   const share = en
-    ? `Among the ${stats.players.toLocaleString('en')} players we calibrated with, ${A.code} is ${sa.share}%${same ? '' : ` and ${B.code} is ${sb.share}%`} of players${same ? '' : `, so you will meet this pairing in roughly ${Math.round(sa.share * sb.share * (2 / 100) * 10) / 10}% of games between random players`}.`
-    : `보정에 쓴 플레이어 ${stats.players.toLocaleString('ko')}명 중 ${A.code}는 ${sa.share}%${same ? '' : `, ${B.code}는 ${sb.share}%`}예요${same ? '' : `. 아무나 만나는 대국이라면 이 조합은 대략 ${Math.round(sa.share * sb.share * (2 / 100) * 10) / 10}%의 판에서 나와요`}.`;
+    ? `Among the ${stats.players.toLocaleString('en')} Lichess players we analyzed, ${A.code} is ${sa.share}%${same ? '' : ` and ${B.code} is ${sb.share}%`} of players${same ? '' : `, so you will meet this pairing in roughly ${Math.round(sa.share * sb.share * (2 / 100) * 10) / 10}% of games between random players`}.`
+    : `분석한 Lichess 플레이어 ${stats.players.toLocaleString('ko')}명 중 ${A.code}는 ${sa.share}%${same ? '' : `, ${B.code}는 ${sb.share}%`}예요${same ? '' : `. 아무나 만나는 대국이라면 이 조합은 대략 ${Math.round(sa.share * sb.share * (2 / 100) * 10) / 10}%의 판에서 나와요`}.`;
   const ex = (t) => {
     const m = (examples?.[t.code] ?? []).find((x) => x.kind === 'signature');
     if (!m) return '';
