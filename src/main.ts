@@ -9,6 +9,7 @@ import type { Api as CgApi } from 'chessground/api';
 import type { Key } from 'chessground/types';
 import { SAMPLES } from './samples';
 import { AnalysisRun, getEngine } from './ui/runner';
+import { enginesInUse } from './engine/browser';
 import { humanStatus, onHumanStatus } from './human/browser';
 import { typeSection, shareType } from './ui/typeCard';
 import { chessTypeOf, peerStats, peerGroupPct, PEER_GROUPS, PEER_METRICS, ratingOf, type PeerMetric } from './core/chessType';
@@ -479,8 +480,26 @@ async function loadMore() {
 
 // ───────────── 여러 판 종합 분석 ─────────────
 
+// ───────────── 분석 중 화면 켜 두기 (휴대폰은 화면이 꺼지면 계산이 멈춘다) ─────────────
+type WakeLock = { release(): Promise<void> };
+let wakeLock: WakeLock | null = null;
+async function keepAwake(on: boolean) {
+  try {
+    if (on && !wakeLock && document.visibilityState === 'visible') {
+      const nav = navigator as Navigator & { wakeLock?: { request(t: 'screen'): Promise<WakeLock> } };
+      wakeLock = (await nav.wakeLock?.request('screen')) ?? null;
+    } else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch { wakeLock = null; /* 지원하지 않거나 거절되면 그냥 진행 */ }
+}
+// 다른 앱에 다녀오면 화면 켜 두기가 풀리므로 다시 건다
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.batch && state.batch.current >= 0) { wakeLock = null; keepAwake(true); }
+});
+const isPhone = () => matchMedia('(pointer: coarse)').matches;
+
 /** 종합 분석 시작 시각 (걸린 시간 측정용) */
 const batchStartedAt = new WeakMap<object, number>();
+const batchTook = new WeakMap<object, number>();
 function startBatch(games: OnlineGame[], from: { source: Source; user: string } | null = null) {
   const owner = from ?? (state.account ? { source: state.account.source, user: state.account.user } : null);
   if (!games.length || !owner) return;
@@ -492,6 +511,7 @@ function startBatch(games: OnlineGame[], from: { source: Source; user: string } 
   state.game = null;
   savePendingBatch(state.batch);
   batchStartedAt.set(state.batch, Date.now());
+  keepAwake(true);
   track('batch_start', { batch_games: bucket(games.length, [5, 10, 20, 50]) });
   render();
   runBatch(state.batch);
@@ -544,6 +564,8 @@ async function runBatch(b: BatchState) {
   const agg = batchProfile(b);
   if (agg.profile && agg.profile.counted >= 20) recordType(playerKey(b.source, b.user), chessTypeOf(withRating(agg.profile, b.user)));
   const took = (Date.now() - (batchStartedAt.get(b) ?? Date.now())) / 60000;
+  batchTook.set(b, Date.now() - (batchStartedAt.get(b) ?? Date.now()));
+  keepAwake(false);
   track('batch_done', { batch_minutes: bucket(Math.round(took), [1, 3, 5, 10, 20]) });
   track(agg.profile && agg.profile.counted >= 20 ? 'type_shown' : 'type_too_few');
   autoSync();
@@ -612,6 +634,7 @@ function renderBatch() {
   $('#batch-back')!.onclick = () => {
     b.cancelled = true; b.runs.forEach((r) => r.cancel()); state.batch = null; clearPendingBatch();
     track('batch_cancel');
+    keepAwake(false);
     state.tab = b.source === 'chesscom' ? 'chesscom' : 'lichessUser';
     render();
   };
@@ -621,11 +644,11 @@ function renderBatch() {
 function updateBatchProgress() {
   const b = state.batch, el = $('#batch-progress'); if (!b || !el) return;
   const done = b.results.size;
-  if (b.current < 0) { el.innerHTML = `<span class="faint">${tr(`분석 완료 · ${done}/${b.games.length}판 · 깊이 ${b.depth}`, `Done · ${done}/${b.games.length} games · depth ${b.depth}`)}</span>${b.error ? ` <span class="error">${esc(b.error)}</span>` : ''}`; return; }
+  if (b.current < 0) { const ms = batchTook.get(b); const took = ms ? ` · ${tr('걸린 시간', 'took')} ${fmtEta(ms)}` : ''; el.innerHTML = `<span class="faint">${tr(`분석 완료 · ${done}/${b.games.length}판 · 깊이 ${b.depth}`, `Done · ${done}/${b.games.length} games · depth ${b.depth}`)}${took}${enginesInUse ? tr(` · 엔진 ${enginesInUse}개`, ` · ${enginesInUse} engines`) : ''}</span>${b.error ? ` <span class="error">${esc(b.error)}</span>` : ''}`; return; }
   const partial = [...b.active.values()].reduce((s, [d, t]) => s + (t ? d / t : 0), 0);
   const frac = (done + partial) / b.games.length;
   const eta = batchEta(b);
-  el.innerHTML = `<span class="faint">${tr(`${done}/${b.games.length}판 완료`, `${done}/${b.games.length} games done`)}${eta != null ? ` · ${tr('남은 시간', 'Time left')} ${fmtEta(eta)}` : ` · ${tr('남은 시간 계산 중…', 'Estimating time…')}`}${esc(humanNote())}</span><div class="bar"><i style="width:${frac * 100}%"></i></div>`;
+  el.innerHTML = `<span class="faint">${tr(`${done}/${b.games.length}판 완료`, `${done}/${b.games.length} games done`)}${eta != null ? ` · ${tr('남은 시간', 'Time left')} ${fmtEta(eta)}` : ` · ${tr('남은 시간 계산 중…', 'Estimating time…')}`}${esc(humanNote())}${isPhone() ? tr(' · 분석 중엔 이 화면을 켜 두세요', ' · Keep this screen on while analyzing') : ''}</span><div class="bar"><i style="width:${frac * 100}%"></i></div>`;
 }
 
 function updateBatch() {
