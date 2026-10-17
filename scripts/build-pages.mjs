@@ -17,7 +17,8 @@ const CONTACT_FORM = 'https://forms.gle/d9PbZSYZKkzpykgq8';
 const REPO = 'https://github.com/Vamp-pire/stylish-chess-engine';
 const UPDATED = '2026-10-16';
 const SEARCH_CONSOLE = 'T4-fwXM8oe_n6an574Sidq3X6cvTdKS9b5MsTB0bvgw';
-const PRETENDARD = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css';
+// 글꼴 CSS: Pretendard를 font-display: optional로 바꾼 사본 (scripts/build-font-css.mjs). 글꼴 파일은 jsDelivr에서 받는다
+const PRETENDARD = '/fonts/pretendard-optional.css';
 const GROUP_ORDER = ['AW', 'AS', 'PW', 'PS'];
 
 const DIST = new URL('../dist/', import.meta.url);
@@ -192,7 +193,7 @@ function page({ path, title, description, body, active = '', image = null, wide 
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
 <link rel="icon" type="image/png" href="/logo.png" />
-<!-- 글꼴은 화면 표시를 막지 않게 받는다 (먼저 시스템 글꼴로 보이고, 글꼴이 오면 바뀐다) -->
+<!-- 글꼴은 화면 표시를 막지 않게 받는다. font-display: optional 사본이라 늦게 오면 이번 화면은 시스템 글꼴 그대로(화면 밀림 없음) -->
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="stylesheet" href="${PRETENDARD}" media="print" onload="this.media='all'" />
 <noscript><link rel="stylesheet" href="${PRETENDARD}" /></noscript>
