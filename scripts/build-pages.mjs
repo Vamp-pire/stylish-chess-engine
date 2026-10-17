@@ -158,6 +158,8 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 const list = (xs) => `<ul>${xs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
 const opposite = (code) => [...code].map((c, i) => { const l = data.axes[i].letters; return c === l[0] ? l[1] : l[0]; }).join('');
 const byCode = Object.fromEntries(data.types.map((t) => [t.code, t]));
+/** 검색 결과용 설명: 160자를 넘으면 단어 경계에서 자르고 … */
+const clip = (s, n = 155) => (s.length <= n ? s : `${s.slice(0, s.lastIndexOf(' ', n - 1) > n * 0.6 ? s.lastIndexOf(' ', n - 1) : n - 1)}…`);
 
 function page({ path, title, description, body, active = '', image = null, wide = false, lang = 'ko' }) {
   const en = lang === 'en';
@@ -303,8 +305,8 @@ write('/', page({
 ${idForm()}
 <p class="hero-sub">기보로 분석하거나 예시를 보고 싶다면 <a href="/app">분석 도구 열기</a></p>
 </div>
-<div class="hero-art" aria-hidden="true">
-${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<img class="art-${i}" src="/img/types/${c}-square.png" alt="" width="600" height="600" />`).join('')}
+<div class="hero-art">
+${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<a class="art-${i}" href="/types/${c}"><img src="/img/types/${c}-square.png" alt="${c} ${esc(byCode[c].name)} 유형 보기" width="600" height="600" /></a>`).join('')}
 </div>
 </section>
 <section class="facts">
@@ -382,8 +384,8 @@ for (const t of data.types) {
   }).join('');
   write(`/types/${t.code}`, page({
     path: `/types/${t.code}`, active: 'types', image: `/img/types/${t.code}.png`,
-    title: `${t.code} ${t.name}(${t.en}) — ${t.tagline} | 체스 유형 | Stylish`,
-    description: `${t.code} ${t.name}: ${t.tagline}. ${t.summary.slice(0, 90)}…`,
+    title: `${t.code} ${t.name}(${t.en}) — ${t.tagline} | 체스 유형 | Stylish`.length > 64 ? `${t.code} ${t.name}(${t.en}) 체스 유형 | Stylish` : `${t.code} ${t.name}(${t.en}) — ${t.tagline} | 체스 유형 | Stylish`,
+    description: clip(`${t.code} ${t.name}: ${t.tagline}. ${t.summary}`, 150),
     body: `<article class="type-page g-${g}">
 <p class="crumbs"><a href="/types/">체스 유형</a> › ${esc(group.name)}</p>
 <figure class="type-figure"><img class="type-hero" src="/img/types/${t.code}.png" alt="${t.code} ${esc(t.name)}: ${esc(t.tagline)}. 그림: ${esc(t.scene)}" width="1200" height="630" />
@@ -529,8 +531,8 @@ So each letter means "which side you lean toward among players of similar streng
 
 write('/en/', page({
   path: '/', wide: true, lang: 'en',
-  title: 'What kind of chess player are you? 16 chess personality types | Stylish',
-  description: 'Enter your Chess.com or Lichess username and get your 4-letter chess type from your recent games. Stockfish plus the human-move AI Maia3 label every move\'s style, traps and gambles. Free, no sign-up.',
+  title: 'What kind of chess player are you? 16 chess types | Stylish',
+  description: 'Enter your Chess.com or Lichess username to get your 4-letter chess type from recent games. Every move rated for style, traps and gambles. Free, no sign-up.',
   body: `<section class="landing-hero">
 <div class="hero-copy">
 <p class="eyebrow">16 chess types</p>
@@ -539,8 +541,8 @@ write('/en/', page({
 ${idForm('Find my type', 'en')}
 <p class="hero-sub">Want to analyze a PGN or try an example? <a href="${APP('en')}">Open the analysis tool</a></p>
 </div>
-<div class="hero-art" aria-hidden="true">
-${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<img class="art-${i}" src="${IMG('en', `${c}-square.png`)}" alt="" width="600" height="600" />`).join('')}
+<div class="hero-art">
+${['AWIO', 'ASIE', 'PWRO', 'PSRE'].map((c, i) => `<a class="art-${i}" href="/en/types/${c}"><img src="${IMG('en', `${c}-square.png`)}" alt="${c} The ${esc(byCode[c].en)}: see this type" width="600" height="600" /></a>`).join('')}
 </div>
 </section>
 <section class="facts">
@@ -612,8 +614,8 @@ for (const base of data.types) {
   }).join('');
   write(`/en/types/${t.code}`, page({
     path: `/types/${t.code}`, active: 'types', image: IMG('en', `${t.code}.png`), lang: 'en',
-    title: `${t.code} The ${t.name}: ${t.tagline} | Chess types | Stylish`,
-    description: `${t.code} The ${t.name}: ${t.tagline}. ${t.summary.slice(0, 110)}…`,
+    title: `${t.code} The ${t.name}: chess type | Stylish`,
+    description: clip(`${t.code} The ${t.name}: ${t.tagline}. ${t.summary}`, 155),
     body: `<article class="type-page g-${g}">
 <p class="crumbs"><a href="/en/types/">Chess types</a> › ${esc(group.name)}</p>
 <figure class="type-figure"><img class="type-hero" src="${IMG('en', `${t.code}.png`)}" alt="${t.code} The ${esc(t.name)}: ${esc(t.tagline)}. Picture: ${esc(t.scene)}" width="1200" height="630" />
@@ -817,7 +819,7 @@ if (HOF) {
     const en = lang === 'en';
     write(P(lang, '/hall-of-fame/'), page({
       path: '/hall-of-fame/', active: 'types', lang, wide: true,
-      title: en ? 'Hall of fame: chess types of Carlsen, Hikaru, GothamChess and more | Stylish' : '명예의 전당: 칼센·히카루·갓뎀체스는 어떤 체스 유형? | Stylish',
+      title: en ? 'Chess types of Carlsen, Hikaru, GothamChess and more | Stylish' : '명예의 전당: 칼센·히카루·갓뎀체스는 어떤 체스 유형? | Stylish',
       description: en ? 'Four-letter chess types of famous players and streamers, from hundreds of their public Chess.com games.' : '유명 선수와 체스 스트리머의 4글자 체스 유형. Chess.com 공개 대국 수백 판을 분석했어요.',
       body: hofIndexBody({ hof: HOF, data, lang, esc, P, IMG, typeIn }),
     }));
@@ -840,7 +842,7 @@ for (const lang of ['ko', 'en']) {
   const en = lang === 'en';
   write(P(lang, '/reliability'), page({
     path: '/reliability', active: 'about', lang,
-    title: en ? 'How reliable is Stylish? Methods, calibration and accuracy | Stylish' : 'Stylish는 얼마나 믿을 만한가요? 측정 방법·보정·정확도 | Stylish',
+    title: en ? 'How reliable is Stylish? Methods and accuracy | Stylish' : 'Stylish는 얼마나 믿을 만한가요? 측정 방법·보정·정확도 | Stylish',
     description: en ? `How Stylish judges moves and types: calibrated on ${CALIB_JSON.players.toLocaleString('en')} Lichess players, compared with full Stockfish, and when a type can change.` : `Stylish가 수와 유형을 판정하는 방법: Lichess 플레이어 ${CALIB_JSON.players.toLocaleString('ko')}명으로 보정, 정식 Stockfish와 비교한 정확도, 유형이 바뀔 수 있는 경우.`,
     body: reliabilityBody({ lang, stats: TYPE_STATS, calib: CALIB_JSON, P, esc }),
   }));

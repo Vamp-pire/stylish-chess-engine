@@ -2,6 +2,7 @@
 # - 다른 사이트가 우리 페이지를 몰래 iframe에 넣어 클릭을 유도하는 것(클릭재킹) 방지
 # - 쓰지 않는 기기 권한(카메라·마이크·위치 등)은 아예 막아 둔다
 /*
+  Strict-Transport-Security: max-age=31536000
   X-Frame-Options: SAMEORIGIN
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
   Referrer-Policy: strict-origin-when-cross-origin

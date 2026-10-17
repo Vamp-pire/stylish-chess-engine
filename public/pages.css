@@ -81,7 +81,9 @@ main.wide { max-width: 1120px; }
 .landing-hero h1 { font-size: 54px; line-height: 1.18; margin: 16px 0 14px; }
 .hero-sub { font-size: 14px; color: var(--text-3); }
 .hero-art { position: relative; aspect-ratio: 1 / 1; max-width: 460px; justify-self: center; width: 100%; }
-.hero-art img { position: absolute; width: 56%; border-radius: 22px; box-shadow: var(--shadow-lg); transition: transform .3s; }
+.hero-art a { position: absolute; width: 56%; display: block; border-radius: 22px; transition: transform .3s; }
+.hero-art img { width: 100%; height: auto; display: block; border-radius: 22px; box-shadow: var(--shadow-lg); }
+.hero-art a:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 .hero-art .art-0 { left: 0; top: 2%; transform: rotate(-7deg); }
 .hero-art .art-1 { right: 0; top: 0; transform: rotate(6deg); }
 .hero-art .art-2 { left: 6%; bottom: 0; transform: rotate(5deg); }
