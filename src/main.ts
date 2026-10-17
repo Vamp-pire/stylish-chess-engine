@@ -11,7 +11,6 @@ import { SAMPLES } from './samples';
 import { AnalysisRun, getEngine } from './ui/runner';
 import { humanStatus, onHumanStatus } from './human/browser';
 import { typeSection, shareType } from './ui/typeCard';
-import { openResultImage } from './ui/resultImage';
 import { chessTypeOf, peerStats, peerGroupPct, PEER_GROUPS, PEER_METRICS, ratingOf, type PeerMetric } from './core/chessType';
 import TYPE_CALIB from './data/type-calib.json';
 const CALIB_PLAYERS = TYPE_CALIB.players;
@@ -35,9 +34,13 @@ import { shareUrl, readSharedGame } from './ui/share';
 import { pickHighlights, drawCard, cardBlob } from './ui/highlights';
 import { findMissed, openQuiz } from './ui/quiz';
 import { openModal } from './ui/modal';
-import { renderCoach, leaveCoach } from './ui/coachView';
 import { menuHtml, menuGroupOf } from './ui/menu.js';
-import { renderDaily, leaveDaily } from './ui/daily';
+// 처음 화면에 필요 없는 화면은 쓸 때 불러온다 (휴대폰 첫 로딩을 가볍게)
+let coachMod: typeof import('./ui/coachView') | null = null;
+let dailyMod: typeof import('./ui/daily') | null = null;
+const loadCoach = () => import('./ui/coachView').then((m) => (coachMod = m));
+const loadDaily = () => import('./ui/daily').then((m) => (dailyMod = m));
+const openResultImage = (info: Parameters<typeof import('./ui/resultImage').openResultImage>[0]) => import('./ui/resultImage').then((m) => m.openResultImage(info));
 import { track, bucket } from './ui/track';
 import { STYLES, STYLE_KEYS, RISK_KINDS, RISK_LABEL, QUALITY_LABEL, type StyleKey, type QualityKey } from './core/styles';
 
@@ -229,10 +232,10 @@ window.addEventListener('popstate', () => {
 
 function render() {
   cg?.destroy(); cg = null;
-  if (state.view !== 'coach') leaveCoach();
-  if (state.view !== 'daily') leaveDaily();
-  if (state.view === 'daily') { renderDaily(app); return; }
-  if (state.view === 'coach') { renderCoach(app, { openReview: openCoachReview }); return; }
+  if (state.view !== 'coach') coachMod?.leaveCoach();
+  if (state.view !== 'daily') dailyMod?.leaveDaily();
+  if (state.view === 'daily') { loadDaily().then((m) => { if (state.view === 'daily') m.renderDaily(app); }); return; }
+  if (state.view === 'coach') { loadCoach().then((m) => { if (state.view === 'coach') m.renderCoach(app, { openReview: openCoachReview }); }); return; }
   if (state.view === 'guide') { app.innerHTML = renderGuide(); return; }
   // 소개는 정적 페이지(/about, /en/about)로
   if (state.view === 'about') { location.href = getLang() === 'en' ? '/en/about' : '/about'; return; }

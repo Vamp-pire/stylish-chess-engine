@@ -22,6 +22,8 @@
     <!-- Microsoft Clarity: 사용 행태(클릭·스크롤) 분석 -->
     <script type="text/javascript">(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "yxfrmbcyx5");</script>
     <link rel="stylesheet" href="/menu.css" />
+    <!-- 앱 화면은 스크립트가 그린다: 그 전에 바닥글이 위에 있다 밀려 내려가지 않게(화면 밀림) 높이를 미리 잡는다 -->
+    <style>#app { min-height: 100vh; }</style>
     <script defer src="/menu.js"></script>
   </head>
   <body>
