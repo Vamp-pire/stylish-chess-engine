@@ -38,6 +38,7 @@ import { openModal } from './ui/modal';
 import { renderCoach, leaveCoach } from './ui/coachView';
 import { menuHtml, menuGroupOf } from './ui/menu.js';
 import { renderDaily, leaveDaily } from './ui/daily';
+import { track, bucket } from './ui/track';
 import { STYLES, STYLE_KEYS, RISK_KINDS, RISK_LABEL, QUALITY_LABEL, type StyleKey, type QualityKey } from './core/styles';
 
 // ───────────── 상태 ─────────────
@@ -409,6 +410,7 @@ function bindAccountPanel() {
   form.onsubmit = (e) => {
     e.preventDefault();
     const user = $<HTMLInputElement>('#account-user')!.value.trim();
+    track('id_submit', { source });
     state.account = { source, user, games: [], next: null, loading: true, error: null, selected: new Set(), timeFilter: 'all' };
     renderInput();
     loadMore();
@@ -461,9 +463,11 @@ async function loadMore() {
   try {
     const page = await fetchGames(a.source, a.user, a.games.length ? a.next : null);
     if (state.account !== a) return;
+    if (!a.games.length) track(page.games.length ? 'games_loaded' : 'games_empty');
     a.games.push(...page.games); a.next = page.next;
   } catch (err) {
     if (state.account !== a) return;
+    track('games_load_failed');
     a.error = err instanceof Error && err.name !== 'TypeError' ? err.message : tr(`${SOURCE_LABEL[a.source]}에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.`, `Could not reach ${SOURCE_LABEL[a.source]}. Please try again shortly.`);
   }
   a.loading = false;
@@ -472,6 +476,8 @@ async function loadMore() {
 
 // ───────────── 여러 판 종합 분석 ─────────────
 
+/** 종합 분석 시작 시각 (걸린 시간 측정용) */
+const batchStartedAt = new WeakMap<object, number>();
 function startBatch(games: OnlineGame[], from: { source: Source; user: string } | null = null) {
   const owner = from ?? (state.account ? { source: state.account.source, user: state.account.user } : null);
   if (!games.length || !owner) return;
@@ -482,6 +488,8 @@ function startBatch(games: OnlineGame[], from: { source: Source; user: string } 
   };
   state.game = null;
   savePendingBatch(state.batch);
+  batchStartedAt.set(state.batch, Date.now());
+  track('batch_start', { batch_games: bucket(games.length, [5, 10, 20, 50]) });
   render();
   runBatch(state.batch);
 }
@@ -504,6 +512,7 @@ async function runBatch(b: BatchState) {
         b.runs.delete(run); b.active.delete(i);
         if (b.cancelled) return;
         b.error = tr(`${i + 1}번째 게임 분석 실패: `, `Game ${i + 1} failed: `) + (err instanceof Error ? err.message : String(err));
+        track('batch_error');
         return;
       }
       b.runs.delete(run);
@@ -531,6 +540,9 @@ async function runBatch(b: BatchState) {
   clearPendingBatch();
   const agg = batchProfile(b);
   if (agg.profile && agg.profile.counted >= 20) recordType(playerKey(b.source, b.user), chessTypeOf(withRating(agg.profile, b.user)));
+  const took = (Date.now() - (batchStartedAt.get(b) ?? Date.now())) / 60000;
+  track('batch_done', { batch_minutes: bucket(Math.round(took), [1, 3, 5, 10, 20]) });
+  track(agg.profile && agg.profile.counted >= 20 ? 'type_shown' : 'type_too_few');
   autoSync();
   refreshGroupsFor(playerKey(b.source, b.user));
   updateBatch();
@@ -596,6 +608,7 @@ function renderBatch() {
     </div>`;
   $('#batch-back')!.onclick = () => {
     b.cancelled = true; b.runs.forEach((r) => r.cancel()); state.batch = null; clearPendingBatch();
+    track('batch_cancel');
     state.tab = b.source === 'chesscom' ? 'chesscom' : 'lichessUser';
     render();
   };
@@ -751,6 +764,7 @@ async function startAnalysis(pgn: string, opts: StartOptions = {}) {
   state.game = prepared;
   render();
   window.scrollTo({ top: 0 });
+  track('game_start');
 
   const game = prepared;
   const run = new AnalysisRun({
@@ -769,9 +783,10 @@ async function startAnalysis(pgn: string, opts: StartOptions = {}) {
       saveProfiles(game, result);
       if (state.game !== game) return;
       game.analysis = result; game.results = result.moves; game.progress = [1, 1];
+      track('game_done');
       updateProgress(); updateMoveList(); updateGraph(); updateCard(); renderProfiles(); updateOpening();
     })
-    .catch((err) => { if (state.game === game) { game.error = String(err.message ?? err); updateProgress(); } });
+    .catch((err) => { if (state.game === game) { game.error = String(err.message ?? err); updateProgress(); track('game_error'); } });
 }
 
 // ───────────── 리뷰 화면 ─────────────
@@ -867,7 +882,7 @@ function updateHeadExtras() {
   const missed = findMissed(g.analysis.moves, side);
   const hl = pickHighlights(g.analysis.moves, side);
   el.innerHTML = `${hl.length ? `<button class="btn" id="highlights">✨ ${tr('명수 카드', 'Highlights')}</button>` : ''}${missed.length ? `<button class="btn" id="quiz">🧩 ${tr('놓친 기회', 'Missed chances')} ${missed.length}</button>` : ''}`;
-  $('#highlights')?.addEventListener('click', () => openHighlights(g));
+  $('#highlights')?.addEventListener('click', () => { openHighlights(g); track('share_highlights'); });
   $('#quiz')?.addEventListener('click', () => openQuiz(missed.map((m) => ({ move: m }))));
 }
 
@@ -1230,7 +1245,7 @@ function wireGroups() {
   const msg = (t: string) => { const el = $('#group-msg'); if (el) el.textContent = t; };
   $('#group-create')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget as HTMLButtonElement; btn.disabled = true;
-    try { const code = await createGroup($<HTMLInputElement>('#group-name')?.value ?? ''); openGroup(code); }
+    try { const code = await createGroup($<HTMLInputElement>('#group-name')?.value ?? ''); track('group_create'); openGroup(code); }
     catch (err) { msg(err instanceof Error ? err.message : String(err)); btn.disabled = false; }
   });
   $('#group-open')?.addEventListener('click', () => {
@@ -1287,6 +1302,7 @@ async function renderGroup(code: string) {
     const btn = e.currentTarget as HTMLButtonElement; btn.disabled = true;
     try {
       await joinGroup(code, g.name, $<HTMLSelectElement>('#g-player')!.value, $<HTMLInputElement>('#g-nick')?.value.trim() || null);
+      track('group_join');
       renderGroup(code);
     } catch (err) { msg(err instanceof Error ? err.message : String(err)); btn.disabled = false; }
   });
@@ -1318,9 +1334,10 @@ function wireSync() {
     try { await fn(); } catch (e) { msg(e instanceof Error ? (e.message === 'bad code' ? tr('코드를 다시 확인해 주세요 (16자).', 'Please check the code (16 characters).') : e.message) : String(e)); }
     finally { if (btn) btn.disabled = false; }
   };
-  $('#sync-create')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => { await createSync(); render(); }));
+  $('#sync-create')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => { await createSync(); track('sync_create'); render(); }));
   $('#sync-connect')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => {
     const n = await connectSync($<HTMLInputElement>('#sync-input')?.value ?? '');
+    track('sync_connect');
     render(); msg(tr(`연결했어요. 플레이어 ${n}명의 기록을 합쳤어요.`, `Linked. Merged records for ${n} players.`));
   }));
   $('#sync-now')?.addEventListener('click', (e) => busy(e.currentTarget as HTMLButtonElement, async () => { const n = await syncNow(); render(); msg(tr(`동기화했어요 (플레이어 ${n}명).`, `Synced (${n} players).`)); }));
@@ -1600,9 +1617,9 @@ window.addEventListener('hashchange', () => { openShared(); });
 // 체스 유형 공유 버튼 (카드는 innerHTML로 그려지므로 위임으로 처리)
 document.addEventListener('click', (e) => {
   const b = (e.target as HTMLElement).closest<HTMLElement>('[data-share-type]');
-  if (b) shareType(b.dataset.shareType!, b);
+  if (b) { shareType(b.dataset.shareType!, b); track('share_type_link'); }
   const cmp = (e.target as HTMLElement).closest<HTMLElement>('[data-compare-type]');
-  if (cmp) shareCompare(JSON.parse(cmp.dataset.compareType!), cmp);
+  if (cmp) { shareCompare(JSON.parse(cmp.dataset.compareType!), cmp); track('share_compare'); }
   if ((e.target as HTMLElement).closest('[data-vs-clear]')) { clearVs(); (e.target as HTMLElement).closest('.vs-banner')?.remove(); }
   if ((e.target as HTMLElement).closest('[data-retry-load]')) (document.querySelector('.account-form button[type=submit], form button[type=submit]') as HTMLButtonElement | null)?.click();
   const chal = (e.target as HTMLElement).closest<HTMLElement>('[data-challenge]');
@@ -1615,7 +1632,7 @@ document.addEventListener('click', (e) => {
   if ((e.target as HTMLElement).closest('[data-resume-batch]')) { const pb = loadPendingBatch(); if (pb) startBatch(pb.games, { source: pb.source, user: pb.user }); }
   if ((e.target as HTMLElement).closest('[data-resume-clear]')) { clearPendingBatch(); (e.target as HTMLElement).closest('.resume-banner')?.remove(); }
   const img = (e.target as HTMLElement).closest<HTMLElement>('[data-type-image]');
-  if (img) openResultImage(JSON.parse(img.dataset.typeImage!));
+  if (img) { openResultImage(JSON.parse(img.dataset.typeImage!)); track('share_image'); }
   // 레이팅 직접 입력
   const rs = (e.target as HTMLElement).closest<HTMLElement>('[data-rating-save]');
   if (rs) {
@@ -1647,6 +1664,10 @@ function readEntryQuery() {
   const tabQ = q.get('tab');
   if (tabQ === 'user') state.tab = 'lichessUser';
   else if (tabQ === 'pgn') state.tab = 'paste';
+  // 유입 경로 꼬리표(?ref=): 이 방문(세션)에 붙여 둔다 (예: 스트리머 메일 링크)
+  const ref = q.get('ref');
+  if (ref && /^[\w-]{1,40}$/.test(ref)) track('ref_landing', { ref });
+  if (q.get('vs')) track('compare_landing');
   // 그룹 유형 지도 (/g/코드 → /app?g=코드)
   const g = q.get('g')?.trim().toUpperCase();
   if (g && /^[A-Z2-9]{6}$/.test(g)) { state.view = 'group'; state.groupCode = g; }
@@ -1658,17 +1679,18 @@ function readEntryQuery() {
   if ((source === 'lichess' || source === 'chesscom') && user) {
     // 아이디 고정 주소(/u/…): 이미 분석한 아이디면 프로필로 가서 새 게임만 바로 분석
     const saved = q.get('pin') === '1' ? getPlayer(playerKey(source, user)) : null;
-    if (saved) { state.view = 'players'; state.playerKey = saved.key; entry = 'pinned'; }
+    if (saved) { state.view = 'players'; state.playerKey = saved.key; entry = 'pinned'; track('pin_open'); }
     else {
       state.tab = source === 'chesscom' ? 'chesscom' : 'lichessUser';
       state.account = { source, user, games: [], next: null, loading: true, error: null, selected: new Set(), timeFilter: 'all' };
       state.pinHint = q.get('pin') === '1' ? { source, user } : null;
       entry = 'list';
+      track('id_from_link', { source });
     }
   }
   // 북마클릿: Lichess 게임 화면에서 누르면 그 판을 바로 분석
   const link = q.get('link');
-  if (!entry && link && /^https:\/\/lichess\.org\/[a-zA-Z0-9]{8}/.test(link)) { state.tab = 'lichess'; state.lichessUrl = link; entry = 'link'; }
+  if (!entry && link && /^https:\/\/lichess\.org\/[a-zA-Z0-9]{8}/.test(link)) { state.tab = 'lichess'; state.lichessUrl = link; entry = 'link'; track('bookmarklet_open'); }
   // 주소는 정리하되, 새로고침해도 같은 화면이 나오도록 화면(view)·그룹 코드는 남긴다
   if (q.size) history.replaceState(null, '', location.pathname + (state.view === 'group' ? `?g=${state.groupCode}` : URL_VIEWS.includes(state.view) ? `?view=${state.view}` : '') + location.hash);
   return entry;

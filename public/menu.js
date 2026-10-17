@@ -25,6 +25,21 @@
   function items(g) { return Array.prototype.slice.call(g.querySelectorAll('.mm-item')); }
   window.closeSiteMenu = function () { closeAll(); closeMobile(); };
 
+  // 이용 흐름 측정 (Microsoft Clarity): 유입 꼬리표(?ref=)와 data-track 버튼 클릭. 이름·숫자만 보낸다
+  function clarity() { return typeof window.clarity === 'function' ? window.clarity : null; }
+  try {
+    var ref = new URLSearchParams(location.search).get('ref');
+    if (ref && /^[\w-]{1,40}$/.test(ref) && clarity()) { clarity()('set', 'ref', ref); clarity()('event', 'ref_landing'); }
+  } catch (e) { /* 무시 */ }
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest && e.target.closest('[data-track]');
+    if (el && clarity()) { try { clarity()('event', el.getAttribute('data-track')); } catch (err) { /* 무시 */ } }
+  });
+  document.addEventListener('submit', function (e) {
+    var f = e.target.closest && e.target.closest('[data-track-submit]');
+    if (f && clarity()) { try { clarity()('event', f.getAttribute('data-track-submit')); } catch (err) { /* 무시 */ } }
+  });
+
   document.addEventListener('click', function (e) {
     var t = e.target;
     var burger = t.closest && t.closest('.mm-burger');

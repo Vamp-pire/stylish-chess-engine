@@ -237,7 +237,7 @@ const typeGrid = (lang = 'ko') => GROUP_ORDER.map((g) => {
 }).join('\n');
 
 /** 아이디로 바로 분석 (첫 화면·유형 목록) */
-const idForm = (label = '내 유형 알아보기', lang = 'ko') => `<form class="id-form" action="/app" method="get">${lang === 'en' ? '<input type="hidden" name="lang" value="en" />' : ''}
+const idForm = (label = '내 유형 알아보기', lang = 'ko') => `<form class="id-form" action="/app" method="get" data-track-submit="home_id_submit">${lang === 'en' ? '<input type="hidden" name="lang" value="en" />' : ''}
 <div class="seg" role="radiogroup" aria-label="${lang === 'en' ? 'Site' : '사이트'}">
 <label><input type="radio" name="source" value="lichess" checked /><span>Lichess</span></label>
 <label><input type="radio" name="source" value="chesscom" /><span>Chess.com</span></label>

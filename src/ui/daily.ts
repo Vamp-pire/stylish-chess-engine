@@ -10,6 +10,7 @@ import { tr, getLang } from '../i18n';
 import { TYPE_DATA } from '../core/chessType';
 import { STYLES, type StyleKey } from '../core/styles';
 import { rpc } from '../server/supa';
+import { track } from './track';
 
 export const DAILY_KEY = 'stylish.daily.v1';
 const TRIES = 4;
@@ -63,6 +64,7 @@ export async function renderDaily(app: HTMLElement) {
     return;
   }
   if (root !== app) return;
+  track('daily_open');
   const rec = load().days[day];
   pick = rec && !rec.done ? [...(rec.g.at(-1) ?? '')] : ['', '', '', ''];
   if (pick.length !== 4) pick = ['', '', '', ''];
@@ -171,6 +173,7 @@ function submit() {
   if (rec.done) return;
   const guess = pick.join('');
   rec.g.push(guess);
+  track(rec.g.length === 1 ? 'daily_first_guess' : 'daily_guess');
   rec.ok = guess === puzzle.code;
   rec.done = rec.ok || rec.g.length >= TRIES;
   if (rec.done) {
@@ -183,6 +186,7 @@ function submit() {
     } else st.streak = 0;
   }
   st.days[day] = rec;
+  if (rec.done) track('daily_done', { daily_solved: rec.ok, daily_tries: rec.g.length });
   // 오래된 날짜 기록은 60일만 남긴다
   for (const k of Object.keys(st.days)) if (Number(k) < day - 60) delete st.days[k];
   save(st);
@@ -226,6 +230,7 @@ async function share(e: Event) {
   if (!rec || !puzzle) return;
   const text = `${tr('Stylish 오늘의 유형', 'Stylish daily type')} #${day + 1} ${rec.ok ? rec.g.length : 'X'}/${TRIES}\n${rec.g.map((g) => marks(g, puzzle!.code)).join('\n')}\n${location.origin}/app?view=daily`;
   const btn = e.currentTarget as HTMLButtonElement;
+  track('daily_share');
   try {
     if (navigator.share && matchMedia('(pointer: coarse)').matches) await navigator.share({ text });
     else { await navigator.clipboard.writeText(text); btn.textContent = tr('복사했어요!', 'Copied!'); }

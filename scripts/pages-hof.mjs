@@ -60,7 +60,7 @@ export function hofPlayerBody({ p, hof, data, axes, lang, esc, P, IMG, typeIn, c
 <p class="lead">${en ? `From ${p.games} recent public Chess.com games, ${esc(name)}'s type in <b>${L(CLS[p.mainClass], true).toLowerCase()}</b> (${p.mainGames} games), the most representative online time control, is <b>${t.code} ${esc(t.name)}</b>: ${esc(t.tagline)} Other time controls are in the table below.` : `Chess.com에 공개된 최근 대국 ${p.games}판 중, 온라인 체스의 대표 시간대인 <b>${L(CLS[p.mainClass], false)}</b> ${p.mainGames}판 기준으로 ${esc(name)}의 유형은 <b>${t.code} ${esc(t.name)}</b>${ieyo(t.name)}. ${esc(t.tagline)} 다른 시간대의 유형은 아래 표에 있어요.`}</p>
 <div class="cols"><a class="opp-card g-${t.code.slice(0, 2)}" href="${P(lang, `/types/${t.code}`)}"><img src="${IMG(lang, `${t.code}-square.png`)}" alt="" width="600" height="600" loading="lazy" /><span><b>${t.code} ${esc(t.name)}</b>${esc(t.tagline)}</span></a>
 <div class="card"><h3>${en ? 'Four axes' : '네 축'}</h3>${bars}<p class="muted">${en ? 'Percent = how far toward that side compared with same-rated players.' : '%는 같은 레이팅 플레이어들 사이에서 그쪽으로 얼마나 치우쳤는지예요.'}</p></div></div>
-<p class="cta-row"><a class="btn-cta" href="${compareUrl(p, en)}">${en ? `Compare my type with ${esc(name)}` : `내 유형과 ${esc(name)} 비교하기`}</a></p>
+<p class="cta-row"><a class="btn-cta" href="${compareUrl(p, en)}" data-track="hof_compare">${en ? `Compare my type with ${esc(name)}` : `내 유형과 ${esc(name)} 비교하기`}</a></p>
 <h2>${en ? 'What stands out' : '두드러진 특징'}</h2>
 <ul>${standout}</ul>
 <h2>${en ? 'Signature moves' : '대표 수'}</h2>
