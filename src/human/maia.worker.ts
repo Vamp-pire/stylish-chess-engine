@@ -86,15 +86,30 @@ async function createGpuModel(manifestUrl: string, bytes: Uint8Array): Promise<H
   }
 }
 
-/** GPU 모델이 도중에 실패하면 CPU 모델로 바꿔 다시 예측한다 */
+/** GPU 예측이 이 시간 안에 안 끝나면 그래픽카드가 멈춘 것으로 보고 CPU로 바꾼다 */
+const GPU_TIMEOUT_MS = 15000;
+
+/**
+ * GPU 모델이 도중에 실패하거나 멈추면 CPU 모델로 바꿔 다시 예측한다.
+ * WebGPU 세션은 예측 두 개가 동시에 돌면 둘 다 영영 끝나지 않으므로(실측) 한 번에 하나씩 차례로 돌린다.
+ */
 function withFallback(gpu: HumanModel, makeCpu: () => Promise<HumanModel>): HumanModel {
   let cpu: Promise<HumanModel> | null = null;
+  let queue: Promise<unknown> = Promise.resolve();
+  const gpuOnce = (queries: HumanQuery[]) => new Promise<HumanPolicy[]>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('gpu timeout')), GPU_TIMEOUT_MS);
+    gpu.predict(queries).then((r) => { clearTimeout(timer); resolve(r); }, (e) => { clearTimeout(timer); reject(e); });
+  });
   return {
-    async predict(queries) {
-      if (!cpu) {
-        try { return await gpu.predict(queries); } catch { cpu = makeCpu(); }
-      }
-      return (await cpu).predict(queries);
+    predict(queries) {
+      const run = queue.then(async () => {
+        if (!cpu) {
+          try { return await gpuOnce(queries); } catch (e) { console.warn('[maia] webgpu → wasm', e); cpu = makeCpu(); }
+        }
+        return (await cpu).predict(queries);
+      });
+      queue = run.catch(() => {});
+      return run;
     },
   };
 }

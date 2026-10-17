@@ -4,12 +4,18 @@ export const UPDATES = [
   {
     date: '2026-10-17',
     ko: [
+      ['고친 점', [
+        '<b>분석이 중간에 멈추던 문제</b>를 고쳤어요. 그래픽카드로 사람 수 예측(Maia3)을 계산하는 PC에서, 예측 두 개가 동시에 들어가면 계산이 끝나지 않아 분석이 몇 수째에서 멈춰 있었어요. 이제 차례대로 계산하고, 그래픽카드가 응답하지 않으면 15초 뒤 CPU 계산으로 자동으로 바꿔요.',
+      ]],
       ['명예의 전당', [
         '<b>유명 플레이어는 어떤 유형일까?</b> 칼센·히카루·카루아나 등 최상위 선수 8명, 갓뎀체스(GothamChess)·에릭 로젠 등 해외 스트리머 4명, 슥슥이·체스막타·체스인사이드까지 15명의 Chess.com 공개 대국 약 6,500판을 내 게임과 같은 방식으로 분석했어요.',
         '선수마다 대표 유형(블리츠 기준), 시간대별 유형, 같은 레이팅 대비 두드러진 특징, 글자마다 대표 수(실제 대국 링크), 자주 둔 오프닝을 보여 줘요. <b>내 유형과 비교하기</b> 버튼으로 좋아하는 선수와 나란히 볼 수 있어요. 메뉴 <b>알아보기 → 명예의 전당</b>에서 열 수 있어요.',
       ]],
     ],
     en: [
+      ['Fixes', [
+        '<b>Analysis no longer stalls partway.</b> On PCs that run the human-move model (Maia3) on the graphics card, two predictions running at once never finished, freezing analysis a few moves in. Predictions now run one at a time, and if the graphics card stops responding the site switches to the CPU after 15 seconds.',
+      ]],
       ['Hall of fame', [
         '<b>What type are famous players?</b> We analyzed about 6,500 public Chess.com games from 15 players with the same method used for your games: eight elite GMs including Carlsen, Hikaru and Caruana, four streamers including GothamChess and Eric Rosen, and the Korean creators ssgssg2, ChessMakta and chessinside.',
         'Each page shows the headline type (blitz), types by time control, standout traits against same-rated players, a signature move for every letter with a link to the game, and favorite openings. Use <b>Compare my type</b> to line up your type with a favorite player. Find it under <b>Learn → Hall of fame</b>.',
