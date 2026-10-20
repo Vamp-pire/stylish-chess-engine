@@ -10,6 +10,7 @@ import type { Key } from 'chessground/types';
 import { SAMPLES } from './samples';
 import { AnalysisRun, getEngine } from './ui/runner';
 import { enginesInUse } from './engine/browser';
+import { readChesscomRef, findChesscomGame, type ChesscomRef } from './online/chesscomGame';
 import { humanStatus, onHumanStatus } from './human/browser';
 import { typeSection, shareType } from './ui/typeCard';
 import { chessTypeOf, peerStats, peerGroupPct, PEER_GROUPS, PEER_METRICS, ratingOf, type PeerMetric } from './core/chessType';
@@ -1449,15 +1450,29 @@ function renderCompare() {
 }
 
 function renderBookmarklet() {
-  app.innerHTML = `${viewHero(tr('Lichess 북마클릿', 'Lichess bookmarklet'), tr('Lichess에서 게임을 보다가 즐겨찾기 버튼 하나만 누르면, 그 판이 바로 Stylish로 와서 분석돼요. PC 브라우저에서 쓸 수 있어요.', 'While viewing a Lichess game, click one bookmark and that game opens in Stylish for analysis. Works in desktop browsers.'))}
+  app.innerHTML = `${viewHero(tr('브라우저 버튼', 'Browser button'), tr('Chess.com·Lichess에서 게임이 끝난 뒤 버튼 하나만 누르면, 그 판이 바로 Stylish로 와서 분석돼요. PC 브라우저용이에요.', 'After a game on Chess.com or Lichess, one click opens it in Stylish for analysis. For desktop browsers.'))}
     <div class="card card-pad bookmarklet-card">
+      <p class="fairplay"><b>${tr('끝난 게임만 분석해요.', 'Finished games only.')}</b> ${tr('대국 중에 외부 분석을 보는 건 Chess.com·Lichess 공정 플레이 규칙 위반이라, 진행 중인 대국에서는 버튼이 나오지 않아요.', "Looking at outside analysis during a game breaks Chess.com and Lichess fair-play rules, so the button never appears in a game that is still going.")}</p>
+      <h2>${tr('1. 확장 프로그램 (크롬·엣지)', '1. Browser extension (Chrome, Edge)')}</h2>
+      <p class="faint">${tr('끝난 게임 화면 오른쪽 아래에 "Stylish로 분석" 버튼이 저절로 떠요. 가장 편해요.', 'An "Analyze in Stylish" button appears at the bottom right of finished games. The easiest option.')}</p>
+      <ol class="steps">
+        <li>${tr('아래 파일을 받아 압축을 풀어요.', 'Download the file below and unzip it.')} <a class="btn" href="/downloads/stylish-extension.zip" data-track="ext_download">${tr('확장 프로그램 받기 (zip)', 'Download extension (zip)')}</a></li>
+        <li>${tr('주소창에 <code>chrome://extensions</code> (엣지는 <code>edge://extensions</code>)를 열고 <b>개발자 모드</b>를 켜요.', 'Open <code>chrome://extensions</code> (Edge: <code>edge://extensions</code>) and turn on <b>Developer mode</b>.')}</li>
+        <li>${tr('<b>압축해제된 확장 프로그램 로드</b>를 눌러 압축을 푼 <code>stylish-extension</code> 폴더를 골라요.', 'Click <b>Load unpacked</b> and pick the unzipped <code>stylish-extension</code> folder.')}</li>
+      </ol>
+      <p class="faint">${tr('스토어를 거치지 않는 베타라 자동 업데이트가 안 돼요. 새 버전이 나오면 패치노트에서 알려 드려요. 권한은 Chess.com·Lichess 페이지에서만 동작하는 것 하나이고, 아무 정보도 모으지 않아요.', 'This is a beta outside the store, so it does not auto-update; new versions are announced in the updates page. It only runs on Chess.com and Lichess pages and collects nothing.')}</p>
+      <h2>${tr('2. Tampermonkey', '2. Tampermonkey')}</h2>
+      <p class="faint">${tr('Tampermonkey(또는 Violentmonkey)를 쓰고 있다면 아래를 누르면 설치 화면이 떠요. 확장 프로그램과 같은 버튼이에요.', 'If you use Tampermonkey (or Violentmonkey), click below to install. Same button as the extension.')}</p>
+      <p><a class="btn" href="/stylish.user.js" data-track="userscript_install">${tr('Tampermonkey 스크립트 설치', 'Install the Tampermonkey script')}</a></p>
+      <h2>${tr('3. 북마클릿 (설치 없이)', '3. Bookmarklet (no install)')}</h2>
       <ol class="steps">
         <li>${tr('즐겨찾기 줄을 켜세요 (Chrome·Edge: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, Mac은 <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>).', 'Show your bookmarks bar (Chrome/Edge: <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>, Mac: <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>).')}</li>
         <li>${tr('아래 버튼을 마우스로 끌어다 즐겨찾기 줄에 놓으세요.', 'Drag the button below onto the bookmarks bar.')}</li>
-        <li>${tr('Lichess에서 게임 화면을 열고 즐겨찾기 줄의 버튼을 누르면 끝이에요.', 'Open a game on Lichess and click the bookmark.')}</li>
+        <li>${tr('Chess.com이나 Lichess의 끝난 게임 화면에서 즐겨찾기 줄의 버튼을 눌러요.', 'Click the bookmark on a finished Chess.com or Lichess game.')}</li>
       </ol>
       <p><a class="btn primary bookmarklet" href="${esc(BOOKMARKLET)}" onclick="return false" draggable="true">♞ ${tr('Stylish로 보기', 'Open in Stylish')}</a></p>
-      <p class="faint">${tr('버튼을 눌러도 여기서는 아무 일도 일어나지 않아요. 즐겨찾기 줄에 놓은 뒤 Lichess에서 눌러 주세요. 휴대폰 브라우저는 지원하지 않아요.', 'Clicking it here does nothing; drop it on the bookmarks bar and use it on Lichess. Mobile browsers are not supported.')}</p>
+      <p class="faint">${tr('여기서 누르면 아무 일도 일어나지 않아요. 즐겨찾기 줄에 놓은 뒤 게임 화면에서 눌러 주세요. 예전에 받은 Lichess 북마클릿은 이걸로 바꾸면 Chess.com도 돼요.', 'Clicking it here does nothing; drop it on the bookmarks bar and use it on a game page. Replace an older Lichess-only bookmarklet with this one to add Chess.com.')}</p>
+      <p class="faint">${tr('휴대폰은 아직 지원하지 않아요. 휴대폰에서는 게임 링크를 복사해 분석 화면에 붙여 넣는 방법을 준비 중이에요.', 'Phones are not supported yet; pasting a game link into the analysis page is coming.')}</p>
     </div>`;
 }
 
@@ -1554,7 +1569,8 @@ function renderPlayers() {
 /** 아이디 고정 주소 (/u/사이트/아이디) */
 const pinUrl = (source: string, user: string) => `${location.origin}/u/${source === 'chesscom' ? 'chesscom' : 'lichess'}/${encodeURIComponent(user)}`;
 /** 북마클릿: Lichess 게임 화면의 주소를 Stylish 분석으로 넘긴다 (다른 사이트에서는 안내만) */
-const BOOKMARKLET = `javascript:(()=>{const u=location.href;if(!/^https:\/\/lichess\.org\/[a-zA-Z0-9]{8}/.test(u)){alert('Lichess 게임 화면에서 눌러 주세요 / Use this on a Lichess game page');return}open('${location.origin}/app?link='+encodeURIComponent(u))})()`;
+// String.raw: 정규식의 백슬래시(\/ \d)가 템플릿 문자열에서 사라지지 않게
+const BOOKMARKLET = String.raw`javascript:(async()=>{const S='${location.origin}',L=location,w=open('about:blank');const go=(u)=>{w?w.location.href=u:L.assign(u)},no=(m)=>{w&&w.close();alert(m)};try{if(/(^|\.)chess\.com$/.test(L.hostname)){const m=L.pathname.match(/\/game\/(live|daily)\/(\d+)/);if(m){const g=(await(await fetch('/callback/'+m[1]+'/game/'+m[2])).json()).game;if(!g.isFinished)return no('끝난 게임에서 눌러 주세요 / Finished games only');const h=g.pgnHeaders||{};return go(S+'/app?'+new URLSearchParams({cc:m[2],ccw:h.White||'',ccb:h.Black||'',cct:g.endTime||'',ref:'bm'}))}}if(L.hostname==='lichess.org'){const m=L.pathname.match(/^\/([a-zA-Z0-9]{8})(\/|$)/);if(m){const g=await(await fetch('/game/export/'+m[1]+'?moves=false',{headers:{Accept:'application/json'}})).json();if(g.status==='started'||g.status==='created')return no('끝난 게임에서 눌러 주세요 / Finished games only');return go(S+'/app?link='+encodeURIComponent('https://lichess.org/'+m[1])+'&ref=bm')}}}catch(e){}no('Chess.com·Lichess의 끝난 게임 화면에서 눌러 주세요 / Use this on a finished Chess.com or Lichess game')})()`;
 
 /** 프로필 상세 위: 다시 와서 할 일 (유형 변화, 이번 주 연습, 새 게임 분석) */
 function returnCard(p: SavedPlayer, games: SavedGame[]) {
@@ -1589,7 +1605,7 @@ function returnCard(p: SavedPlayer, games: SavedGame[]) {
     ${online ? `<div class="return-row"><div><b>${tr('내 고정 주소', 'My permanent link')}</b>
         <span class="faint">${tr('즐겨찾기 해 두면 열 때마다 새로 둔 게임만 바로 분석해요.', 'Bookmark it: every time you open it, only your new games are analyzed.')}</span></div>
         <div class="row-gap"><code class="pin-url">${esc(pinUrl(p.source, p.name))}</code><button class="ghost small" data-copy="${esc(pinUrl(p.source, p.name))}">${tr('복사', 'Copy')}</button></div></div>
-      <div class="return-row bookmarklet-row"><div><b>${tr('Lichess 북마클릿 (PC)', 'Lichess bookmarklet (PC)')}</b>
+      <div class="return-row bookmarklet-row"><div><b>${tr('브라우저 버튼 (PC)', 'Browser button (PC)')}</b>
         <span class="faint">${tr('아래 버튼을 브라우저 즐겨찾기 줄로 끌어다 놓으세요. Lichess에서 게임을 보다가 누르면 그 판이 바로 Stylish로 와서 분석돼요.', 'Drag the button to your bookmarks bar. Click it while viewing a Lichess game to analyze that game in Stylish.')}</span></div>
         <a class="btn bookmarklet" href="${esc(BOOKMARKLET)}" onclick="return false" draggable="true">♞ ${tr('Stylish로 보기', 'Open in Stylish')}</a></div>` : ''}
   </div>`;
@@ -1682,6 +1698,20 @@ function rerenderProfiles() {
 }
 
 /** 첫 화면(유형 소개)에서 넘어온 요청: /app?source=lichess&user=… 이면 바로 게임 목록, ?view=coach 등은 그 메뉴로 */
+/** 확장 프로그램 등에서 넘겨받은 Chess.com 게임 (readEntryQuery → openChesscomGame) */
+let pendingChesscom: ChesscomRef | null = null;
+
+/** Chess.com 게임 번호로 판을 찾아 분석. 아직 공개 기록에 없으면 안내 */
+async function openChesscomGame(ref: ChesscomRef) {
+  app.insertAdjacentHTML('afterbegin', `<div class="vs-banner" id="cc-loading"><b>${tr('Chess.com에서 게임을 불러오는 중…', 'Loading the game from Chess.com…')}</b></div>`);
+  const pgn = await findChesscomGame(ref).catch(() => null);
+  $('#cc-loading')?.remove();
+  if (pgn) { startAnalysis(pgn); return; }
+  track('chesscom_game_missing');
+  state.inputError = tr('Chess.com 공개 기록에서 이 게임을 아직 찾지 못했어요. 방금 끝난 게임이면 1~2분 뒤 다시 눌러 주세요.', "This game isn't in Chess.com's public records yet. If it just ended, try again in a minute or two.");
+  renderInput();
+}
+
 function readEntryQuery() {
   const q = new URLSearchParams(location.search);
   const view = q.get('view');
@@ -1701,7 +1731,7 @@ function readEntryQuery() {
   const vs = q.get('vs') ? decodeVs(q.get('vs')!) : null;
   if (vs) { saveVs(vs); saveFriend(vs); if (!q.get('source')) state.tab = 'lichessUser'; }
   const source = q.get('source'), user = q.get('user')?.trim();
-  let entry: 'list' | 'pinned' | 'link' | null = null;
+  let entry: 'list' | 'pinned' | 'link' | 'chesscom' | null = null;
   if ((source === 'lichess' || source === 'chesscom') && user) {
     // 아이디 고정 주소(/u/…): 이미 분석한 아이디면 프로필로 가서 새 게임만 바로 분석
     const saved = q.get('pin') === '1' ? getPlayer(playerKey(source, user)) : null;
@@ -1717,6 +1747,9 @@ function readEntryQuery() {
   // 북마클릿: Lichess 게임 화면에서 누르면 그 판을 바로 분석
   const link = q.get('link');
   if (!entry && link && /^https:\/\/lichess\.org\/[a-zA-Z0-9]{8}/.test(link)) { state.tab = 'lichess'; state.lichessUrl = link; entry = 'link'; track('bookmarklet_open'); }
+  // 확장 프로그램·Tampermonkey·북마클릿: Chess.com 게임 화면에서 누르면 그 판을 찾아 바로 분석
+  const cc = !entry ? readChesscomRef(q) : null;
+  if (cc) { pendingChesscom = cc; state.tab = 'paste'; entry = 'chesscom'; track('chesscom_game_open'); }
   // 주소는 정리하되, 새로고침해도 같은 화면이 나오도록 화면(view)·그룹 코드는 남긴다
   if (q.size) history.replaceState(null, '', location.pathname + (state.view === 'group' ? `?g=${state.groupCode}` : URL_VIEWS.includes(state.view) ? `?view=${state.view}` : '') + location.hash);
   return entry;
@@ -1754,6 +1787,7 @@ setMenuActive();
 render();
 if (entry === 'pinned') { const p = state.playerKey ? getPlayer(state.playerKey) : null; if (p) updateGames(p); }
 if (entry === 'link') onGo();
+if (entry === 'chesscom' && pendingChesscom) openChesscomGame(pendingChesscom);
 // 첫 화면·아이디 주소에서 왔으면 최근 10판을 미리 골라 둔다 (버튼 한 번이면 종합 분석 → 체스 유형)
 if (entry === 'list') loadMore().then(() => {
   const a = state.account;

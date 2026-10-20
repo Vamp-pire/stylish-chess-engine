@@ -11,7 +11,7 @@ export const MENU = [
     { ko: '아이디로 분석', en: 'Analyze a username', dko: 'Chess.com·Lichess 최근 게임으로 내 유형 알아보기', den: 'Find your type from recent Chess.com or Lichess games', href: (l) => app(l, 'tab=user'), view: 'analyze', tab: 'lichessUser' },
     { ko: '기보(PGN) 분석', en: 'Analyze a PGN', dko: '기보를 붙여넣어 한 판의 모든 수를 평가', den: 'Paste a game and rate every move', href: (l) => app(l, 'tab=pgn'), view: 'analyze', tab: 'paste' },
     { ko: '유형 비교', en: 'Compare types', dko: '친구에게 비교 링크를 보내 나란히 보기', den: 'Send a friend a link and see your types side by side', href: (l) => app(l, 'view=compare'), view: 'compare' },
-    { ko: 'Lichess 북마클릿', en: 'Lichess bookmarklet', dko: '보고 있던 Lichess 게임을 버튼 한 번에 분석 (PC)', den: 'Analyze the Lichess game you are viewing in one click (PC)', href: (l) => app(l, 'view=bookmarklet'), view: 'bookmarklet', isNew: true },
+    { ko: '브라우저 버튼', en: 'Browser button', dko: 'Chess.com·Lichess 끝난 게임에서 버튼 한 번에 분석 (PC)', den: 'Analyze a finished Chess.com or Lichess game in one click (PC)', href: (l) => app(l, 'view=bookmarklet'), view: 'bookmarklet', isNew: true },
   ] },
   { key: 'records', ko: '내 기록', en: 'My records', items: [
     { ko: '내 프로필', en: 'My profiles', dko: '저장한 플레이어와 쌓인 유형·정확도', den: 'Saved players with their combined type and accuracy', href: (l) => app(l, 'view=players'), view: 'players' },

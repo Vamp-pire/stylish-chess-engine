@@ -506,6 +506,7 @@ write('/privacy', page({
 <li><b>오늘의 유형 맞히기</b>: 문제 번호, 몇 번 만에 풀었는지, 맞혔는지 여부(전체 통계용). 익명 ID당 하루 한 번만 기록되고 90일이 지나면 자동으로 지워집니다.</li>
 </ul></li>
 <li><b>Cloudflare Turnstile</b>: 위 기능들을 처음 쓸 때 사람인지 확인합니다(대부분 보이지 않게 자동 통과). Cloudflare의 개인정보처리방침(<a href="https://www.cloudflare.com/privacypolicy/">cloudflare.com/privacypolicy</a>)이 적용됩니다.</li>
+<li><b>브라우저 버튼(확장 프로그램·Tampermonkey·북마클릿)</b>: Chess.com·Lichess 게임 화면에서만 동작하며, 그 게임이 끝났는지와 게임 번호·두 플레이어 아이디만 그 사이트에서 읽어 Stylish 분석 주소를 만듭니다. 아무 정보도 따로 저장하거나 보내지 않습니다.</li>
 <li><b>Microsoft Clarity</b>: 사이트를 더 쓰기 편하게 고치기 위해, 페이지에서의 클릭·스크롤·이동 같은 이용 행태를 익명으로 기록하고 분석합니다. 이를 위해 쿠키를 사용합니다. 입력한 글자(아이디 등)는 기록하지 않도록 가려지며, Microsoft의 개인정보처리방침(<a href="https://privacy.microsoft.com/privacystatement">privacy.microsoft.com</a>)이 적용됩니다. 브라우저에서 쿠키를 차단하면 수집되지 않습니다.</li>
 <li><b>Google Forms</b>: 문의 양식을 이용하면 입력한 내용이 Google Forms에 저장됩니다. 연락처는 선택 항목입니다.</li>
 </ul>
@@ -732,6 +733,7 @@ write('/en/privacy', page({
 <li><b>Daily type guess</b>: the puzzle number, how many tries you took and whether you solved it (for global stats). One record per anonymous ID per day, deleted automatically after 90 days.</li>
 </ul></li>
 <li><b>Cloudflare Turnstile</b>: checks that you are human the first time you use those features (usually invisible). Cloudflare's privacy policy (<a href="https://www.cloudflare.com/privacypolicy/">cloudflare.com/privacypolicy</a>) applies.</li>
+<li><b>Browser button (extension, Tampermonkey, bookmarklet)</b>: runs only on Chess.com and Lichess game pages and reads just whether the game has ended, the game number and the two usernames from that site to build a Stylish analysis link. It stores and sends nothing else.</li>
 <li><b>Microsoft Clarity</b>: to make the site easier to use, we record and analyze how pages are used (clicks, scrolling, navigation) anonymously. It uses cookies. Text you type (such as usernames) is masked, and Microsoft's privacy statement (<a href="https://privacy.microsoft.com/privacystatement">privacy.microsoft.com</a>) applies. Blocking cookies in your browser stops this collection.</li>
 <li><b>Google Forms</b>: if you use the contact form, what you enter is stored in Google Forms. Contact details are optional.</li>
 </ul>

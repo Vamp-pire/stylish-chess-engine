@@ -2,6 +2,23 @@
 // 방문자에게 보이는 글이라 개발 용어 대신 무엇이 달라졌는지만 쓴다.
 export const UPDATES = [
   {
+    date: '2026-10-20',
+    ko: [
+      ['브라우저 버튼 (PC)', [
+        '<b>Chess.com에서도 버튼 한 번으로 분석</b>: Chess.com·Lichess의 끝난 게임 화면에 "Stylish로 분석" 버튼을 띄우는 <b>확장 프로그램</b>과 <b>Tampermonkey 스크립트</b>를 만들었어요. 메뉴 <b>분석 → 브라우저 버튼</b>에서 받을 수 있어요.',
+        '북마클릿도 Chess.com을 지원해요. 예전 북마클릿은 일부 브라우저에서 동작하지 않던 문제가 있어서 고쳤어요. 새로 끌어다 놓아 주세요.',
+        '공정 플레이 규칙을 지키려고 <b>진행 중인 대국에서는 버튼이 나오지 않아요</b>. 게임이 끝난 뒤에만 분석할 수 있어요.',
+      ]],
+    ],
+    en: [
+      ['Browser button (PC)', [
+        '<b>One-click analysis on Chess.com too</b>: a <b>browser extension</b> and a <b>Tampermonkey script</b> add an "Analyze in Stylish" button to finished games on Chess.com and Lichess. Get them under <b>Analyze → Browser button</b>.',
+        'The bookmarklet now supports Chess.com as well, and a bug that stopped the old one from working in some browsers is fixed. Please drag the new one to your bookmarks bar.',
+        'To respect fair-play rules, <b>the button never appears during a game</b>. Analysis is for finished games only.',
+      ]],
+    ],
+  },
+  {
     date: '2026-10-17',
     ko: [
       ['고친 점', [

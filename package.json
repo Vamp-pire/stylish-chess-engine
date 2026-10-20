@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/split-ort-gpu.mjs && vite",
-    "build": "node scripts/split-ort-gpu.mjs && tsc --noEmit && vite build && node scripts/build-pages.mjs",
+    "build": "node scripts/split-ort-gpu.mjs && tsc --noEmit && vite build && node scripts/build-pages.mjs && node scripts/build-extension.mjs",
     "check:scenes": "tsx scripts/check-scenes.mts",
     "images": "node scripts/build-type-images.mjs",
     "preview": "vite preview",

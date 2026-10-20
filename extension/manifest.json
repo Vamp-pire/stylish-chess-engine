@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Stylish — chess style analysis button",
+  "version": "1.0.0",
+  "description": "Adds an \"Analyze in Stylish\" button to finished games on Chess.com and Lichess. Finished games only; collects no data.",
+  "homepage_url": "https://stylish-chess-engine.pages.dev/",
+  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.chess.com/*", "https://chess.com/*", "https://lichess.org/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

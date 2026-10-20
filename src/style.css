@@ -653,3 +653,6 @@ kbd { padding: 1px 6px; border: 1px solid var(--border); border-bottom-width: 2p
 .dg-dist i.me { background: var(--accent); }
 .dg-dist em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 860px) { .dg { grid-template-columns: minmax(0, 1fr); } }
+
+.bookmarklet-card h2 { font-size: 18px; margin: 22px 0 6px; }
+.bookmarklet-card .fairplay { padding: 10px 14px; border-radius: 10px; background: var(--accent-soft); }
